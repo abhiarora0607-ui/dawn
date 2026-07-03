@@ -41,10 +41,10 @@ export default function Home() {
                 Get early access
               </a>
               <a
-                href="#how"
+                href="/dashboard"
                 className="inline-flex items-center justify-center border border-navy/15 text-navy font-medium px-6 py-3 rounded-xl hover:border-navy/30 transition-colors"
               >
-                See how it works
+                See a live demo
               </a>
             </div>
             <p className="mt-4 text-xs text-navy/40">Free while in beta · Built for creators, brands & agencies</p>
