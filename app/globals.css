@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --dawn-glow: radial-gradient(
+    120% 80% at 50% 0%,
+    rgba(255, 158, 67, 0.18) 0%,
+    rgba(255, 122, 47, 0.06) 35%,
+    rgba(255, 255, 255, 0) 70%
+  );
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
