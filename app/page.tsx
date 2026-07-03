@@ -1,4 +1,5 @@
 import BriefingDemo from "@/components/BriefingDemo";
+import WaitlistForm from "@/components/WaitlistForm";
 import { DawnLogo } from "@/components/DawnLogo";
 import { Sunrise, Brain, Eye, PenLine, Check } from "lucide-react";
 
@@ -128,21 +129,7 @@ export default function Home() {
           <p className="mt-4 text-white/60 text-lg">
             Dawn is in early access. Join the waitlist and be first to wake up to your briefing.
           </p>
-          <form className="mt-8 flex flex-col sm:flex-row gap-3 max-w-md mx-auto" action="#" method="post">
-            <input
-              type="email"
-              required
-              placeholder="you@brand.com"
-              className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/15 text-white placeholder:text-white/40 focus:outline-none focus:border-amber"
-            />
-            <button
-              type="submit"
-              className="bg-amber text-navy font-semibold px-6 py-3 rounded-xl hover:bg-amber-deep hover:text-white transition-colors"
-            >
-              Join waitlist
-            </button>
-          </form>
-          <p className="mt-3 text-white/30 text-xs">No spam. Just your spot in line.</p>
+          <WaitlistForm />
         </div>
       </section>
 
