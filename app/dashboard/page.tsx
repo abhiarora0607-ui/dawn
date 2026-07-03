@@ -111,6 +111,12 @@ export default function Dashboard() {
           <span className="text-xs text-navy/40 hidden sm:block">
             {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
           </span>
+          <a
+            href="/api/instagram/connect"
+            className="ml-4 text-xs font-semibold bg-amber text-navy px-4 py-2 rounded-lg hover:bg-amber-deep hover:text-white transition-colors"
+          >
+            Connect Instagram
+          </a>
         </div>
 
         {loading ? (
@@ -212,6 +218,7 @@ export default function Dashboard() {
             </div>
 
             {/* Competitor intelligence */}
+            {data.competitors.length > 0 && (
             <section className="bg-white rounded-2xl border border-navy/8 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold text-navy/50 uppercase tracking-wide">Competitor signals</h2>
@@ -235,9 +242,11 @@ export default function Dashboard() {
                 ))}
               </div>
             </section>
-
+            )}
             <p className="text-center text-xs text-navy/30 py-4">
-              Dawn refreshes your briefing every morning. This is a live demo on sample data.
+              {data.account.niche === "Your account"
+                ? "Connected to your Instagram. Dawn refreshes your briefing every morning."
+                : "Dawn refreshes your briefing every morning. This is a live demo on sample data — connect Instagram to see yours."}
             </p>
           </div>
         ) : (

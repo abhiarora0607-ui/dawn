@@ -138,6 +138,11 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <DawnLogo className="h-6" />
           <p className="text-navy/40 text-xs">© {new Date().getFullYear()} Dawn · Wake up knowing what to do.</p>
+          <div className="flex gap-4 text-xs text-navy/40">
+            <a href="/privacy" className="hover:text-navy/70">Privacy</a>
+            <a href="/data-deletion" className="hover:text-navy/70">Data deletion</a>
+            <a href="/dashboard" className="hover:text-navy/70">Live demo</a>
+          </div>
         </div>
       </footer>
     </main>
