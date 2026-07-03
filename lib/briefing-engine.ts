@@ -82,6 +82,11 @@ function ruleBasedBrief(a: AccountSnapshot, comps: CompetitorSignal[]): Brief {
 }
 
 // ── Gemini-powered brief (free tier) ────────────────────────
+// Model list is ordered by preference. If Google deprecates one,
+// the next is tried automatically so the AI path can't silently
+// fall back to rules over a single retired model name.
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
+
 async function aiBrief(a: AccountSnapshot, comps: CompetitorSignal[]): Promise<Brief | null> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return null;
@@ -96,24 +101,29 @@ Return exactly this JSON shape:
 
 Rules: 3-5 actions, ordered by priority. Be specific and decisive — tell them exactly what to do, never "consider maybe". Reference their real numbers.`;
 
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+  for (const model of GEMINI_MODELS) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        }
+      );
+      if (!res.ok) continue; // try next model (e.g. 404 on a retired name)
+      const data = await res.json();
+      const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      if (parsed && Array.isArray(parsed.actions)) {
+        return { ...parsed, source: "ai" as const };
       }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    const clean = text.replace(/```json|```/g, "").trim();
-    const parsed = JSON.parse(clean);
-    return { ...parsed, source: "ai" as const };
-  } catch {
-    return null;
+    } catch {
+      continue; // try next model
+    }
   }
+  return null;
 }
 
 export async function generateBrief(a: AccountSnapshot, comps: CompetitorSignal[]): Promise<Brief> {
