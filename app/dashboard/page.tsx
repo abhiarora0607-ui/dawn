@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { DawnLogo } from "@/components/DawnLogo";
+import { DashboardShell } from "@/components/DashboardShell";
+import { DashTopbar } from "@/components/DashTopbar";
 import {
-  Sunrise, LayoutDashboard, Users, PenLine, MessageSquare,
-  Settings, TrendingUp, TrendingDown, ArrowRight, Loader2,
-  Sparkles, Trophy, AlertTriangle, Eye, Bookmark, Clock, Target,
+  TrendingUp, TrendingDown, Loader2,
+  Sparkles, Trophy, AlertTriangle, Eye, Bookmark, Clock, Target, Users,
 } from "lucide-react";
 
 type BriefAction = { priority: "high" | "medium" | "low"; title: string; detail: string };
@@ -30,16 +29,6 @@ const priorityStyles: Record<string, string> = {
 
 function fmt(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
-}
-
-function NavItem({ icon: Icon, label, active = false }: { icon: any; label: string; active?: boolean }) {
-  return (
-    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-colors ${active ? "bg-navy text-white" : "text-navy/60 hover:bg-navy/5"}`}>
-      <Icon className="w-[18px] h-[18px]" />
-      <span>{label}</span>
-      {label === "Briefing" && <span className="ml-auto w-2 h-2 rounded-full bg-amber" />}
-    </div>
-  );
 }
 
 function StatCard({ label, value, change, unit = "", icon: Icon, invert = false }: { label: string; value: string; change?: number; unit?: string; icon: any; invert?: boolean }) {
@@ -72,52 +61,9 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-surface flex">
-      {/* Sidebar */}
-      <aside className="w-60 bg-white border-r border-navy/8 flex-col hidden lg:flex fixed h-screen">
-        <div className="px-5 h-16 flex items-center border-b border-navy/8">
-          <DawnLogo className="h-6" />
-        </div>
-        <nav className="p-3 space-y-1 flex-1">
-          <NavItem icon={LayoutDashboard} label="Briefing" active />
-          <NavItem icon={TrendingUp} label="Analytics" />
-          <NavItem icon={Users} label="Competitors" />
-          <NavItem icon={PenLine} label="Content" />
-          <NavItem icon={MessageSquare} label="Inbox" />
-          <NavItem icon={Settings} label="Settings" />
-        </nav>
-        <div className="p-3 border-t border-navy/8">
-          <Link href="/" className="flex items-center gap-2 px-3 py-2 text-xs text-navy/40 hover:text-navy/70">
-            <ArrowRight className="w-3.5 h-3.5 rotate-180" /> Back to site
-          </Link>
-        </div>
-      </aside>
-
-      {/* Main */}
-      <main className="flex-1 lg:ml-60">
-        {/* Topbar */}
-        <div className="h-16 bg-white border-b border-navy/8 flex items-center justify-between px-6 sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-amber/15 flex items-center justify-center">
-              <Sunrise className="w-5 h-5 text-amber-deep" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-navy leading-tight">
-                {data ? data.account.displayName : "Loading…"}
-              </p>
-              <p className="text-xs text-navy/50">{data ? `${data.account.handle} · ${data.account.niche}` : ""}</p>
-            </div>
-          </div>
-          <span className="text-xs text-navy/40 hidden sm:block">
-            {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
-          </span>
-          <a
-            href="/api/instagram/connect"
-            className="ml-4 text-xs font-semibold bg-amber text-navy px-4 py-2 rounded-lg hover:bg-amber-deep hover:text-white transition-colors"
-          >
-            Connect Instagram
-          </a>
-        </div>
+    <DashboardShell>
+      <main className="flex-1">
+        <DashTopbar account={data?.account} pageTitle="Briefing" />
 
         {loading ? (
           <div className="p-20 flex items-center justify-center text-navy/40">
@@ -253,6 +199,6 @@ export default function Dashboard() {
           <div className="p-20 text-center text-navy/40">Couldn&apos;t load the dashboard. Refresh to try again.</div>
         )}
       </main>
-    </div>
+    </DashboardShell>
   );
 }
