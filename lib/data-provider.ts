@@ -102,23 +102,32 @@ class InstagramGraphProvider implements DataProvider {
 
   private async ig(path: string, params: Record<string, string> = {}) {
     const qs = new URLSearchParams({ ...params, access_token: this.token }).toString();
-    const res = await fetch(`https://graph.instagram.com/${path}?${qs}`);
+    const res = await fetch(`https://graph.instagram.com/${path}?${qs}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`IG API ${res.status}`);
     return res.json();
   }
 
+  // Never throws — returns null on any failure so the dashboard still renders.
+  private async igSafe(path: string, params: Record<string, string> = {}) {
+    try {
+      return await this.ig(path, params);
+    } catch {
+      return null;
+    }
+  }
+
   async getAccount(): Promise<AccountSnapshot> {
-    // Profile basics
-    const me = await this.ig(this.igUserId, {
-      fields: "username,name,followers_count,media_count",
-    });
+    // Profile basics — /me works for the Instagram Login flow.
+    const me = (await this.igSafe("me", {
+      fields: "user_id,username,name,account_type,followers_count,media_count",
+    })) || {};
 
     // Recent media (for top/worst post + format signals)
-    const media = await this.ig(`${this.igUserId}/media`, {
+    const media = await this.igSafe("me/media", {
       fields: "caption,media_type,like_count,comments_count,timestamp,permalink",
       limit: "25",
     });
-    const posts: any[] = media.data || [];
+    const posts: any[] = media?.data || [];
 
     // Score posts by engagement to find best/worst
     const scored = posts.map((p) => ({
@@ -128,37 +137,32 @@ class InstagramGraphProvider implements DataProvider {
       likes: p.like_count || 0,
     }));
     scored.sort((a, b) => b.engagement - a.engagement);
-    const best = scored[0] || { caption: "—", format: "Reel", engagement: 0, likes: 0 };
-    const worst = scored[scored.length - 1] || { caption: "—", format: "Image", engagement: 0 };
+    const hasPosts = scored.length > 0;
+    const best = hasPosts ? scored[0] : { caption: "No posts yet", format: "Reel", engagement: 0, likes: 0 };
+    const worst = hasPosts ? scored[scored.length - 1] : { caption: "No posts yet", format: "Image", engagement: 0 };
 
     // Account-level insights (reach, profile views) — best effort
     let reach = 0;
     let profileVisits = 0;
-    try {
-      const insights = await this.ig(`${this.igUserId}/insights`, {
-        metric: "reach,profile_views",
-        period: "day",
-      });
-      for (const m of insights.data || []) {
-        const val = m.values?.[0]?.value || 0;
-        if (m.name === "reach") reach = val;
-        if (m.name === "profile_views") profileVisits = val;
-      }
-    } catch {
-      // Insights need 100+ followers / may be unavailable; degrade gracefully
+    const insights = await this.igSafe("me/insights", { metric: "reach,profile_views", period: "day" });
+    for (const m of insights?.data || []) {
+      const val = m.values?.[0]?.value || 0;
+      if (m.name === "reach") reach = val;
+      if (m.name === "profile_views") profileVisits = val;
     }
 
     const followers = me.followers_count || 0;
-    const engagementRate = followers > 0 && posts.length > 0
-      ? Number(((scored.reduce((s, p) => s + p.engagement, 0) / posts.length / followers) * 100).toFixed(1))
+    const engagementRate = followers > 0 && hasPosts
+      ? Number(((scored.reduce((s, p) => s + p.engagement, 0) / scored.length / followers) * 100).toFixed(1))
       : 0;
 
+    const username = me.username || "your account";
     return {
-      handle: `@${me.username}`,
-      displayName: me.name || me.username,
+      handle: `@${username}`,
+      displayName: me.name || username,
       niche: "Your account",
       followers,
-      followersChange: 0, // needs day-over-day history; starts at 0 until we snapshot daily
+      followersChange: 0,
       reach,
       reachChangePct: 0,
       profileVisits,

@@ -2,6 +2,9 @@
 // Starts the Instagram Login (OAuth) flow. Redirects the user to
 // Instagram's authorization screen. After they approve, Instagram
 // sends them back to /api/instagram/callback with a code.
+//
+// NOTE: Instagram OAuth uses the INSTAGRAM-specific app id (from the
+// Instagram product settings), which is different from the Meta app id.
 
 import { NextResponse } from "next/server";
 
@@ -19,7 +22,6 @@ export async function GET(req: Request) {
     );
   }
 
-  // Scopes for the Instagram API with Instagram Login (Business/Creator).
   const scope = [
     "instagram_business_basic",
     "instagram_business_manage_messages",
