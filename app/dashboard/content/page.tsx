@@ -24,7 +24,7 @@ export default function Content() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Content" />
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-navy">Content planner</h1>
@@ -36,7 +36,7 @@ export default function Content() {
         </div>
 
         {loading ? (
-          <div className="p-20 flex items-center justify-center text-navy/40"><Loader2 className="w-6 h-6 animate-spin mr-3" /> Generating ideas…</div>
+          <div className="p-10 sm:p-20 flex items-center justify-center text-navy/40"><Loader2 className="w-6 h-6 animate-spin mr-3" /> Generating ideas…</div>
         ) : ideas ? (
           <div className="grid md:grid-cols-2 gap-4">
             {ideas.map((idea, i) => {
@@ -59,7 +59,7 @@ export default function Content() {
             })}
           </div>
         ) : (
-          <div className="p-20 text-center text-navy/40">Couldn&apos;t generate ideas. Try again.</div>
+          <div className="p-10 sm:p-20 text-center text-navy/40">Couldn&apos;t generate ideas. Try again.</div>
         )}
       </div>
     </DashboardShell>

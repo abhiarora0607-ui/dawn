@@ -27,9 +27,9 @@ export default function Analytics() {
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Analytics" />
       {loading ? (
-        <div className="p-20 flex items-center justify-center text-navy/40"><Loader2 className="w-6 h-6 animate-spin mr-3" /> Crunching your numbers…</div>
+        <div className="p-10 sm:p-20 flex items-center justify-center text-navy/40"><Loader2 className="w-6 h-6 animate-spin mr-3" /> Crunching your numbers…</div>
       ) : data ? (
-        <div className="p-6 max-w-6xl mx-auto space-y-6">
+        <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
           <div>
             <h1 className="text-2xl font-bold text-navy">Analytics</h1>
             <p className="text-navy/50 text-sm mt-1">How your account is performing right now.</p>
@@ -98,7 +98,7 @@ export default function Analytics() {
           </p>
         </div>
       ) : (
-        <div className="p-20 text-center text-navy/40">Couldn&apos;t load analytics. Refresh to try again.</div>
+        <div className="p-10 sm:p-20 text-center text-navy/40">Couldn&apos;t load analytics. Refresh to try again.</div>
       )}
     </DashboardShell>
   );

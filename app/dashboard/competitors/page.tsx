@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief, fmt } from "@/lib/use-brief";
@@ -18,6 +18,15 @@ export default function Competitors() {
   const [results, setResults] = useState<Result[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [suggestions, setSuggestions] = useState<{ handle: string; why: string }[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/competitors").then((r) => r.json()).then((d) => {
+      setSuggestions(d.suggestions || []);
+      setLoadingSuggestions(false);
+    }).catch(() => setLoadingSuggestions(false));
+  }, []);
 
   function addHandle() {
     const h = input.replace("@", "").trim();
@@ -48,11 +57,45 @@ export default function Competitors() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Competitors" />
-      <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-navy">Competitor analysis</h1>
           <p className="text-navy/50 text-sm mt-1">Add competitor handles. Dawn analyzes their public data and tells you what&apos;s working.</p>
         </div>
+
+        {/* AI suggestions */}
+        {(loadingSuggestions || suggestions.length > 0) && (
+          <div className="bg-white rounded-2xl border border-navy/8 p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-amber-deep" />
+              <p className="text-xs font-semibold text-navy/50 uppercase tracking-wide">AI-suggested competitors</p>
+            </div>
+            {loadingSuggestions ? (
+              <div className="flex items-center text-navy/40 text-sm py-2"><Loader2 className="w-4 h-4 animate-spin mr-2" /> Finding accounts in your niche…</div>
+            ) : (
+              <div className="space-y-2">
+                {suggestions.map((sug) => {
+                  const added = handles.includes(sug.handle);
+                  return (
+                    <div key={sug.handle} className="flex items-center gap-3 p-3 rounded-xl border border-navy/8">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-navy">@{sug.handle}</p>
+                        <p className="text-xs text-navy/55 leading-snug">{sug.why}</p>
+                      </div>
+                      <button
+                        onClick={() => !added && handles.length < 5 && setHandles([...handles, sug.handle])}
+                        disabled={added || handles.length >= 5}
+                        className={`text-xs font-medium px-3 py-1.5 rounded-lg shrink-0 transition-colors ${added ? "bg-emerald-50 text-emerald-700" : "bg-navy text-white hover:bg-navy-soft disabled:opacity-40"}`}
+                      >
+                        {added ? "Added" : "Add"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Add handles */}
         <div className="bg-white rounded-2xl border border-navy/8 p-5">

@@ -38,3 +38,11 @@ html {
     scroll-behavior: auto;
   }
 }
+
+@keyframes slidein {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+/* Smooth mobile scrolling and prevent horizontal overflow */
+body { overflow-x: hidden; }

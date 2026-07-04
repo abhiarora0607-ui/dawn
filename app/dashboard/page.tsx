@@ -66,11 +66,11 @@ export default function Dashboard() {
         <DashTopbar account={data?.account} pageTitle="Briefing" />
 
         {loading ? (
-          <div className="p-20 flex items-center justify-center text-navy/40">
+          <div className="p-10 sm:p-20 flex items-center justify-center text-navy/40">
             <Loader2 className="w-6 h-6 animate-spin mr-3" /> Reading your account…
           </div>
         ) : data ? (
-          <div className="p-6 max-w-6xl mx-auto space-y-6">
+          <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
             {/* Briefing hero */}
             <section className="bg-navy rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-amber/10 rounded-full blur-3xl -mr-20 -mt-20" />
@@ -196,7 +196,7 @@ export default function Dashboard() {
             </p>
           </div>
         ) : (
-          <div className="p-20 text-center text-navy/40">Couldn&apos;t load the dashboard. Refresh to try again.</div>
+          <div className="p-10 sm:p-20 text-center text-navy/40">Couldn&apos;t load the dashboard. Refresh to try again.</div>
         )}
       </main>
     </DashboardShell>

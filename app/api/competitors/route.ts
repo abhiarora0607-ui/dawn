@@ -31,9 +31,11 @@ async function getToken(): Promise<{ token: string; igUserId: string } | null> {
 async function aiInsight(handle: string, data: any): Promise<string> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return "Connect AI to see what's working for this account.";
-  const prompt = `You are analyzing a competitor's public Instagram data for a creator. In ONE punchy sentence, say what's working for them and what the creator should learn. Be specific.
+  const prompt = `You are Dawn — a competitive intelligence strategist for Instagram creators. You're analyzing a competitor's PUBLIC data to give this creator one sharp, actionable takeaway they can use this week. Think like a strategist, not a describer.
 
-Competitor @${handle}: ${JSON.stringify(data)}`;
+COMPETITOR @${handle}: ${JSON.stringify(data)}
+
+Write ONE punchy sentence (max 30 words) that identifies what's actually working for this competitor AND what the creator should specifically do about it. Be concrete — name the tactic (their posting cadence, format mix, hook style, or engagement pattern) and the move to steal. No fluff, no "they seem to be doing well."`;
   for (const model of MODELS) {
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
@@ -47,6 +49,51 @@ Competitor @${handle}: ${JSON.stringify(data)}`;
     } catch { continue; }
   }
   return "Public data retrieved — see their recent activity above.";
+}
+
+export async function GET() {
+  // AI suggests competitor handles based on the connected account's niche/bio.
+  const conn = await getToken();
+  const key = process.env.GEMINI_API_KEY;
+  if (!conn || !key) {
+    return NextResponse.json({ suggestions: [] });
+  }
+  // Get the account's own profile for context
+  let profile: any = {};
+  try {
+    const meRes = await fetch(`https://graph.instagram.com/me?fields=username,name,biography,followers_count&access_token=${conn.token}`, { cache: "no-store" });
+    profile = await meRes.json();
+  } catch {}
+
+  const prompt = `You are Dawn — an Instagram strategist who knows the creator landscape across every niche and region. This creator wants to track competitors and adjacent accounts to learn from. Suggest 5 real, active, PUBLIC Instagram accounts they should watch. Respond with JSON only — no markdown.
+
+THIS ACCOUNT: username=${profile.username}, name=${profile.name}, bio=${profile.biography || "unknown"}, followers=${profile.followers_count}
+
+Return exactly: {"suggestions":[{"handle":"username_without_at","why":"one specific reason this account is worth tracking for THIS creator"}]}
+
+RULES:
+- 5 real accounts that genuinely exist and are public — well-known creators/brands in the same or adjacent niche.
+- Prefer accounts a tier or two ahead in size (aspirational but learnable-from), plus 1-2 direct peers.
+- Match their niche AND region/language where the bio suggests one.
+- The "why" must be specific to what this creator can learn (their Reel style, their community tactics, their aesthetic), not generic praise.
+- Handles only, no @ symbol, no made-up accounts.`;
+
+  for (const model of MODELS) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+      });
+      if (!res.ok) continue;
+      const d = await res.json();
+      const t = d?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const parsed = JSON.parse(t.replace(/```json|```/g, "").trim());
+      if (parsed?.suggestions?.length) {
+        return NextResponse.json({ suggestions: parsed.suggestions.slice(0, 5) });
+      }
+    } catch { continue; }
+  }
+  return NextResponse.json({ suggestions: [] });
 }
 
 export async function POST(req: Request) {

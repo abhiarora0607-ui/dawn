@@ -64,30 +64,26 @@ export async function POST(req: Request) {
   const imagePart = { inline_data: { mime_type: mimeType, data: imageBase64 } };
 
   // One combined call: analysis + captions + hashtags + enhancement advice
-  const prompt = `You are Dawn, an AI photo & content assistant for Instagram creators. Analyze this image and respond with JSON only (no markdown).
+  const prompt = `You are Dawn — a world-class Instagram creative director who combines the eye of a professional photographer, the instincts of a viral copywriter, and the precision of a colour-grading retoucher. Analyze this exact image and produce a complete, post-ready package. Respond with JSON only — no markdown, no backticks.
 
 Return exactly this shape:
 {
   "analysis": {
-    "subject": "main subject in a few words",
+    "subject": "the specific main subject",
     "scene": "scene type",
     "setting": "indoor or outdoor",
-    "lighting": "lighting description",
-    "mood": "mood/aesthetic",
-    "colors": "dominant colors",
-    "category": "content category (food, travel, fashion, fitness, business, lifestyle, pets, product, etc.)",
-    "composition": "one-line composition note",
-    "quality_notes": "exposure, white balance, noise, sharpness observations"
+    "lighting": "describe the actual light — direction, quality, warmth",
+    "mood": "the emotional mood/aesthetic this image projects",
+    "colors": "the actual dominant colours you see",
+    "category": "content category (food, travel, fashion, fitness, business, lifestyle, pets, product, portrait, etc.)",
+    "composition": "one precise composition note (rule of thirds, symmetry, leading lines, framing)",
+    "quality_notes": "honest technical read — exposure, white balance, noise, sharpness, dynamic range"
   },
   "enhancement": {
-    "brightness": 0,
-    "contrast": 0,
-    "saturation": 0,
-    "warmth": 0,
-    "sharpness": 0,
-    "explanation": "1-2 sentences on why these adjustments help"
+    "brightness": 0, "contrast": 0, "saturation": 0, "warmth": 0, "sharpness": 0,
+    "explanation": "1-2 sentences: what you're correcting and why it makes THIS image stronger"
   },
-  "fix_flags": ["specific distractions or issues you'd crop/remove but cannot auto-edit, e.g. 'person in top-left background — crop tighter'"],
+  "fix_flags": ["specific distractions you'd remove/crop but can't auto-edit — be precise about location, e.g. 'stray person entering frame at bottom-right — crop or clone out'"],
   "captions": [
     {"style":"Viral","text":"..."},
     {"style":"Storytelling","text":"..."},
@@ -96,23 +92,23 @@ Return exactly this shape:
     {"style":"Minimal","text":"..."}
   ],
   "hashtags": {
-    "trending": ["#..."],
-    "niche": ["#..."],
-    "low_competition": ["#..."],
-    "local": ["#..."]
+    "trending": ["#..."], "niche": ["#..."], "low_competition": ["#..."], "local": ["#..."]
   }
 }
 
-For enhancement values: use a scale of -40 to 40 (0 = no change). Base them on what the image actually needs. brightness/contrast/saturation/warmth/sharpness.
-For captions: make them genuinely good and specific to THIS image, not generic. Vary length by style.${voicePrompt}`;
+CREATIVE DIRECTOR RULES:
+- ANALYSIS: describe what you ACTUALLY see in this specific image, not generic categories. Be a photographer — name the real light, the real colours, the real composition.
+- ENHANCEMENT: values on a -40 to 40 scale (0 = leave alone). Base every value on a genuine flaw you observed in quality_notes. If the image is already well-exposed, don't inflate numbers — small honest adjustments beat fake dramatic ones.
+- CAPTIONS: each must be genuinely good and specific to THIS image — reference what's actually in it. Vary length and rhythm by style. Viral = bold hook + share trigger. Storytelling = evocative, 2-3 lines. Professional = clean and credible. Funny = actually witty, not corny. Minimal = 1 line max. NEVER write generic captions that could fit any photo.
+- HASHTAGS: mix reach tiers intelligently. Trending = high-volume discovery. Niche = tightly relevant. Low_competition = specific long-tail tags they can rank in. Local = only if the image implies a place. Real, correctly-spelled tags a top creator would use.${voicePrompt}`;
 
   const raw = await callGemini([{ text: prompt }, imagePart], key);
   if (!raw) {
-    return NextResponse.json({ error: "Couldn't analyze the image. Try again." }, { status: 500 });
+    return NextResponse.json({ error: "The AI couldn't process this image. Try a different photo or a smaller file." }, { status: 500 });
   }
   const parsed = parseJson(raw);
-  if (!parsed) {
-    return NextResponse.json({ error: "AI returned an unexpected response. Try again." }, { status: 500 });
+  if (!parsed || !parsed.captions) {
+    return NextResponse.json({ error: "The AI response was incomplete. Please try again." }, { status: 500 });
   }
 
   return NextResponse.json(parsed);

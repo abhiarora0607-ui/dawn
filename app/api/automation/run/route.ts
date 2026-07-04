@@ -18,11 +18,19 @@ const MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-lates
 async function aiReply(commentText: string, voicePrompt: string): Promise<string | null> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return null;
-  const prompt = `You are replying to a comment on your own Instagram post. Write ONE short, natural, friendly reply (max 20 words). No quotes, no hashtags unless natural. Sound human, not corporate.${voicePrompt}
+  const prompt = `You are the creator behind this Instagram account, personally replying to a comment on your own post. Write ONE reply that sounds unmistakably human and genuinely engaged — the kind of reply that makes a follower feel seen and keeps them coming back.
 
-Comment: "${commentText}"
+THE COMMENT: "${commentText}"
 
-Your reply:`;
+RULES:
+- Max 20 words. Short, warm, real.
+- Match the energy of the comment — playful gets playful, a question gets a genuine answer, praise gets grateful-not-robotic.
+- NO generic filler like "Thanks so much! 💛" unless the comment truly warrants nothing more.
+- Sound like a specific human, never a brand bot. No corporate tone.
+- 0-1 emoji, only if natural. No hashtags.
+- If it's a question you can't answer from context, respond warmly and invite a DM.${voicePrompt}
+
+Your reply (text only, no quotes):`;
   for (const model of MODELS) {
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {

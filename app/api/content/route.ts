@@ -14,19 +14,25 @@ async function aiIdeas(account: any, voicePrompt: string): Promise<any[] | null>
   const key = process.env.GEMINI_API_KEY;
   if (!key) return null;
 
-  const prompt = `You are Dawn, an AI Instagram content planner. For this account, generate 5 specific post ideas as JSON only (no markdown).
+  const prompt = `You are Dawn — a viral content strategist who has engineered thousands of high-performing Instagram posts. You understand hooks, pattern interrupts, saves-vs-likes psychology, and format-market fit. Generate 5 post ideas TAILORED to this specific account that they could shoot and publish this week.
 
-Account: ${JSON.stringify({
+ACCOUNT: ${JSON.stringify({
     handle: account.handle,
     niche: account.niche,
     audiencePrefers: account.audiencePrefers,
     topPost: account.topPost,
   })}${voicePrompt}
 
-Return exactly:
-[{"format":"Reel|Carousel|Story|Image","hook":"scroll-stopping first line","idea":"what the post is about, 1 sentence","cta":"call to action"}]
+Respond with JSON only — no markdown:
+[{"format":"Reel|Carousel|Story|Image","hook":"the exact first line/on-screen text that stops the scroll","idea":"the specific concept — what they actually shoot/show, 1 sentence","cta":"a specific call to action that drives saves, shares, or comments"}]
 
-Rules: 5 ideas, varied formats, lean into what their audience prefers, be specific not generic.`;
+STRATEGIST RULES:
+- 5 ideas, deliberately varied across formats (don't give 5 Reels).
+- Each hook must be a real, usable first line — a pattern interrupt, bold claim, curiosity gap, or relatable POV. Not a topic label.
+- Lean hard into what their audience already rewards (${account.audiencePrefers}) — build on their proven winners, don't reinvent.
+- Ideas must be specific and shootable for THIS niche, never generic ("post a motivational quote" is banned).
+- CTAs should be engineered for the algorithm: prompt saves ("save this for later"), shares ("tag someone who…"), or comments ("what's your…?").
+- Write hooks a real top creator in their niche would actually use.`;
 
   for (const model of MODELS) {
     try {

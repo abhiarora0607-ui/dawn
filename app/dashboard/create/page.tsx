@@ -50,12 +50,42 @@ export default function Create() {
     if (!file) return;
     setError("");
     setResult(null);
-    setMimeType(file.type);
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
-      setImgSrc(dataUrl);
-      setImgBase64(dataUrl.split(",")[1] || "");
+      // Resize/compress on a canvas before sending — large phone photos
+      // otherwise cause 500s / timeouts on the analysis API.
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1200;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round((height * MAX) / width); width = MAX; }
+          else { width = Math.round((width * MAX) / height); height = MAX; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL("image/jpeg", 0.85);
+          setImgSrc(compressed);
+          setImgBase64(compressed.split(",")[1] || "");
+          setMimeType("image/jpeg");
+        } else {
+          // fallback: use original
+          setImgSrc(dataUrl);
+          setImgBase64(dataUrl.split(",")[1] || "");
+          setMimeType(file.type);
+        }
+      };
+      img.onerror = () => {
+        setImgSrc(dataUrl);
+        setImgBase64(dataUrl.split(",")[1] || "");
+        setMimeType(file.type);
+      };
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
   }
@@ -96,7 +126,7 @@ export default function Create() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Create" />
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-navy">Create a post</h1>
           <p className="text-navy/50 text-sm mt-1">Upload a photo. Dawn analyzes it, enhances it, and writes your caption &amp; hashtags.</p>
