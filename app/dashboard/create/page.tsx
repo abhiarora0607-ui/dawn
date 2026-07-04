@@ -20,13 +20,16 @@ type Result = { analysis: Analysis; enhancement: Enhancement; fix_flags: string[
 
 function applyFilters(enh: Enhancement | null) {
   if (!enh) return "none";
-  const b = 1 + (enh.brightness || 0) / 100;
-  const c = 1 + (enh.contrast || 0) / 100;
-  const s = 1 + (enh.saturation || 0) / 100;
-  // warmth via sepia + hue is approximate; keep subtle
+  // Amplify so the toggle is clearly visible; clamp to sane bounds.
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+  const b = clamp(1 + (enh.brightness || 0) / 60, 0.6, 1.5);
+  const c = clamp(1 + (enh.contrast || 0) / 60, 0.6, 1.6);
+  const s = clamp(1 + (enh.saturation || 0) / 50, 0.4, 1.8);
   const warmth = (enh.warmth || 0) / 100;
-  const sepia = Math.max(0, warmth) * 0.3;
-  return `brightness(${b}) contrast(${c}) saturate(${s}) sepia(${sepia})`;
+  // Warm = add sepia + slight hue shift toward orange; cool = slight desaturate.
+  const sepia = clamp(Math.max(0, warmth) * 0.5, 0, 0.5);
+  const hue = warmth < 0 ? clamp(warmth * 20, -30, 0) : 0;
+  return `brightness(${b.toFixed(3)}) contrast(${c.toFixed(3)}) saturate(${s.toFixed(3)}) sepia(${sepia.toFixed(3)}) hue-rotate(${hue}deg)`;
 }
 
 export default function Create() {

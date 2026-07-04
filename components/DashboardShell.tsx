@@ -10,10 +10,10 @@ import {
 const NAV = [
   { href: "/dashboard", label: "Briefing", icon: LayoutDashboard },
   { href: "/dashboard/create", label: "Create", icon: Plus },
+  { href: "/dashboard/engage", label: "Engage", icon: MessageSquare },
   { href: "/dashboard/analytics", label: "Analytics", icon: TrendingUp },
   { href: "/dashboard/competitors", label: "Competitors", icon: Users },
   { href: "/dashboard/content", label: "Content", icon: PenLine },
-  { href: "/dashboard/inbox", label: "Inbox", icon: MessageSquare },
   { href: "/dashboard/brand-voice", label: "Brand Voice", icon: Mic },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
