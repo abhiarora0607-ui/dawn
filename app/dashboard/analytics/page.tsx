@@ -31,7 +31,7 @@ export default function Analytics() {
       ) : data ? (
         <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-navy">Analytics</h1>
+            <h1 className="font-display font-semibold text-2xl text-navy">Analytics</h1>
             <p className="text-navy/50 text-sm mt-1">How your account is performing right now.</p>
           </div>
 

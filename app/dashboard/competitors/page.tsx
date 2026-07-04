@@ -59,7 +59,7 @@ export default function Competitors() {
       <DashTopbar account={data?.account} pageTitle="Competitors" />
       <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-navy">Competitor analysis</h1>
+          <h1 className="font-display font-semibold text-2xl text-navy">Competitor analysis</h1>
           <p className="text-navy/50 text-sm mt-1">Add competitor handles. Dawn analyzes their public data and tells you what&apos;s working.</p>
         </div>
 

@@ -65,6 +65,52 @@ function fallbackIdeas(account: any): any[] {
   ];
 }
 
+export async function POST(req: Request) {
+  // Expand a single idea into a full shot plan + caption + hashtags.
+  const key = process.env.GEMINI_API_KEY;
+  let idea: any = {};
+  try { idea = (await req.json()).idea || {}; } catch {}
+  if (!key || !idea.hook) {
+    return NextResponse.json({ error: "Missing idea." }, { status: 400 });
+  }
+  let account;
+  try { account = await (await getProviderAsync()).getAccount(); } catch { account = await getProvider().getAccount(); }
+  const voice = await getBrandVoice();
+  const voicePrompt = brandVoicePrompt(voice);
+
+  const prompt = `You are Dawn — a viral content director. Expand this post idea into a complete, ready-to-execute plan for an Instagram creator. Respond with JSON only — no markdown.
+
+THE IDEA: ${JSON.stringify(idea)}
+ACCOUNT NICHE: ${account.niche}, audience prefers: ${account.audiencePrefers}${voicePrompt}
+
+Return exactly:
+{
+  "hook": "the refined on-screen hook / first line",
+  "shotPlan": ["step-by-step: what to shoot/show, 3-5 concrete steps or shots"],
+  "caption": "a full ready-to-post caption in their voice",
+  "hashtags": ["8-12 relevant hashtags with #"],
+  "bestTime": "suggested post time and why",
+  "proTips": ["2-3 specific tips to maximize saves/shares/reach for THIS idea"]
+}
+
+RULES: be concrete and executable — a creator should be able to follow shotPlan literally. Caption must be genuinely good, not generic. Tips must be specific to this idea, not generic advice.`;
+
+  for (const model of MODELS) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+      });
+      if (!res.ok) continue;
+      const d = await res.json();
+      const t = d?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const parsed = JSON.parse(t.replace(/```json|```/g, "").trim());
+      if (parsed?.caption) return NextResponse.json(parsed);
+    } catch { continue; }
+  }
+  return NextResponse.json({ error: "Couldn't expand this idea. Try again." }, { status: 500 });
+}
+
 export async function GET() {
   let account;
   try {

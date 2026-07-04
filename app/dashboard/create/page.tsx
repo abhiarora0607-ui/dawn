@@ -57,7 +57,7 @@ export default function Create() {
       // otherwise cause 500s / timeouts on the analysis API.
       const img = new Image();
       img.onload = () => {
-        const MAX = 1200;
+        const MAX = 1600;
         let { width, height } = img;
         if (width > MAX || height > MAX) {
           if (width > height) { height = Math.round((height * MAX) / width); width = MAX; }
@@ -128,7 +128,7 @@ export default function Create() {
       <DashTopbar account={data?.account} pageTitle="Create" />
       <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-navy">Create a post</h1>
+          <h1 className="font-display font-semibold text-2xl text-navy">Create a post</h1>
           <p className="text-navy/50 text-sm mt-1">Upload a photo. Dawn analyzes it, enhances it, and writes your caption &amp; hashtags.</p>
         </div>
 

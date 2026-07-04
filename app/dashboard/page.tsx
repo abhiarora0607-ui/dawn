@@ -81,7 +81,7 @@ export default function Dashboard() {
                     {data.brief.source === "ai" ? "AI briefing" : "Today's briefing"}
                   </span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-bold mb-3">{data.brief.greeting}</h1>
+                <h1 className="font-display font-semibold text-2xl sm:text-3xl mb-3">{data.brief.greeting}</h1>
                 <p className="text-white/80 text-lg leading-relaxed max-w-2xl">{data.brief.headline}</p>
 
                 {(data.brief.wins.length > 0 || data.brief.watch.length > 0) && (

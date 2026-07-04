@@ -149,7 +149,7 @@ export default function Engage() {
       <DashTopbar account={data?.account} pageTitle="Engage" />
       <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-navy">Engage</h1>
+          <h1 className="font-display font-semibold text-2xl text-navy">Engage</h1>
           <p className="text-navy/50 text-sm mt-1">Turn on automation. When it&apos;s on, Dawn replies automatically.</p>
         </div>
 

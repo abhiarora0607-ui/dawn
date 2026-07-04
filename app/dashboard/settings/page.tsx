@@ -27,7 +27,7 @@ export default function SettingsPage() {
       <DashTopbar account={data?.account} pageTitle="Settings" />
       <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-navy">Settings</h1>
+          <h1 className="font-display font-semibold text-2xl text-navy">Settings</h1>
           <p className="text-navy/50 text-sm mt-1">Manage your connection and data.</p>
         </div>
 

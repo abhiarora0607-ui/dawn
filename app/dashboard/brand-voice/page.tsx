@@ -26,6 +26,7 @@ export default function BrandVoice() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [detecting, setDetecting] = useState(false);
 
   useEffect(() => {
     fetch("/api/brand-voice").then((r) => r.json()).then((d) => {
@@ -33,6 +34,24 @@ export default function BrandVoice() {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
+
+  async function autoFill() {
+    setDetecting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/brand-voice?detect=1");
+      const d = await res.json();
+      if (d.detected && d.voice) {
+        setValues(d.voice);
+        setSaved(false);
+      } else {
+        setError("Couldn't auto-detect — make sure Instagram is connected and has posts. You can fill this in manually.");
+      }
+    } catch {
+      setError("Auto-fill failed. Try again or fill in manually.");
+    }
+    setDetecting(false);
+  }
 
   function set(key: string, val: string) {
     setValues((v) => ({ ...v, [key]: val }));
@@ -62,7 +81,7 @@ export default function BrandVoice() {
       <DashTopbar account={data?.account} pageTitle="Brand Voice" />
       <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-navy">Brand voice</h1>
+          <h1 className="font-display font-semibold text-2xl text-navy">Brand voice</h1>
           <p className="text-navy/50 text-sm mt-1">
             Teach Dawn how you sound once. Every caption, reply, and idea will match your voice.
           </p>
@@ -70,9 +89,18 @@ export default function BrandVoice() {
 
         <div className="flex items-start gap-2 bg-amber/5 border border-amber/20 rounded-xl p-4">
           <Sparkles className="w-4 h-4 text-amber-deep shrink-0 mt-0.5" />
-          <p className="text-sm text-navy/70">
-            The more you fill in, the more &ldquo;you&rdquo; Dawn sounds. You can leave fields blank and refine anytime.
-          </p>
+          <div className="flex-1">
+            <p className="text-sm text-navy/70 mb-2">
+              The more you fill in, the more &ldquo;you&rdquo; Dawn sounds — or let Dawn draft it by analyzing your Instagram. You can edit anything.
+            </p>
+            <button
+              onClick={autoFill}
+              disabled={detecting}
+              className="flex items-center gap-2 text-sm font-medium bg-navy text-white px-4 py-2 rounded-lg hover:bg-navy-soft transition-colors disabled:opacity-60"
+            >
+              {detecting ? <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing your Instagram…</> : <><Sparkles className="w-4 h-4" /> Auto-fill from my Instagram</>}
+            </button>
+          </div>
         </div>
 
         {loading ? (
