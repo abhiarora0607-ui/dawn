@@ -87,7 +87,7 @@ function ruleBasedBrief(a: AccountSnapshot, comps: CompetitorSignal[]): Brief {
 // fall back to rules over a single retired model name.
 const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
 
-async function aiBrief(a: AccountSnapshot, comps: CompetitorSignal[]): Promise<Brief | null> {
+async function aiBrief(a: AccountSnapshot, comps: CompetitorSignal[], voicePrompt = ""): Promise<Brief | null> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return null;
 
@@ -99,7 +99,7 @@ Competitors (public signals): ${JSON.stringify(comps)}
 Return exactly this JSON shape:
 {"greeting":"...","headline":"one sharp sentence","wins":["..."],"watch":["..."],"actions":[{"priority":"high|medium|low","title":"imperative action","detail":"why + how, 1-2 sentences"}]}
 
-Rules: 3-5 actions, ordered by priority. Be specific and decisive — tell them exactly what to do, never "consider maybe". Reference their real numbers.`;
+Rules: 3-5 actions, ordered by priority. Be specific and decisive — tell them exactly what to do, never "consider maybe". Reference their real numbers.${voicePrompt}`;
 
   for (const model of GEMINI_MODELS) {
     try {
@@ -126,7 +126,7 @@ Rules: 3-5 actions, ordered by priority. Be specific and decisive — tell them 
   return null;
 }
 
-export async function generateBrief(a: AccountSnapshot, comps: CompetitorSignal[]): Promise<Brief> {
-  const ai = await aiBrief(a, comps);
+export async function generateBrief(a: AccountSnapshot, comps: CompetitorSignal[], voicePrompt = ""): Promise<Brief> {
+  const ai = await aiBrief(a, comps, voicePrompt);
   return ai ?? ruleBasedBrief(a, comps);
 }

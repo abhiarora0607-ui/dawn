@@ -2,20 +2,21 @@
 import { NextResponse } from "next/server";
 import { getProviderAsync, getProvider } from "@/lib/data-provider";
 import { generateBrief } from "@/lib/briefing-engine";
+import { getBrandVoice, brandVoicePrompt } from "@/lib/brand-voice";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     const provider = await getProviderAsync();
-    const [account, competitors] = await Promise.all([
+    const [account, competitors, voice] = await Promise.all([
       provider.getAccount(),
       provider.getCompetitors(),
+      getBrandVoice(),
     ]);
-    const brief = await generateBrief(account, competitors);
+    const brief = await generateBrief(account, competitors, brandVoicePrompt(voice));
     return NextResponse.json({ account, competitors, brief });
   } catch (e) {
-    // Last-resort fallback: never blank the dashboard.
     try {
       const mock = getProvider();
       const [account, competitors] = await Promise.all([

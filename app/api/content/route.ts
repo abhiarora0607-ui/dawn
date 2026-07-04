@@ -4,12 +4,13 @@
 
 import { NextResponse } from "next/server";
 import { getProviderAsync, getProvider } from "@/lib/data-provider";
+import { getBrandVoice, brandVoicePrompt } from "@/lib/brand-voice";
 
 export const dynamic = "force-dynamic";
 
 const MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
 
-async function aiIdeas(account: any): Promise<any[] | null> {
+async function aiIdeas(account: any, voicePrompt: string): Promise<any[] | null> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return null;
 
@@ -20,7 +21,7 @@ Account: ${JSON.stringify({
     niche: account.niche,
     audiencePrefers: account.audiencePrefers,
     topPost: account.topPost,
-  })}
+  })}${voicePrompt}
 
 Return exactly:
 [{"format":"Reel|Carousel|Story|Image","hook":"scroll-stopping first line","idea":"what the post is about, 1 sentence","cta":"call to action"}]
@@ -65,6 +66,8 @@ export async function GET() {
   } catch {
     account = await getProvider().getAccount();
   }
-  const ideas = (await aiIdeas(account)) ?? fallbackIdeas(account);
+  const voice = await getBrandVoice();
+  const voicePrompt = brandVoicePrompt(voice);
+  const ideas = (await aiIdeas(account, voicePrompt)) ?? fallbackIdeas(account);
   return NextResponse.json({ ideas, account: { handle: account.handle, displayName: account.displayName, niche: account.niche } });
 }
