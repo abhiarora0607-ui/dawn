@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
+import { Onboarding } from "@/components/Onboarding";
 import {
   TrendingUp, TrendingDown, Loader2,
   Sparkles, Trophy, AlertTriangle, Eye, Bookmark, Clock, Target, Users,
@@ -64,6 +65,7 @@ export default function Dashboard() {
     <DashboardShell>
       <main className="flex-1">
         <DashTopbar account={data?.account} pageTitle="Briefing" />
+        <Onboarding account={data?.account} />
 
         {loading ? (
           <div className="p-10 sm:p-20 flex items-center justify-center text-navy/40">

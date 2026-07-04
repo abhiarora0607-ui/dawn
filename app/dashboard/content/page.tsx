@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
-import { Loader2, Sparkles, RefreshCw, Film, Images, Circle, Image as ImageIcon, X, Clock, Copy, Check, Lightbulb } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, Film, Images, Circle, Image as ImageIcon, X, Clock, Copy, Check, Lightbulb, Bookmark } from "lucide-react";
 
 type Idea = { format: string; hook: string; idea: string; cta: string };
 type Detail = { hook: string; shotPlan: string[]; caption: string; hashtags: string[]; bestTime: string; proTips: string[] };
@@ -15,6 +15,19 @@ function IdeaModal({ idea, onClose }: { idea: Idea; onClose: () => void }) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [savedOk, setSavedOk] = useState(false);
+
+  async function saveIt() {
+    if (!detail) return;
+    try {
+      await fetch("/api/saved", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "idea", title: idea.hook, body: detail.caption, meta: { hashtags: detail.hashtags, format: idea.format, shotPlan: detail.shotPlan } }),
+      });
+      setSavedOk(true);
+      setTimeout(() => setSavedOk(false), 1500);
+    } catch {}
+  }
 
   useEffect(() => {
     fetch("/api/content", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idea }) })
@@ -38,7 +51,14 @@ function IdeaModal({ idea, onClose }: { idea: Idea; onClose: () => void }) {
           <span className="flex items-center gap-2 text-sm font-semibold text-amber-deep bg-amber/10 px-3 py-1 rounded-full">
             <Icon className="w-4 h-4" /> {idea.format}
           </span>
-          <button onClick={onClose} className="p-1.5 text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
+          <div className="flex items-center gap-2">
+            {detail && (
+              <button onClick={saveIt} className="flex items-center gap-1.5 text-xs font-medium bg-navy text-white px-3 py-1.5 rounded-lg hover:bg-navy-soft transition-colors">
+                {savedOk ? <><Check className="w-3.5 h-3.5" /> Saved</> : <><Bookmark className="w-3.5 h-3.5" /> Save</>}
+              </button>
+            )}
+            <button onClick={onClose} className="p-1.5 text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
+          </div>
         </div>
 
         {loading ? (
