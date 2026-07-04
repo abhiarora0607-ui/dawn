@@ -4,11 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DawnLogo } from "@/components/DawnLogo";
 import {
-  LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic,
+  LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus,
 } from "lucide-react";
 
 const NAV = [
   { href: "/dashboard", label: "Briefing", icon: LayoutDashboard },
+  { href: "/dashboard/create", label: "Create", icon: Plus },
   { href: "/dashboard/analytics", label: "Analytics", icon: TrendingUp },
   { href: "/dashboard/competitors", label: "Competitors", icon: Users },
   { href: "/dashboard/content", label: "Content", icon: PenLine },
