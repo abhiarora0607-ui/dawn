@@ -97,7 +97,9 @@ export default function Engage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [running, setRunning] = useState(false);
-  const [runResult, setRunResult] = useState<{ replied: number; drafts?: any[]; error?: string } | null>(null);
+  const [debug, setDebug] = useState<any>(null);
+  const [debugging, setDebugging] = useState(false);
+  const [runResult, setRunResult] = useState<{ replied: number; drafts?: any[]; dmReplied?: number; dmDrafts?: any[]; error?: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/automation").then((r) => r.json()).then((d) => { setS(d.settings); setLoading(false); }).catch(() => setLoading(false));
@@ -115,13 +117,26 @@ export default function Engage() {
     setSaving(false);
   }
 
+  async function diagnose() {
+    setDebugging(true);
+    setDebug(null);
+    try {
+      const res = await fetch("/api/automation/debug");
+      const d = await res.json();
+      setDebug(d);
+    } catch {
+      setDebug({ error: "Diagnostic failed." });
+    }
+    setDebugging(false);
+  }
+
   async function runNow() {
     setRunning(true);
     setRunResult(null);
     try {
       const res = await fetch("/api/automation/run", { method: "POST" });
       const d = await res.json();
-      if (res.ok) setRunResult({ replied: d.replied || 0, drafts: d.drafts });
+      if (res.ok) setRunResult({ replied: d.replied || 0, drafts: d.drafts, dmReplied: d.dmReplied || 0, dmDrafts: d.dmDrafts });
       else setRunResult({ replied: 0, error: d.error || "Run failed." });
     } catch {
       setRunResult({ replied: 0, error: "Network error." });
@@ -168,18 +183,42 @@ export default function Engage() {
               note="Instagram only allows replying within 24 hours of a user's message — so Dawn replies to people who message you, not cold outreach."
             />
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <button onClick={save} disabled={saving} className="flex items-center gap-2 bg-navy text-white font-medium px-6 py-3 rounded-xl hover:bg-navy-soft transition-colors disabled:opacity-60">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : null}
                 {saved ? "Saved" : "Save automation settings"}
               </button>
-              {s.comment_enabled && (
+              {(s.comment_enabled || s.dm_enabled) && (
                 <button onClick={runNow} disabled={running} className="flex items-center gap-2 bg-amber text-navy font-medium px-6 py-3 rounded-xl hover:bg-amber-deep hover:text-white transition-colors disabled:opacity-60">
                   {running ? <><Loader2 className="w-4 h-4 animate-spin" /> Replying…</> : "Run now"}
                 </button>
               )}
+              <button onClick={diagnose} disabled={debugging} className="flex items-center gap-2 text-sm font-medium border border-navy/15 text-navy/70 px-4 py-3 rounded-xl hover:border-navy/30 transition-colors disabled:opacity-60">
+                {debugging ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Diagnose
+              </button>
               {saved && <span className="text-emerald-600 text-sm">Settings saved.</span>}
             </div>
+
+            {debug && (
+              <div className="bg-navy rounded-xl p-4 text-white text-xs overflow-auto">
+                <p className="font-semibold text-amber mb-2">What Dawn sees:</p>
+                <p>Account: {debug.me?.username || "?"} ({debug.me?.account_type || "?"})</p>
+                <p className="mt-2 font-medium">Posts found: {debug.posts?.length || 0}</p>
+                {(debug.posts || []).map((p: any, i: number) => (
+                  <div key={i} className="ml-3 mt-1 text-white/70">
+                    <p>• &ldquo;{p.caption}&rdquo; — {p.commentCount} comments {p.commentError ? `(err: ${p.commentError})` : ""}</p>
+                    {(p.comments || []).map((c: any, j: number) => (
+                      <p key={j} className="ml-4 text-white/50">↳ @{c.username}: &ldquo;{c.text}&rdquo; {c.hasReplies ? "(already replied)" : ""}</p>
+                    ))}
+                  </div>
+                ))}
+                <p className="mt-2 font-medium">DM conversations: {debug.conversations?.count ?? (debug.conversations?.error ? `error: ${debug.conversations.error}` : "0")}</p>
+                {(debug.conversations?.items || []).map((c: any, i: number) => (
+                  <p key={i} className="ml-3 text-white/50">↳ latest: &ldquo;{c.latestMessage}&rdquo; from {c.latestFrom?.username || c.latestFrom?.id}</p>
+                ))}
+                {debug.errors?.length > 0 && <p className="mt-2 text-red-300">Errors: {debug.errors.join("; ")}</p>}
+              </div>
+            )}
 
             {runResult && (
               <div className={`rounded-xl p-4 ${runResult.error ? "bg-red-50 border border-red-200" : "bg-emerald-50 border border-emerald-200"}`}>
@@ -188,13 +227,25 @@ export default function Engage() {
                 ) : (
                   <>
                     <p className="text-sm font-medium text-emerald-700">
-                      {runResult.replied > 0 ? `Replied to ${runResult.replied} comment${runResult.replied > 1 ? "s" : ""} on your posts.` : "No new comments to reply to right now."}
+                      {(runResult.replied || 0) + (runResult.dmReplied || 0) > 0
+                        ? `Replied to ${runResult.replied || 0} comment${runResult.replied === 1 ? "" : "s"} and ${runResult.dmReplied || 0} DM${runResult.dmReplied === 1 ? "" : "s"}.`
+                        : "No new comments or DMs to reply to right now."}
                     </p>
                     {runResult.drafts && runResult.drafts.length > 0 && (
                       <div className="mt-3 space-y-2">
                         {runResult.drafts.map((d, i) => (
                           <div key={i} className="text-xs bg-white rounded-lg p-3 border border-emerald-100">
-                            <p className="text-navy/60">@{d.username}: &ldquo;{d.comment}&rdquo;</p>
+                            <p className="text-navy/60">💬 @{d.username}: &ldquo;{d.comment}&rdquo;</p>
+                            <p className="text-navy font-medium mt-1">↳ {d.reply}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {runResult.dmDrafts && runResult.dmDrafts.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {runResult.dmDrafts.map((d, i) => (
+                          <div key={i} className="text-xs bg-white rounded-lg p-3 border border-emerald-100">
+                            <p className="text-navy/60">✉️ &ldquo;{d.message}&rdquo;</p>
                             <p className="text-navy font-medium mt-1">↳ {d.reply}</p>
                           </div>
                         ))}

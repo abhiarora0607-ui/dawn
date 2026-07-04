@@ -63,43 +63,80 @@ export async function POST() {
   const settings = settingsRows?.[0];
   const token = connRows?.[0]?.access_token;
   if (!token) return NextResponse.json({ error: "No token." }, { status: 400 });
-  if (!settings?.comment_enabled) {
-    return NextResponse.json({ ok: true, replied: 0, note: "Comment automation is off." });
+  if (!settings?.comment_enabled && !settings?.dm_enabled) {
+    return NextResponse.json({ ok: true, replied: 0, note: "Both automations are off." });
   }
 
   const voice = await getBrandVoice();
   const voicePrompt = brandVoicePrompt(voice);
 
-  // Fetch recent media
   let replied = 0;
+  let dmReplied = 0;
   const drafts: any[] = [];
-  try {
-    const mediaRes = await fetch(`https://graph.instagram.com/me/media?fields=id&limit=5&access_token=${token}`, { cache: "no-store" });
-    const media = await mediaRes.json();
-    for (const m of media?.data || []) {
-      // Fetch comments on this media
-      const cRes = await fetch(`https://graph.instagram.com/${m.id}/comments?fields=id,text,username,replies&access_token=${token}`, { cache: "no-store" });
-      const comments = await cRes.json();
-      for (const c of comments?.data || []) {
-        // Skip if we've already replied (has replies) — simple heuristic
-        if (c.replies?.data?.length) continue;
-        const replyText = settings.comment_mode === "fixed"
-          ? (settings.comment_fixed_reply || "Thanks so much! 💛")
-          : (await aiReply(c.text || "", voicePrompt)) || (settings.comment_fixed_reply || "Thanks so much! 💛");
+  const dmDrafts: any[] = [];
 
-        // Post the reply
-        const postRes = await fetch(`https://graph.instagram.com/${c.id}/replies`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: replyText, access_token: token }),
-        });
-        if (postRes.ok) { replied++; drafts.push({ comment: c.text, reply: replyText, username: c.username }); }
-        if (replied >= 10) break; // safety cap per run
+  // ── COMMENTS ──────────────────────────────────────────────
+  if (settings?.comment_enabled) {
+    try {
+      const mediaRes = await fetch(`https://graph.instagram.com/me/media?fields=id&limit=10&access_token=${token}`, { cache: "no-store" });
+      const media = await mediaRes.json();
+      for (const m of media?.data || []) {
+        const cRes = await fetch(`https://graph.instagram.com/${m.id}/comments?fields=id,text,username,from,replies&access_token=${token}`, { cache: "no-store" });
+        const comments = await cRes.json();
+        for (const c of comments?.data || []) {
+          // Skip our own comments (don't reply to ourselves)
+          if (c.from?.id && c.from.id === igUserId) continue;
+          // Skip if we've already replied in this thread
+          const alreadyReplied = (c.replies?.data || []).some((r: any) => r.from?.id === igUserId);
+          if (alreadyReplied) continue;
+          const replyText = settings.comment_mode === "fixed"
+            ? (settings.comment_fixed_reply || "Thanks so much! 💛")
+            : (await aiReply(c.text || "", voicePrompt)) || (settings.comment_fixed_reply || "Thanks so much! 💛");
+          const postRes = await fetch(`https://graph.instagram.com/${c.id}/replies`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: replyText, access_token: token }),
+          });
+          if (postRes.ok) { replied++; drafts.push({ comment: c.text, reply: replyText, username: c.username }); }
+          if (replied >= 10) break;
+        }
+        if (replied >= 10) break;
       }
-      if (replied >= 10) break;
+    } catch {
+      // continue to DMs even if comments fail
     }
-  } catch (e) {
-    return NextResponse.json({ error: "Run failed — check permissions." }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, replied, drafts });
+  // ── DMs ───────────────────────────────────────────────────
+  // Instagram only allows replying within 24h of the user's last message.
+  if (settings?.dm_enabled) {
+    try {
+      // Fetch recent conversations
+      const convRes = await fetch(`https://graph.instagram.com/me/conversations?fields=id,messages{id,message,from,created_time}&access_token=${token}`, { cache: "no-store" });
+      const convs = await convRes.json();
+      for (const conv of convs?.data || []) {
+        const msgs = conv.messages?.data || [];
+        if (!msgs.length) continue;
+        // Most recent message; only reply if it's FROM the other person (not us)
+        const latest = msgs[0];
+        // Determine our own id to avoid replying to ourselves
+        const fromId = latest?.from?.id;
+        if (!fromId || fromId === igUserId) continue;
+
+        const replyText = settings.dm_mode === "fixed"
+          ? (settings.dm_fixed_reply || "Thanks for reaching out! 💛")
+          : (await aiReply(latest.message || "", voicePrompt)) || (settings.dm_fixed_reply || "Thanks for reaching out! 💛");
+
+        const sendRes = await fetch(`https://graph.instagram.com/me/messages`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ recipient: { id: fromId }, message: { text: replyText }, access_token: token }),
+        });
+        if (sendRes.ok) { dmReplied++; dmDrafts.push({ message: latest.message, reply: replyText }); }
+        if (dmReplied >= 10) break;
+      }
+    } catch {
+      // DM failures are non-fatal
+    }
+  }
+
+  return NextResponse.json({ ok: true, replied, drafts, dmReplied, dmDrafts });
 }
