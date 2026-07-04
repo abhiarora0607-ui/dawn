@@ -206,12 +206,18 @@ export default function Engage() {
                 <p className="mt-2 font-medium">Posts found: {debug.posts?.length || 0}</p>
                 {(debug.posts || []).map((p: any, i: number) => (
                   <div key={i} className="ml-3 mt-1 text-white/70">
-                    <p>• &ldquo;{p.caption}&rdquo; — {p.commentCount} comments {p.commentError ? `(err: ${p.commentError})` : ""}</p>
+                    <p>• &ldquo;{p.caption}&rdquo; — IG says {p.igCommentCount} comments, Dawn read {p.commentCount} {p.commentError ? `(err: ${p.commentError})` : ""}</p>
                     {(p.comments || []).map((c: any, j: number) => (
                       <p key={j} className="ml-4 text-white/50">↳ @{c.username}: &ldquo;{c.text}&rdquo; {c.hasReplies ? "(already replied)" : ""}</p>
                     ))}
                   </div>
                 ))}
+                {debug.firstPostWithComments && (
+                  <div className="mt-2 text-white/60">
+                    <p className="text-amber">Raw response (first post with comments):</p>
+                    <pre className="whitespace-pre-wrap break-all text-[10px] bg-black/30 rounded p-2 mt-1">{JSON.stringify(debug.firstPostWithComments.rawResponse, null, 1)}</pre>
+                  </div>
+                )}
                 <p className="mt-2 font-medium">DM conversations: {debug.conversations?.count ?? (debug.conversations?.error ? `error: ${debug.conversations.error}` : "0")}</p>
                 {(debug.conversations?.items || []).map((c: any, i: number) => (
                   <p key={i} className="ml-3 text-white/50">↳ latest: &ldquo;{c.latestMessage}&rdquo; from {c.latestFrom?.username || c.latestFrom?.id}</p>

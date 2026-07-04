@@ -36,15 +36,21 @@ export async function GET() {
 
   // Posts + comments
   try {
-    const mediaRes = await fetch(`https://graph.instagram.com/me/media?fields=id,caption,timestamp&limit=5&access_token=${token}`, { cache: "no-store" });
+    const mediaRes = await fetch(`https://graph.instagram.com/me/media?fields=id,caption,timestamp,comments_count&limit=5&access_token=${token}`, { cache: "no-store" });
     const media = await mediaRes.json();
     if (media.error) report.errors.push("media: " + JSON.stringify(media.error));
+    let firstRaw = null;
     for (const m of media?.data || []) {
-      const cRes = await fetch(`https://graph.instagram.com/${m.id}/comments?fields=id,text,username,replies&access_token=${token}`, { cache: "no-store" });
+      const cRes = await fetch(`https://graph.instagram.com/${m.id}/comments?fields=id,text,username,from,replies&access_token=${token}`, { cache: "no-store" });
       const comments = await cRes.json();
+      // Capture the FULL raw response of the first post that Instagram says has comments
+      if (firstRaw === null && (m.comments_count > 0 || comments?.data?.length)) {
+        firstRaw = { postId: m.id, ig_comments_count: m.comments_count, rawResponse: comments };
+      }
       report.posts.push({
         postId: m.id,
         caption: (m.caption || "").slice(0, 40),
+        igCommentCount: m.comments_count ?? "n/a",
         commentError: comments.error ? JSON.stringify(comments.error) : null,
         commentCount: comments?.data?.length || 0,
         comments: (comments?.data || []).map((c: any) => ({
@@ -52,6 +58,7 @@ export async function GET() {
         })),
       });
     }
+    report.firstPostWithComments = firstRaw;
   } catch (e: any) { report.errors.push("posts: " + e.message); }
 
   // DM conversations
