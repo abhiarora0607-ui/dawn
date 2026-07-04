@@ -9,6 +9,7 @@
 
 import { NextResponse } from "next/server";
 import { getBrandVoice, brandVoicePrompt } from "@/lib/brand-voice";
+import { getPersona, personaPrompt } from "@/lib/persona";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -75,8 +76,8 @@ export async function POST() {
     return NextResponse.json({ ok: true, replied: 0, note: "Both automations are off." });
   }
 
-  const voice = await getBrandVoice();
-  const voicePrompt = brandVoicePrompt(voice);
+  const [voice, persona] = await Promise.all([getBrandVoice(), getPersona()]);
+  const voicePrompt = brandVoicePrompt(voice) + personaPrompt(persona);
 
   let replied = 0;
   let dmReplied = 0;

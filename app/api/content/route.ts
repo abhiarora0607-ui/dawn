@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { getProviderAsync, getProvider } from "@/lib/data-provider";
 import { getBrandVoice, brandVoicePrompt } from "@/lib/brand-voice";
+import { getPersona, personaPrompt } from "@/lib/persona";
 
 export const dynamic = "force-dynamic";
 
@@ -75,8 +76,8 @@ export async function POST(req: Request) {
   }
   let account;
   try { account = await (await getProviderAsync()).getAccount(); } catch { account = await getProvider().getAccount(); }
-  const voice = await getBrandVoice();
-  const voicePrompt = brandVoicePrompt(voice);
+  const [voice, persona] = await Promise.all([getBrandVoice(), getPersona()]);
+  const voicePrompt = brandVoicePrompt(voice) + personaPrompt(persona);
 
   const prompt = `You are Dawn — a viral content director. Expand this post idea into a complete, ready-to-execute plan for an Instagram creator. Respond with JSON only — no markdown.
 
@@ -118,8 +119,8 @@ export async function GET() {
   } catch {
     account = await getProvider().getAccount();
   }
-  const voice = await getBrandVoice();
-  const voicePrompt = brandVoicePrompt(voice);
+  const [voice, persona] = await Promise.all([getBrandVoice(), getPersona()]);
+  const voicePrompt = brandVoicePrompt(voice) + personaPrompt(persona);
   const ideas = (await aiIdeas(account, voicePrompt)) ?? fallbackIdeas(account);
   return NextResponse.json({ ideas, account: { handle: account.handle, displayName: account.displayName, niche: account.niche } });
 }

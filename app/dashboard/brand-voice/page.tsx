@@ -27,13 +27,26 @@ export default function BrandVoice() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [detecting, setDetecting] = useState(false);
+  const [persona, setPersona] = useState<any>(null);
+  const [buildingPersona, setBuildingPersona] = useState(false);
 
   useEffect(() => {
     fetch("/api/brand-voice").then((r) => r.json()).then((d) => {
       setValues(d.voice || {});
       setLoading(false);
     }).catch(() => setLoading(false));
+    fetch("/api/persona").then((r) => r.json()).then((d) => setPersona(d.persona)).catch(() => {});
   }, []);
+
+  async function buildPersona() {
+    setBuildingPersona(true);
+    try {
+      const res = await fetch("/api/persona", { method: "POST" });
+      const d = await res.json();
+      if (d.persona) setPersona(d.persona);
+    } catch {}
+    setBuildingPersona(false);
+  }
 
   async function autoFill() {
     setDetecting(true);
@@ -85,6 +98,35 @@ export default function BrandVoice() {
           <p className="text-navy/50 text-sm mt-1">
             Teach Dawn how you sound once. Every caption, reply, and idea will match your voice.
           </p>
+        </div>
+
+        {/* AI Persona */}
+        <div className="bg-navy rounded-2xl p-5 text-white">
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber" />
+              <p className="text-xs font-semibold text-amber uppercase tracking-wide">Dawn&apos;s understanding of you</p>
+            </div>
+            <button onClick={buildPersona} disabled={buildingPersona} className="text-xs font-medium bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60 shrink-0">
+              {buildingPersona ? "Analyzing…" : persona ? "Refresh" : "Build persona"}
+            </button>
+          </div>
+          {persona ? (
+            <div className="space-y-2">
+              <p className="text-white/90 text-sm font-medium">{persona.identity}</p>
+              {persona.themes?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {persona.themes.map((t: string, i: number) => (
+                    <span key={i} className="text-[11px] bg-white/10 px-2 py-0.5 rounded-full text-white/80">{t}</span>
+                  ))}
+                </div>
+              )}
+              {persona.audienceProfile && <p className="text-white/60 text-xs">Audience: {persona.audienceProfile}</p>}
+              <p className="text-white/40 text-[11px] pt-1">This shapes every AI output — briefings, captions, replies, and ideas are tailored to you.</p>
+            </div>
+          ) : (
+            <p className="text-white/60 text-sm">Let Dawn analyze your Instagram to deeply understand your voice, themes, and audience — then personalize everything it does.</p>
+          )}
         </div>
 
         <div className="flex items-start gap-2 bg-amber/5 border border-amber/20 rounded-xl p-4">
