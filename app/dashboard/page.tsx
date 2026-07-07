@@ -5,6 +5,7 @@ import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { Onboarding } from "@/components/Onboarding";
 import { ActionRunner } from "@/components/ActionRunner";
+import { ValueSummary } from "@/components/ValueSummary";
 import {
   TrendingUp, TrendingDown, Loader2,
   Sparkles, Trophy, AlertTriangle, Eye, Bookmark, Clock, Target, Users,
@@ -101,6 +102,7 @@ export default function Dashboard() {
           <ConnectFirst />
         ) : data ? (
           <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
+            <ValueSummary />
             {/* Briefing hero */}
             <section className="bg-navy rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-amber/10 rounded-full blur-3xl -mr-20 -mt-20" />

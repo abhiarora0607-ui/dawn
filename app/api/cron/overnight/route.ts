@@ -84,6 +84,18 @@ export async function GET(req: Request) {
         headers: { ...sbHeaders(key), Prefer: "resolution=merge-duplicates,return=minimal" },
         body: JSON.stringify({ ig_user_id: igUserId, brief_date: today, payload }),
       });
+
+      // Snapshot today's metrics for week-over-week trends
+      await fetch(`${url}/rest/v1/metric_snapshots`, {
+        method: "POST",
+        headers: { ...sbHeaders(key), Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({
+          ig_user_id: igUserId, snap_date: today,
+          followers: account.followers || 0, reach: account.reach || 0,
+          profile_visits: account.profileVisits || 0,
+          website_clicks: account.websiteClicks || 0, total_saves: account.totalSaves || 0,
+        }),
+      });
       briefed++;
     } catch {
       failed++;
