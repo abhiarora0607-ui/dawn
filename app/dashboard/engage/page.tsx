@@ -265,7 +265,7 @@ export default function Engage() {
             <div className="flex items-start gap-2 text-xs text-navy/50 bg-amber/5 border border-amber/20 rounded-xl p-4">
               <Info className="w-4 h-4 text-amber-deep shrink-0 mt-0.5" />
               <span>
-                Automation runs live on your connected account. For accounts other than yours, this activates after Meta approves the app for public use — the settings you choose here apply automatically once it does.
+                Automation runs live on your connected account. Your settings are saved and applied automatically to every new comment and message.
               </span>
             </div>
           </>

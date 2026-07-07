@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DawnLogo } from "@/components/DawnLogo";
+import { TrialBanner } from "@/components/TrialBanner";
 import {
   LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus, Menu, X, Bookmark, CalendarDays,
 } from "lucide-react";
@@ -96,7 +97,10 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
       )}
 
       {/* Main content — pushed right on desktop, down on mobile */}
-      <main className="flex-1 lg:ml-60 pt-14 lg:pt-0 w-full min-w-0">{children}</main>
+      <main className="flex-1 lg:ml-60 pt-14 lg:pt-0 w-full min-w-0">
+        <TrialBanner />
+        {children}
+      </main>
     </div>
   );
 }

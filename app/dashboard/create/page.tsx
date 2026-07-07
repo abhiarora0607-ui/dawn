@@ -312,7 +312,7 @@ export default function Create() {
                       Your enhanced image, selected caption, and hashtags are ready. Direct publishing works once your account is connected and (for public users) approved by Meta.
                     </p>
                     <div className="text-xs text-navy/50 bg-surface rounded-lg p-3">
-                      <span className="font-medium">Note:</span> Instagram&apos;s API can&apos;t attach music to posts and needs a hosted image URL to publish — so &ldquo;Post now&rdquo; activates in the next build once image hosting is wired.
+                      <span className="font-medium">Tip:</span> Your enhanced image, caption, and hashtags are ready to post. Copy them into Instagram, or connect your account to publish directly.
                     </div>
                   </div>
                 </>

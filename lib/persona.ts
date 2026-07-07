@@ -122,3 +122,17 @@ export function personaPrompt(p: Persona | null): string {
   if (parts.length === 0) return "";
   return `\n\nDEEP PERSONA (personalize everything to this creator):\n${parts.join("\n")}`;
 }
+
+// Cron-safe version: fetch persona by explicit ig_user_id (no cookies).
+export async function personaPromptFor(igUserId: string): Promise<string> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !key) return "";
+  try {
+    const res = await fetch(`${url}/rest/v1/account_persona?ig_user_id=eq.${igUserId}&select=persona_json&limit=1`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` }, cache: "no-store",
+    });
+    const rows = await res.json();
+    return personaPrompt(rows?.[0]?.persona_json ?? null);
+  } catch { return ""; }
+}

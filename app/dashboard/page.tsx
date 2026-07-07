@@ -20,7 +20,7 @@ type Account = {
   audiencePrefers: string; bestTimeToPost: string;
 };
 type Competitor = { handle: string; postsLast7d: number; topFormat: string; standoutPost: string; standoutReach: number; note: string };
-type Payload = { brief: Brief; account: Account; competitors: Competitor[] };
+type Payload = { brief: Brief; account: Account; competitors: Competitor[]; fallback?: boolean; cached?: boolean };
 
 const priorityStyles: Record<string, string> = {
   high: "bg-amber-deep/10 text-amber-deep border-amber-deep/20",
@@ -53,6 +53,29 @@ function StatCard({ label, value, change, unit = "", icon: Icon, invert = false 
   );
 }
 
+function ConnectFirst() {
+  return (
+    <div className="p-4 sm:p-6 max-w-2xl mx-auto">
+      <div className="bg-navy rounded-3xl p-8 sm:p-10 text-white text-center relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-amber/15 rounded-full blur-3xl -mr-20 -mt-20" />
+        <div className="relative">
+          <div className="w-14 h-14 rounded-2xl bg-amber flex items-center justify-center mx-auto mb-5">
+            <Sparkles className="w-7 h-7 text-navy" />
+          </div>
+          <h1 className="font-display font-semibold text-2xl sm:text-3xl mb-3">Connect your Instagram to begin</h1>
+          <p className="text-white/70 leading-relaxed max-w-md mx-auto mb-7">
+            Dawn reads your account overnight and hands you a ranked action plan each morning — what changed, what&apos;s working, and exactly what to do. Connect your Business or Creator account to see your first briefing.
+          </p>
+          <a href="/api/instagram/connect" className="inline-flex items-center gap-2 bg-amber text-navy font-semibold px-6 py-3.5 rounded-2xl hover:bg-amber-glow transition-colors">
+            Connect Instagram
+          </a>
+          <p className="text-white/40 text-xs mt-4">Takes 30 seconds · You control what Dawn can access</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,6 +94,8 @@ export default function Dashboard() {
           <div className="p-10 sm:p-20 flex items-center justify-center text-navy/40">
             <Loader2 className="w-6 h-6 animate-spin mr-3" /> Reading your account…
           </div>
+        ) : data && data.fallback ? (
+          <ConnectFirst />
         ) : data ? (
           <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
             {/* Briefing hero */}
@@ -194,7 +219,7 @@ export default function Dashboard() {
             <p className="text-center text-xs text-navy/30 py-4">
               {data.account.niche === "Your account"
                 ? "Connected to your Instagram. Dawn refreshes your briefing every morning."
-                : "Dawn refreshes your briefing every morning. This is a live demo on sample data — connect Instagram to see yours."}
+                : "Dawn refreshes your briefing every morning. Connect your Instagram to see your own numbers."}
             </p>
           </div>
         ) : (

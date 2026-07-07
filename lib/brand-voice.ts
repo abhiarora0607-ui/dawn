@@ -76,3 +76,17 @@ export function brandVoicePrompt(v: BrandVoice | null): string {
   if (parts.length === 0) return "";
   return `\n\nBrand voice to match exactly:\n${parts.join("\n")}\nWrite as if you are this creator — match their voice, not a generic AI.`;
 }
+
+// Cron-safe version: fetch brand voice by explicit ig_user_id (no cookies).
+export async function brandVoicePromptFor(igUserId: string): Promise<string> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !key) return "";
+  try {
+    const res = await fetch(`${url}/rest/v1/brand_voice?ig_user_id=eq.${igUserId}&select=*&limit=1`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` }, cache: "no-store",
+    });
+    const rows = await res.json();
+    return brandVoicePrompt(rows?.[0] ?? null);
+  } catch { return ""; }
+}

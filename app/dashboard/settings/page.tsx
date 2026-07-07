@@ -31,6 +31,20 @@ export default function SettingsPage() {
           <p className="text-navy/50 text-sm mt-1">Manage your connection and data.</p>
         </div>
 
+        {/* Plan */}
+        <section className="bg-white rounded-2xl border border-navy-line p-6 shadow-card">
+          <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-4">Your plan</h2>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-navy">Free trial</p>
+              <p className="text-xs text-muted mt-0.5">All features unlocked · 14 days</p>
+            </div>
+            <a href="/pricing" className="text-sm font-semibold bg-navy text-white px-4 py-2 rounded-lg hover:bg-navy-soft transition-colors shrink-0">
+              View plans
+            </a>
+          </div>
+        </section>
+
         {/* Connection */}
         <section className="bg-white rounded-2xl border border-navy/8 p-6">
           <h2 className="text-sm font-semibold text-navy/50 uppercase tracking-wide mb-4">Instagram connection</h2>

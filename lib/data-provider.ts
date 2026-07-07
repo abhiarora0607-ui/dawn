@@ -97,7 +97,7 @@ class MockProvider implements DataProvider {
 // ── REAL PROVIDER (Instagram Graph API) ─────────────────────
 // Pulls live data for a connected account using its access token.
 // Any field Instagram doesn't directly expose is derived sensibly.
-class InstagramGraphProvider implements DataProvider {
+export class InstagramGraphProvider implements DataProvider {
   constructor(private token: string, private igUserId: string) {}
 
   private async ig(path: string, params: Record<string, string> = {}) {

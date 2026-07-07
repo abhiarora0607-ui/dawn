@@ -13,7 +13,7 @@ export type Account = {
   audiencePrefers: string; bestTimeToPost: string;
 };
 export type Competitor = { handle: string; postsLast7d: number; topFormat: string; standoutPost: string; standoutReach: number; note: string };
-export type Payload = { brief: Brief; account: Account; competitors: Competitor[] };
+export type Payload = { brief: Brief; account: Account; competitors: Competitor[]; fallback?: boolean; cached?: boolean };
 
 export function useBrief() {
   const [data, setData] = useState<Payload | null>(null);

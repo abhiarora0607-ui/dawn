@@ -94,7 +94,7 @@ export default function Analytics() {
           </section>
 
           <p className="text-center text-xs text-navy/30 py-4">
-            {data.account.niche === "Your account" ? "Live data from your connected Instagram." : "Sample data — connect Instagram to see yours."}
+            {data.account.niche === "Your account" ? "Live data from your connected Instagram." : "Connect your Instagram to see your own analytics."}
           </p>
         </div>
       ) : (

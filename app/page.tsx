@@ -10,9 +10,12 @@ export default function Home() {
       <header className="sticky top-0 z-50 backdrop-blur-md bg-cream/80 border-b border-navy-line">
         <div className="max-w-6xl mx-auto px-5 sm:px-6 h-16 flex items-center justify-between">
           <DawnLogo className="h-7" />
-          <a href="#waitlist" className="text-sm font-medium bg-navy text-white px-4 py-2 rounded-xl hover:bg-navy-soft transition-colors">
-            Join the waitlist
-          </a>
+          <div className="flex items-center gap-2 sm:gap-4">
+            <a href="/pricing" className="text-sm font-medium text-navy/70 hover:text-navy px-2 py-2">Pricing</a>
+            <a href="#waitlist" className="text-sm font-medium bg-navy text-white px-4 py-2 rounded-xl hover:bg-navy-soft transition-colors">
+              Join the waitlist
+            </a>
+          </div>
         </div>
       </header>
 
@@ -35,10 +38,10 @@ export default function Home() {
                 Get early access
               </a>
               <a href="/dashboard" className="inline-flex items-center justify-center bg-white/60 border border-navy-line text-navy font-medium px-6 py-3.5 rounded-2xl hover:bg-white transition-colors">
-                See a live demo
+                Try it free
               </a>
             </div>
-            <p className="mt-4 text-xs text-muted">Free while in beta · Built for creators, brands &amp; agencies</p>
+            <p className="mt-4 text-xs text-muted">Free 14-day trial · Built for creators, brands &amp; agencies</p>
           </div>
 
           <div className="flex justify-center lg:justify-end animate-rise-slow">
@@ -127,7 +130,7 @@ export default function Home() {
           <div className="flex gap-4 text-xs text-muted">
             <a href="/privacy" className="hover:text-navy">Privacy</a>
             <a href="/data-deletion" className="hover:text-navy">Data deletion</a>
-            <a href="/dashboard" className="hover:text-navy">Live demo</a>
+            <a href="/dashboard" className="hover:text-navy">Open app</a>
           </div>
         </div>
       </footer>
