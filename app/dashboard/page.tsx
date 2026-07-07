@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { Onboarding } from "@/components/Onboarding";
+import { ActionRunner } from "@/components/ActionRunner";
 import {
   TrendingUp, TrendingDown, Loader2,
   Sparkles, Trophy, AlertTriangle, Eye, Bookmark, Clock, Target, Users,
@@ -80,6 +81,7 @@ function ConnectFirst() {
 export default function Dashboard() {
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeAction, setActiveAction] = useState<BriefAction | null>(null);
 
   useEffect(() => {
     fetch("/api/brief").then((r) => r.json()).then((d) => { setData(d); setLoading(false); }).catch(() => setLoading(false));
@@ -151,7 +153,7 @@ export default function Dashboard() {
                         <p className="text-sm font-semibold text-navy">{a.title}</p>
                         <p className="text-sm text-navy/55 leading-snug mt-1">{a.detail}</p>
                       </div>
-                      <button className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-medium text-amber-deep bg-amber/10 px-3 py-1.5 rounded-lg whitespace-nowrap self-center">
+                      <button onClick={() => setActiveAction(a)} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-xs font-medium text-amber-deep bg-amber/10 px-3 py-1.5 rounded-lg whitespace-nowrap self-center hover:bg-amber/20">
                         Do it →
                       </button>
                     </div>
@@ -227,6 +229,7 @@ export default function Dashboard() {
           <div className="p-10 sm:p-20 text-center text-navy/40">Couldn&apos;t load the dashboard. Refresh to try again.</div>
         )}
       </main>
+      {activeAction && <ActionRunner action={activeAction} onClose={() => setActiveAction(null)} />}
     </DashboardShell>
   );
 }

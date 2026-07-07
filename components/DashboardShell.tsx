@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { DawnLogo } from "@/components/DawnLogo";
 import { TrialBanner } from "@/components/TrialBanner";
 import {
-  LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus, Menu, X, Bookmark, CalendarDays, ShoppingBag,
+  LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus, Menu, X, Bookmark, CalendarDays, ShoppingBag, CalendarClock,
 } from "lucide-react";
 
 const NAV = [
@@ -14,6 +14,7 @@ const NAV = [
   { href: "/dashboard/store", label: "Store", icon: ShoppingBag },
   { href: "/dashboard/create", label: "Create", icon: Plus },
   { href: "/dashboard/studio", label: "Studio", icon: CalendarDays },
+  { href: "/dashboard/queue", label: "Queue", icon: CalendarClock },
   { href: "/dashboard/engage", label: "Engage", icon: MessageSquare },
   { href: "/dashboard/analytics", label: "Analytics", icon: TrendingUp },
   { href: "/dashboard/competitors", label: "Competitors", icon: Users },
