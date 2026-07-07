@@ -16,7 +16,13 @@ export async function GET(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ sales: [] });
+  const wantCustomers = new URL(req.url).searchParams.get("customers") === "1";
   try {
+    if (wantCustomers) {
+      // Return contacts that can receive an order (customers first, then anyone)
+      const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&select=id,name,phone,stage&order=name.asc`, { headers: H(key), cache: "no-store" });
+      return NextResponse.json({ customers: await res.json() });
+    }
     const res = await fetch(`${url}/rest/v1/sales?uid=eq.${uid}&order=date.desc`, { headers: H(key), cache: "no-store" });
     return NextResponse.json({ sales: await res.json() });
   } catch { return NextResponse.json({ sales: [] }); }

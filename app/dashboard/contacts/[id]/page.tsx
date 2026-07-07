@@ -7,9 +7,10 @@ import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
 import { ToastProvider, useToast, ConfirmDialog } from "@/components/Toast";
 import { ConvertModal } from "@/components/ConvertModal";
+import { OrderModal } from "@/components/OrderModal";
 import {
   Loader2, ArrowLeft, Phone, MessageCircle, Copy, Trash2, Send, ShoppingBag,
-  StickyNote, GitBranch, Paperclip, Check,
+  StickyNote, GitBranch, Paperclip, Check, Plus,
 } from "lucide-react";
 
 const STAGES = ["New Lead", "Contacted", "Negotiating", "Customer (Won)", "Lost"];
@@ -35,6 +36,7 @@ function ProfileInner() {
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState("");
   const [convert, setConvert] = useState(false);
+  const [newOrder, setNewOrder] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
 
   function load() {
@@ -94,7 +96,11 @@ function ProfileInner() {
             {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="flex items-center gap-1.5 text-sm font-medium bg-emerald-500 text-white px-3 py-2 rounded-xl hover:bg-emerald-600"><MessageCircle className="w-4 h-4" /> WhatsApp</a>}
             {contact.phone && <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 text-sm font-medium border border-navy-line text-navy px-3 py-2 rounded-xl hover:bg-surface"><Phone className="w-4 h-4" /> Call</a>}
             {contact.instagram_handle && <button onClick={() => { navigator.clipboard.writeText("@" + contact.instagram_handle); toast("Handle copied"); }} className="flex items-center gap-1.5 text-sm font-medium border border-navy-line text-navy px-3 py-2 rounded-xl hover:bg-surface"><Copy className="w-4 h-4" /> Copy handle</button>}
-            {contact.stage !== "Customer (Won)" && <button onClick={() => setConvert(true)} className="flex items-center gap-1.5 text-sm font-semibold bg-amber text-navy px-3 py-2 rounded-xl hover:bg-amber-glow ml-auto"><ShoppingBag className="w-4 h-4" /> Convert to customer</button>}
+            {contact.stage !== "Customer (Won)" ? (
+              <button onClick={() => setConvert(true)} className="flex items-center gap-1.5 text-sm font-semibold bg-amber text-navy px-3 py-2 rounded-xl hover:bg-amber-glow ml-auto"><ShoppingBag className="w-4 h-4" /> Convert to customer</button>
+            ) : (
+              <button onClick={() => setNewOrder(true)} className="flex items-center gap-1.5 text-sm font-semibold bg-amber text-navy px-3 py-2 rounded-xl hover:bg-amber-glow ml-auto"><Plus className="w-4 h-4" /> New order</button>
+            )}
           </div>
         </div>
 
@@ -151,6 +157,7 @@ function ProfileInner() {
       </div>
 
       {convert && <ConvertModal contact={contact} onClose={() => setConvert(false)} onDone={() => { setConvert(false); load(); }} />}
+      {newOrder && <OrderModal contact={contact} onClose={() => setNewOrder(false)} onDone={() => { setNewOrder(false); load(); }} />}
       <ConfirmDialog open={confirmDel} title="Delete this contact?" body="This removes them and all their activity. Can't be undone." onConfirm={doDelete} onCancel={() => setConfirmDel(false)} />
     </DashboardShell>
   );
