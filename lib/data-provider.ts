@@ -17,6 +17,8 @@ export type AccountSnapshot = {
   followersChange: number;      // vs yesterday
   reach: number;
   reachChangePct: number;       // vs previous period
+  websiteClicks?: number;       // link-in-bio clicks — purchase intent proxy
+  totalSaves?: number;          // saves across recent posts — intent proxy
   profileVisits: number;
   engagementRate: number;       // %
   responseRatePct: number;      // % of DMs replied
@@ -124,7 +126,7 @@ export class InstagramGraphProvider implements DataProvider {
 
     // Recent media (for top/worst post + format signals)
     const media = await this.igSafe("me/media", {
-      fields: "caption,media_type,like_count,comments_count,timestamp,permalink",
+      fields: "id,caption,media_type,like_count,comments_count,timestamp,permalink",
       limit: "25",
     });
     const posts: any[] = media?.data || [];
@@ -141,14 +143,25 @@ export class InstagramGraphProvider implements DataProvider {
     const best = hasPosts ? scored[0] : { caption: "No posts yet", format: "Reel", engagement: 0, likes: 0 };
     const worst = hasPosts ? scored[scored.length - 1] : { caption: "No posts yet", format: "Image", engagement: 0 };
 
-    // Account-level insights (reach, profile views) — best effort
+    // Account-level insights (reach, profile views, website clicks) — best effort.
+    // website_clicks is a genuine purchase-intent proxy for D2C brands.
     let reach = 0;
     let profileVisits = 0;
-    const insights = await this.igSafe("me/insights", { metric: "reach,profile_views", period: "day" });
+    let websiteClicks = 0;
+    const insights = await this.igSafe("me/insights", { metric: "reach,profile_views,website_clicks", period: "day" });
     for (const m of insights?.data || []) {
       const val = m.values?.[0]?.value || 0;
       if (m.name === "reach") reach = val;
       if (m.name === "profile_views") profileVisits = val;
+      if (m.name === "website_clicks") websiteClicks = val;
+    }
+
+    // Total saves across recent posts (best-effort per-post insight) — intent proxy.
+    let totalSaves = 0;
+    for (const p of posts.slice(0, 8)) {
+      const ins = await this.igSafe(`${p.id}/insights`, { metric: "saved" });
+      const saved = ins?.data?.find((x: any) => x.name === "saved")?.values?.[0]?.value || 0;
+      totalSaves += saved;
     }
 
     const followers = me.followers_count || 0;
@@ -165,6 +178,8 @@ export class InstagramGraphProvider implements DataProvider {
       followersChange: 0,
       reach,
       reachChangePct: 0,
+      websiteClicks,
+      totalSaves,
       profileVisits,
       engagementRate,
       responseRatePct: 0,

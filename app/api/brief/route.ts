@@ -4,6 +4,7 @@ import { getProviderAsync, getProvider } from "@/lib/data-provider";
 import { generateBrief } from "@/lib/briefing-engine";
 import { getBrandVoice, brandVoicePrompt } from "@/lib/brand-voice";
 import { getPersona, personaPrompt } from "@/lib/persona";
+import { getStore, storePrompt } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -56,13 +57,14 @@ export async function GET(req: Request) {
 
   try {
     const provider = await getProviderAsync();
-    const [account, competitors, voice, persona] = await Promise.all([
+    const [account, competitors, voice, persona, store] = await Promise.all([
       provider.getAccount(),
       provider.getCompetitors(),
       getBrandVoice(),
       getPersona(),
+      getStore(),
     ]);
-    const context = brandVoicePrompt(voice) + personaPrompt(persona);
+    const context = brandVoicePrompt(voice) + personaPrompt(persona) + storePrompt(store);
     const brief = await generateBrief(account, competitors, context);
     const payload = { account, competitors, brief };
     if (id && account.niche === "Your account") await setCached(id, payload);

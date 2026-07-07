@@ -8,6 +8,7 @@ export type Account = {
   handle: string; displayName: string; niche: string;
   followers: number; followersChange: number; reach: number; reachChangePct: number;
   profileVisits: number; engagementRate: number; responseRatePct: number; pendingDMs: number;
+  websiteClicks?: number; totalSaves?: number;
   topPost: { caption: string; format: string; reach: number; saves: number };
   worstPost: { caption: string; format: string; reach: number };
   audiencePrefers: string; bestTimeToPost: string;

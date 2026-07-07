@@ -15,6 +15,7 @@ type Account = {
   handle: string; displayName: string; niche: string;
   followers: number; followersChange: number; reach: number; reachChangePct: number;
   profileVisits: number; engagementRate: number; responseRatePct: number; pendingDMs: number;
+  websiteClicks?: number; totalSaves?: number;
   topPost: { caption: string; format: string; reach: number; saves: number };
   worstPost: { caption: string; format: string; reach: number };
   audiencePrefers: string; bestTimeToPost: string;
@@ -133,9 +134,9 @@ export default function Dashboard() {
             {/* Stats */}
             <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard label="Reach" value={fmt(data.account.reach)} change={data.account.reachChangePct} unit="%" icon={Eye} />
-              <StatCard label="Followers" value={data.account.followers.toLocaleString()} change={data.account.followersChange} icon={Users} invert />
               <StatCard label="Profile visits" value={fmt(data.account.profileVisits)} icon={Target} />
-              <StatCard label="Engagement" value={`${data.account.engagementRate}%`} icon={TrendingUp} />
+              <StatCard label="Link clicks" value={fmt(data.account.websiteClicks || 0)} icon={TrendingUp} />
+              <StatCard label="Saves" value={fmt(data.account.totalSaves || 0)} icon={Bookmark} />
             </section>
 
             <div className="grid lg:grid-cols-3 gap-6">

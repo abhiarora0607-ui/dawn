@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import { generateBrief } from "@/lib/briefing-engine";
 import { brandVoicePromptFor } from "@/lib/brand-voice";
 import { personaPromptFor } from "@/lib/persona";
+import { storePromptFor } from "@/lib/store";
 import { InstagramGraphProvider } from "@/lib/data-provider";
 
 export const dynamic = "force-dynamic";
@@ -75,7 +76,7 @@ export async function GET(req: Request) {
     try {
       const provider = new InstagramGraphProvider(token, igUserId);
       const [account, competitors] = await Promise.all([provider.getAccount(), provider.getCompetitors()]);
-      const ctx = (await brandVoicePromptFor(igUserId)) + (await personaPromptFor(igUserId));
+      const ctx = (await brandVoicePromptFor(igUserId)) + (await personaPromptFor(igUserId)) + (await storePromptFor(igUserId));
       const brief = await generateBrief(account, competitors, ctx);
       const payload = { account, competitors, brief };
       await fetch(`${url}/rest/v1/brief_cache`, {
