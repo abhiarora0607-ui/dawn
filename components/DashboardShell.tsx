@@ -1,20 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DawnLogo } from "@/components/DawnLogo";
 import { TrialBanner } from "@/components/TrialBanner";
 import {
-  LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus, Menu, X, Bookmark, CalendarDays, ShoppingBag, CalendarClock, Tag, Contact, Wallet,
+  LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus, Menu, X, Bookmark, CalendarDays, CalendarClock, Tag, Contact, Wallet, Lightbulb,
 } from "lucide-react";
 
-const NAV = [
-  { href: "/dashboard", label: "Briefing", icon: LayoutDashboard },
+const CRM_NAV = [
   { href: "/dashboard/contacts", label: "Contacts", icon: Contact },
-  { href: "/dashboard/sales", label: "Sales", icon: Wallet },
+  { href: "/dashboard/suggestions", label: "Suggestions", icon: Lightbulb, badge: true },
+  { href: "/dashboard/sales", label: "Sales & Orders", icon: Wallet },
   { href: "/dashboard/price-list", label: "Price List", icon: Tag },
-  { href: "/dashboard/store", label: "Store", icon: ShoppingBag },
+];
+
+const IG_NAV = [
+  { href: "/dashboard", label: "Briefing", icon: LayoutDashboard },
   { href: "/dashboard/create", label: "Create", icon: Plus },
   { href: "/dashboard/studio", label: "Studio", icon: CalendarDays },
   { href: "/dashboard/queue", label: "Queue", icon: CalendarClock },
@@ -24,27 +27,42 @@ const NAV = [
   { href: "/dashboard/content", label: "Content", icon: PenLine },
   { href: "/dashboard/saved", label: "Saved", icon: Bookmark },
   { href: "/dashboard/brand-voice", label: "Brand Voice", icon: Mic },
+];
+
+const BOTTOM_NAV = [
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
-function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+function NavItem({ item, pathname, onNavigate, badgeCount }: { item: any; pathname: string; onNavigate?: () => void; badgeCount?: number }) {
+  const active = pathname === item.href;
+  return (
+    <Link
+      href={item.href}
+      onClick={onNavigate}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? "bg-navy text-white" : "text-navy/60 hover:bg-navy/5 active:bg-navy/10"}`}
+    >
+      <item.icon className="w-[18px] h-[18px]" />
+      <span>{item.label}</span>
+      {item.label === "Briefing" && <span className="ml-auto w-2 h-2 rounded-full bg-amber" />}
+      {item.badge && badgeCount ? <span className="ml-auto text-[10px] font-bold bg-amber text-navy px-1.5 py-0.5 rounded-full min-w-[18px] text-center">{badgeCount}</span> : null}
+    </Link>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <p className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-navy/35">{children}</p>;
+}
+
+function NavLinks({ pathname, onNavigate, suggCount }: { pathname: string; onNavigate?: () => void; suggCount?: number }) {
   return (
     <>
-      {NAV.map((item) => {
-        const active = pathname === item.href;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? "bg-navy text-white" : "text-navy/60 hover:bg-navy/5 active:bg-navy/10"}`}
-          >
-            <item.icon className="w-[18px] h-[18px]" />
-            <span>{item.label}</span>
-            {item.label === "Briefing" && <span className="ml-auto w-2 h-2 rounded-full bg-amber" />}
-          </Link>
-        );
-      })}
+      <SectionLabel>CRM &amp; Business</SectionLabel>
+      {CRM_NAV.map((item) => <NavItem key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} badgeCount={suggCount} />)}
+      <SectionLabel>Instagram &amp; AI</SectionLabel>
+      {IG_NAV.map((item) => <NavItem key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} />)}
+      <div className="pt-3 mt-2 border-t border-navy-line/60">
+        {BOTTOM_NAV.map((item) => <NavItem key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} />)}
+      </div>
     </>
   );
 }
@@ -52,6 +70,11 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
 export function DashboardShell({ children }: { children: React.ReactNode; title?: string }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [suggCount, setSuggCount] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/suggestions").then((r) => r.json()).then((d) => setSuggCount((d.suggestions || []).length)).catch(() => {});
+  }, [pathname]);
 
   return (
     <div className="min-h-screen bg-surface flex">
@@ -61,7 +84,7 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
           <Link href="/"><DawnLogo className="h-6" /></Link>
         </div>
         <nav className="p-3 space-y-1 flex-1 overflow-y-auto">
-          <NavLinks pathname={pathname} />
+          <NavLinks pathname={pathname} suggCount={suggCount} />
         </nav>
         <div className="p-3 border-t border-navy/8">
           <Link href="/" className="flex items-center gap-2 px-3 py-2 text-xs text-navy/40 hover:text-navy/70">
@@ -90,7 +113,7 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
               </button>
             </div>
             <nav className="p-3 space-y-1 flex-1 overflow-y-auto">
-              <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
+              <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} suggCount={suggCount} />
             </nav>
             <div className="p-3 border-t border-navy/8">
               <Link href="/" onClick={() => setOpen(false)} className="flex items-center gap-2 px-3 py-2 text-xs text-navy/40">
