@@ -22,6 +22,32 @@ export async function GET(req: Request) {
   } catch { return NextResponse.json({ sales: [] }); }
 }
 
+export async function PATCH(req: Request) {
+  const uid = await getUid();
+  const { url, key } = sb();
+  if (!uid || !url || !key) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  try {
+    const b = await req.json();
+    if (!b.id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
+    // Load current sale
+    const cur = await (await fetch(`${url}/rest/v1/sales?id=eq.${b.id}&uid=eq.${uid}&select=*&limit=1`, { headers: H(key), cache: "no-store" })).json();
+    const sale = cur?.[0];
+    if (!sale) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+    const addAmount = Number(b.addPayment) || 0;
+    const newPaid = Math.min(Number(sale.total), (Number(sale.amount_paid) || 0) + addAmount);
+    const newBalance = Math.max(0, Number(sale.total) - newPaid);
+    const newStatus = newBalance <= 0 ? "paid" : newPaid > 0 ? "partial" : "pending";
+    const payments = [...(sale.payments || []), { amount: addAmount, date: new Date().toISOString(), method: b.method || "cash" }];
+
+    await fetch(`${url}/rest/v1/sales?id=eq.${b.id}&uid=eq.${uid}`, {
+      method: "PATCH", headers: H(key, { Prefer: "return=minimal" }),
+      body: JSON.stringify({ amount_paid: newPaid, balance: newBalance, status: newStatus, payments }),
+    });
+    return NextResponse.json({ ok: true, status: newStatus, balance: newBalance });
+  } catch { return NextResponse.json({ error: "Update failed." }, { status: 500 }); }
+}
+
 export async function POST(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
