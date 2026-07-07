@@ -6,11 +6,12 @@ import { usePathname } from "next/navigation";
 import { DawnLogo } from "@/components/DawnLogo";
 import { TrialBanner } from "@/components/TrialBanner";
 import {
-  LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus, Menu, X, Bookmark, CalendarDays, ShoppingBag, CalendarClock,
+  LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus, Menu, X, Bookmark, CalendarDays, ShoppingBag, CalendarClock, Tag,
 } from "lucide-react";
 
 const NAV = [
   { href: "/dashboard", label: "Briefing", icon: LayoutDashboard },
+  { href: "/dashboard/price-list", label: "Price List", icon: Tag },
   { href: "/dashboard/store", label: "Store", icon: ShoppingBag },
   { href: "/dashboard/create", label: "Create", icon: Plus },
   { href: "/dashboard/studio", label: "Studio", icon: CalendarDays },
