@@ -8,7 +8,7 @@ import { ActionRunner } from "@/components/ActionRunner";
 import { ValueSummary } from "@/components/ValueSummary";
 import {
   TrendingUp, TrendingDown, Loader2,
-  Sparkles, Trophy, AlertTriangle, Eye, Bookmark, Clock, Target, Users,
+  Sparkles, Trophy, AlertTriangle, Eye, Bookmark, Clock, Target, Users, RefreshCw,
 } from "lucide-react";
 
 type BriefAction = { priority: "high" | "medium" | "low"; title: string; detail: string };
@@ -82,11 +82,25 @@ function ConnectFirst() {
 export default function Dashboard() {
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [activeAction, setActiveAction] = useState<BriefAction | null>(null);
 
-  useEffect(() => {
-    fetch("/api/brief").then((r) => r.json()).then((d) => { setData(d); setLoading(false); }).catch(() => setLoading(false));
-  }, []);
+  function load() {
+    setLoading(true);
+    setError(false);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
+    fetch("/api/brief", { signal: controller.signal })
+      .then((r) => r.json())
+      .then((d) => {
+        clearTimeout(timeout);
+        if (d?.error) { setError(true); setLoading(false); }
+        else { setData(d); setLoading(false); }
+      })
+      .catch(() => { clearTimeout(timeout); setError(true); setLoading(false); });
+  }
+
+  useEffect(() => { load(); }, []);
 
   return (
     <DashboardShell>
@@ -94,7 +108,20 @@ export default function Dashboard() {
         <DashTopbar account={data?.account} pageTitle="Briefing" />
         <Onboarding account={data?.account} />
 
-        {loading ? (
+        {error ? (
+          <div className="p-4 sm:p-6 max-w-2xl mx-auto">
+            <div className="bg-white rounded-2xl border border-navy-line p-10 text-center shadow-card">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+              </div>
+              <h2 className="text-lg font-semibold text-navy mb-2">Couldn&apos;t load your briefing</h2>
+              <p className="text-muted text-sm mb-5">Something interrupted the connection. Your data is safe — let&apos;s try again.</p>
+              <button onClick={load} className="inline-flex items-center gap-2 bg-navy text-white font-medium px-5 py-2.5 rounded-xl hover:bg-navy-soft transition-colors">
+                <RefreshCw className="w-4 h-4" /> Retry
+              </button>
+            </div>
+          </div>
+        ) : loading ? (
           <div className="p-10 sm:p-20 flex items-center justify-center text-navy/40">
             <Loader2 className="w-6 h-6 animate-spin mr-3" /> Reading your account…
           </div>

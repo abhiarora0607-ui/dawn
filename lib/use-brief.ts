@@ -19,10 +19,25 @@ export type Payload = { brief: Brief; account: Account; competitors: Competitor[
 export function useBrief() {
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    fetch("/api/brief").then((r) => r.json()).then((d) => { setData(d); setLoading(false); }).catch(() => setLoading(false));
-  }, []);
-  return { data, loading };
+  const [error, setError] = useState(false);
+
+  function load() {
+    setLoading(true);
+    setError(false);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000); // never hang past 25s
+    fetch("/api/brief", { signal: controller.signal })
+      .then((r) => r.json())
+      .then((d) => {
+        clearTimeout(timeout);
+        if (d?.error) { setError(true); setLoading(false); }
+        else { setData(d); setLoading(false); }
+      })
+      .catch(() => { clearTimeout(timeout); setError(true); setLoading(false); });
+  }
+
+  useEffect(() => { load(); }, []);
+  return { data, loading, error, reload: load };
 }
 
 export function fmt(n: number) {
