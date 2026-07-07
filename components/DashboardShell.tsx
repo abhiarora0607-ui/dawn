@@ -126,10 +126,29 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
       )}
 
       {/* Main content — pushed right on desktop, down on mobile */}
-      <main className="flex-1 lg:ml-60 pt-14 lg:pt-0 w-full min-w-0">
+      <main className="flex-1 lg:ml-60 pt-14 lg:pt-0 w-full min-w-0 pb-16 lg:pb-0">
         <TrialBanner />
         {children}
       </main>
+
+      {/* Mobile bottom nav */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-navy-line flex items-center justify-around h-16 px-1">
+        {[
+          { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+          { href: "/dashboard/contacts", label: "Contacts", icon: Contact },
+          { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
+          { href: "/dashboard/price-list", label: "Prices", icon: Tag },
+          { href: "/dashboard/settings", label: "More", icon: Menu },
+        ].map((item) => {
+          const active = pathname === item.href;
+          return (
+            <Link key={item.href} href={item.href} className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1 ${active ? "text-amber-deep" : "text-navy/50"}`}>
+              <item.icon className="w-[20px] h-[20px]" />
+              <span className="text-[10px] font-medium">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

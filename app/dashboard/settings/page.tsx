@@ -1,98 +1,136 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
-import { Instagram, Check, Loader2, Trash2 } from "lucide-react";
+import { ToastProvider, useToast, ConfirmDialog } from "@/components/Toast";
+import { Loader2, Save, Upload, Database, Trash2, Download, Building2 } from "lucide-react";
 
-export default function SettingsPage() {
+const CURRENCIES = ["₹", "$", "€", "£", "₨", "R$", "A$"];
+
+function SettingsInner() {
   const { data } = useBrief();
-  const [disconnecting, setDisconnecting] = useState(false);
-  const connected = data?.account.niche === "Your account";
+  const { toast } = useToast();
+  const [s, setS] = useState<any>({ currency: "₹", stage_names: ["New Lead", "Contacted", "Negotiating", "Customer (Won)", "Lost"] });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
-  async function disconnect() {
-    if (!confirm("Disconnect your Instagram and delete stored data? You can reconnect anytime.")) return;
-    setDisconnecting(true);
-    try {
-      await fetch("/api/instagram/disconnect", { method: "POST" });
-      window.location.href = "/dashboard";
-    } catch {
-      setDisconnecting(false);
-    }
+  useEffect(() => {
+    fetch("/api/settings").then((r) => r.json()).then((d) => {
+      setS({ currency: "₹", stage_names: ["New Lead", "Contacted", "Negotiating", "Customer (Won)", "Lost"], ...d.settings });
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  function set(k: string, v: any) { setS((p: any) => ({ ...p, [k]: v })); }
+
+  async function uploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const res = await fetch("/api/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl: reader.result }) });
+        const d = await res.json();
+        if (d.url) { set("logo_url", d.url); toast("Logo uploaded"); }
+        else toast(d.error || "Upload failed", "error");
+      } catch { toast("Upload error", "error"); }
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
   }
+
+  async function save() {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(s) });
+      if (res.ok) toast("Settings saved"); else toast("Save failed", "error");
+    } catch { toast("Network error", "error"); }
+    setSaving(false);
+  }
+
+  async function seed() {
+    setSeeding(true);
+    try { await fetch("/api/demo?action=seed", { method: "POST" }); toast("Demo data added"); }
+    catch { toast("Failed", "error"); }
+    setSeeding(false);
+  }
+  async function clearDemo() {
+    setConfirmClear(false);
+    await fetch("/api/demo?action=clear", { method: "POST" });
+    toast("Demo data cleared");
+  }
+
+  if (loading) return <DashboardShell><DashTopbar account={data?.account} pageTitle="Settings" /><div className="p-12 flex justify-center text-muted"><Loader2 className="w-6 h-6 animate-spin" /></div></DashboardShell>;
 
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Settings" />
-      <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-6">
-        <div>
-          <h1 className="font-display font-semibold text-2xl text-navy">Settings</h1>
-          <p className="text-navy/50 text-sm mt-1">Manage your connection and data.</p>
-        </div>
+      <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-5 pb-24">
+        <h1 className="font-display font-semibold text-2xl text-navy">Settings</h1>
 
-        {/* Plan */}
-        <section className="bg-white rounded-2xl border border-navy-line p-6 shadow-card">
-          <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-4">Your plan</h2>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="font-semibold text-navy">Free trial</p>
-              <p className="text-xs text-muted mt-0.5">All features unlocked · 14 days</p>
+        <section className="bg-white rounded-2xl border border-navy-line p-5 shadow-card space-y-4">
+          <div className="flex items-center gap-2"><Building2 className="w-4 h-4 text-amber-deep" /><h2 className="font-semibold text-navy">Business profile</h2></div>
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-surface border border-navy-line flex items-center justify-center overflow-hidden shrink-0">
+              {s.logo_url ? <img src={s.logo_url} alt="" className="w-full h-full object-cover" /> : <Building2 className="w-6 h-6 text-navy/30" />}
             </div>
-            <a href="/pricing" className="text-sm font-semibold bg-navy text-white px-4 py-2 rounded-lg hover:bg-navy-soft transition-colors shrink-0">
-              View plans
-            </a>
+            <label className="cursor-pointer flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface">
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} Upload logo
+              <input type="file" accept="image/*" onChange={uploadLogo} className="hidden" />
+            </label>
+          </div>
+          <Field label="Business name"><input value={s.business_name || ""} onChange={(e) => set("business_name", e.target.value)} className="inp" placeholder="Your business" /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Phone"><input value={s.phone || ""} onChange={(e) => set("phone", e.target.value)} className="inp" /></Field>
+            <Field label="WhatsApp"><input value={s.whatsapp || ""} onChange={(e) => set("whatsapp", e.target.value)} className="inp" placeholder="for public list" /></Field>
+          </div>
+          <Field label="Address"><input value={s.address || ""} onChange={(e) => set("address", e.target.value)} className="inp" /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Currency"><select value={s.currency} onChange={(e) => set("currency", e.target.value)} className="inp">{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></Field>
+            <Field label="Business type"><input value={s.business_type || ""} onChange={(e) => set("business_type", e.target.value)} className="inp" placeholder="e.g. D2C, salon" /></Field>
           </div>
         </section>
 
-        {/* Connection */}
-        <section className="bg-white rounded-2xl border border-navy/8 p-6">
-          <h2 className="text-sm font-semibold text-navy/50 uppercase tracking-wide mb-4">Instagram connection</h2>
-          {connected ? (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber to-amber-deep flex items-center justify-center">
-                  <Instagram className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <p className="font-semibold text-navy">{data?.account.displayName}</p>
-                  <p className="text-xs text-navy/50">{data?.account.handle} · connected</p>
-                </div>
-              </div>
-              <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full">
-                <Check className="w-3.5 h-3.5" /> Active
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-navy/60">No Instagram account connected yet.</p>
-              <a href="/api/instagram/connect" className="text-sm font-semibold bg-amber text-navy px-4 py-2 rounded-lg hover:bg-amber-deep hover:text-white transition-colors">
-                Connect Instagram
-              </a>
-            </div>
-          )}
+        <section className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+          <h2 className="font-semibold text-navy mb-3">Pipeline stages</h2>
+          <div className="space-y-2">
+            {(s.stage_names || []).map((name: string, i: number) => (
+              <input key={i} value={name} onChange={(e) => { const arr = [...s.stage_names]; arr[i] = e.target.value; set("stage_names", arr); }} className="inp" />
+            ))}
+          </div>
+          <p className="text-xs text-muted mt-2">Rename stages to fit your business.</p>
         </section>
 
-        {/* Data */}
-        <section className="bg-white rounded-2xl border border-navy/8 p-6">
-          <h2 className="text-sm font-semibold text-navy/50 uppercase tracking-wide mb-4">Your data</h2>
-          <p className="text-sm text-navy/60 mb-4">
-            Dawn stores only what&apos;s needed to generate your briefing. You can disconnect and delete your stored data at any time.
-          </p>
-          <button
-            onClick={disconnect}
-            disabled={disconnecting || !connected}
-            className="flex items-center gap-2 text-sm font-medium text-red-600 border border-red-200 px-4 py-2 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
-          >
-            {disconnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-            Disconnect &amp; delete my data
-          </button>
-        </section>
+        <button onClick={save} disabled={saving} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl hover:bg-navy-soft disabled:opacity-60">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save settings
+        </button>
 
-        <p className="text-center text-xs text-navy/30 py-2">
-          See our <a href="/privacy" className="underline">privacy policy</a> and <a href="/data-deletion" className="underline">data deletion</a> pages.
-        </p>
+        <section className="bg-white rounded-2xl border border-navy-line p-5 shadow-card space-y-3">
+          <div className="flex items-center gap-2"><Database className="w-4 h-4 text-amber-deep" /><h2 className="font-semibold text-navy">Data</h2></div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={seed} disabled={seeding} className="flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface disabled:opacity-60">
+              {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />} Add demo data
+            </button>
+            <button onClick={() => setConfirmClear(true)} className="flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface text-red-600"><Trash2 className="w-4 h-4" /> Clear demo data</button>
+            <a href="/api/catalog/export" className="flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface"><Download className="w-4 h-4" /> Export catalog CSV</a>
+          </div>
+        </section>
       </div>
+      <ConfirmDialog open={confirmClear} title="Clear demo data?" body="Removes only demo contacts, orders, and items. Your real data stays." confirmLabel="Clear" onConfirm={clearDemo} onCancel={() => setConfirmClear(false)} />
+      <style jsx global>{`.inp{width:100%;padding:0.6rem 0.75rem;border:1px solid #E4E8F0;border-radius:0.75rem;font-size:0.875rem;color:#16233F;outline:none}.inp:focus{border-color:#FF9E43}`}</style>
     </DashboardShell>
   );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div><label className="block text-sm font-semibold text-navy mb-1.5">{label}</label>{children}</div>;
+}
+
+export default function Settings() {
+  return <ToastProvider><SettingsInner /></ToastProvider>;
 }
