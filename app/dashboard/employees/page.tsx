@@ -6,6 +6,7 @@ import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
 import { ToastProvider, useToast, ConfirmDialog } from "@/components/Toast";
 import { Loader2, Plus, X, Trash2, Users, Pencil } from "lucide-react";
+import { useSettings } from "@/lib/use-settings";
 
 type Employee = { id: string; name: string; status: string; monthly_salary: number };
 
@@ -59,6 +60,7 @@ function EmpModal({ emp, onClose, onSaved }: { emp: Employee | null; onClose: ()
 
 function EmployeesInner() {
   const { data } = useBrief();
+  const { currency } = useSettings();
   const { toast } = useToast();
   const [emps, setEmps] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,7 +107,7 @@ function EmployeesInner() {
               <div key={e.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-semibold text-navy text-sm">{e.name}</p>
-                  <p className="text-xs text-muted">₹{e.monthly_salary}/mo</p>
+                  <p className="text-xs text-muted">{currency}{e.monthly_salary}/mo</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button onClick={() => toggleStatus(e)} className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${e.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-navy/5 text-navy/50"}`}>{e.status}</button>

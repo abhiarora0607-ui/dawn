@@ -7,7 +7,7 @@ import { useBrief } from "@/lib/use-brief";
 import { ToastProvider, useToast } from "@/components/Toast";
 import { Loader2, TrendingUp, Wallet, Clock, Users, Plus, X, Receipt, ExternalLink, Trash2 } from "lucide-react";
 
-function fmt(n: number) { return "₹" + (n >= 100000 ? (n / 100000).toFixed(1) + "L" : n >= 1000 ? (n / 1000).toFixed(1) + "k" : n); }
+import { useSettings, money } from "@/lib/use-settings";
 
 function Card({ label, value, icon: Icon, tone = "navy" }: { label: string; value: string; icon: any; tone?: string }) {
   return (
@@ -74,6 +74,7 @@ function ExpenseModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
 }
 
 function SalesInner() {
+  const { currency } = useSettings();
   const { data } = useBrief();
   const { toast } = useToast();
   const [fin, setFin] = useState<any>(null);
@@ -93,7 +94,7 @@ function SalesInner() {
   useEffect(() => { load(); }, []);
 
   async function addPayment(saleId: string, balance: number) {
-    const amt = prompt(`Add payment (balance ₹${balance}):`);
+    const amt = prompt(`Add payment (balance ${currency}${balance}):`);
     if (!amt) return;
     await fetch("/api/sales", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: saleId, addPayment: Number(amt), method: "cash" }) });
     toast("Payment recorded"); load();
@@ -126,10 +127,10 @@ function SalesInner() {
         ) : tab === "overview" ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <Card label="Revenue (month)" value={fmt(c?.revenueMonth || 0)} icon={TrendingUp} tone="green" />
-              <Card label="Expenses (month)" value={fmt(c?.expensesMonth || 0)} icon={Wallet} tone="red" />
-              <Card label="Profit (month)" value={fmt(c?.profitMonth || 0)} icon={TrendingUp} tone={c?.profitMonth >= 0 ? "green" : "red"} />
-              <Card label="Pending" value={fmt(c?.pendingTotal || 0)} icon={Clock} />
+              <Card label="Revenue (month)" value={money(c?.revenueMonth || 0, currency)} icon={TrendingUp} tone="green" />
+              <Card label="Expenses (month)" value={money(c?.expensesMonth || 0, currency)} icon={Wallet} tone="red" />
+              <Card label="Profit (month)" value={money(c?.profitMonth || 0, currency)} icon={TrendingUp} tone={c?.profitMonth >= 0 ? "green" : "red"} />
+              <Card label="Pending" value={money(c?.pendingTotal || 0, currency)} icon={Clock} />
               <Card label="Active leads" value={String(c?.activeLeads || 0)} icon={Users} />
               <Card label="Conversion" value={`${c?.conversionRate || 0}%`} icon={TrendingUp} />
             </div>
@@ -139,7 +140,7 @@ function SalesInner() {
                 <p className="text-sm font-semibold text-navy mb-3">Top-selling items</p>
                 <div className="space-y-2">
                   {fin.charts.topItems.map((it: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between text-sm"><span className="text-navy/75">{it.name}</span><span className="font-semibold text-navy">{fmt(it.value)}</span></div>
+                    <div key={i} className="flex items-center justify-between text-sm"><span className="text-navy/75">{it.name}</span><span className="font-semibold text-navy">{money(it.value, currency)}</span></div>
                   ))}
                 </div>
               </div>
@@ -152,7 +153,7 @@ function SalesInner() {
                 <div key={s.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-semibold text-navy text-sm">{fmt(Number(s.total))} <span className="text-xs font-normal text-muted">· {(s.items || []).length} item(s)</span></p>
+                      <p className="font-semibold text-navy text-sm">{money(Number(s.total), currency)} <span className="text-xs font-normal text-muted">· {(s.items || []).length} item(s)</span></p>
                       <p className="text-xs text-muted">{new Date(s.date).toLocaleDateString()} · {s.payment_method}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -161,7 +162,7 @@ function SalesInner() {
                     </div>
                   </div>
                   {Number(s.balance) > 0 && (
-                    <button onClick={() => addPayment(s.id, Number(s.balance))} className="mt-2 text-xs font-medium text-amber-deep">+ Add payment (balance {fmt(Number(s.balance))})</button>
+                    <button onClick={() => addPayment(s.id, Number(s.balance))} className="mt-2 text-xs font-medium text-amber-deep">+ Add payment (balance {money(Number(s.balance), currency)})</button>
                   )}
                 </div>
               ))}
@@ -174,7 +175,7 @@ function SalesInner() {
                 <div key={e.id} className="bg-white rounded-xl border border-navy-line p-3 shadow-card flex items-center justify-between">
                   <div><p className="font-semibold text-navy text-sm">{e.category}{e.recurring ? <span className="ml-1.5 text-[10px] text-amber-deep">↻ monthly</span> : null}</p><p className="text-xs text-muted">{new Date(e.date).toLocaleDateString()}{e.note ? ` · ${e.note}` : ""}</p></div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-red-600">−{fmt(Number(e.amount))}</span>
+                    <span className="font-semibold text-red-600">−{money(Number(e.amount), currency)}</span>
                     <button onClick={() => delExpense(e.id)} className="p-1.5 text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>

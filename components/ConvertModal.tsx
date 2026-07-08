@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/Toast";
+import { useSettings } from "@/lib/use-settings";
 import { Loader2, X, Plus, Trash2, ShoppingBag } from "lucide-react";
 
 type Contact = { id: string; name: string; interested_item_ids?: string[] };
@@ -13,7 +14,11 @@ const STATUSES = ["Paid", "Partial", "Pending"];
 
 export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; onClose: () => void; onDone: () => void }) {
   const { toast } = useToast();
+  const { currency } = useSettings();
   const [catalog, setCatalog] = useState<CatItem[]>([]);
+  const [employees, setEmployees] = useState<{ id: string; name: string; status: string }[]>([]);
+  const [employeeId, setEmployeeId] = useState("");
+  const [fixedCost, setFixedCost] = useState("");
   const [lines, setLines] = useState<LineItem[]>([]);
   const [discount, setDiscount] = useState("");
   const [method, setMethod] = useState("UPI");
@@ -24,10 +29,13 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/catalog").then((r) => r.json()).then((d) => {
+    Promise.all([
+      fetch("/api/catalog").then((r) => r.json()),
+      fetch("/api/employees").then((r) => r.json()),
+    ]).then(([d, emp]) => {
       const items: CatItem[] = d.items || [];
       setCatalog(items);
-      // Pre-fill with the contact's interested items if any
+      setEmployees((emp.employees || []).filter((e: any) => e.status === "active"));
       const pre = (contact.interested_item_ids || []).map((id) => items.find((i) => i.id === id)).filter(Boolean) as CatItem[];
       if (pre.length) setLines(pre.map((i) => ({ itemId: i.id, name: i.name, qty: 1, unitPrice: Number(i.price) || 0 })));
       setLoading(false);
@@ -61,6 +69,7 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
         body: JSON.stringify({
           contactId: contact.id, items: lines, discount: Number(discount) || 0,
           amountPaid: Number(amountPaid) || 0, paymentMethod: method, notes,
+          fixedCost: Number(fixedCost) || 0, employeeId: employeeId || null,
         }),
       });
       if (res.ok) { toast(`${contact.name} is now a customer`); onDone(); }
@@ -94,7 +103,7 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
                 ) : (
                   <select onChange={(e) => { if (e.target.value) { addLine(e.target.value); e.target.value = ""; } }} className="inp">
                     <option value="">Select an item…</option>
-                    {catalog.map((i) => <option key={i.id} value={i.id}>{i.name} — ₹{i.price ?? 0}</option>)}
+                    {catalog.map((i) => <option key={i.id} value={i.id}>{i.name} — {currency}{i.price ?? 0}</option>)}
                   </select>
                 )}
               </div>
@@ -116,12 +125,12 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
 
               {/* Totals */}
               <div className="bg-navy rounded-xl p-4 text-white space-y-1.5">
-                <div className="flex justify-between text-sm"><span className="text-white/60">Subtotal</span><span>₹{subtotal}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-white/60">Subtotal</span><span>{currency}{subtotal}</span></div>
                 <div className="flex justify-between text-sm items-center">
                   <span className="text-white/60">Discount</span>
                   <input type="number" min="0" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" className="w-20 bg-white/10 rounded px-2 py-1 text-right text-white text-sm focus:outline-none" />
                 </div>
-                <div className="flex justify-between font-semibold pt-1 border-t border-white/10"><span>Total</span><span className="text-amber">₹{total}</span></div>
+                <div className="flex justify-between font-semibold pt-1 border-t border-white/10"><span>Total</span><span className="text-amber">{currency}{total}</span></div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -139,9 +148,23 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
                 <div>
                   <label className="block text-sm font-semibold text-navy mb-1.5">Amount received</label>
                   <input type="number" min="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} className="inp" />
-                  <p className="text-xs text-muted mt-1">Balance: ₹{Math.max(0, total - (Number(amountPaid) || 0))}</p>
+                  <p className="text-xs text-muted mt-1">Balance: {currency}{Math.max(0, total - (Number(amountPaid) || 0))}</p>
                 </div>
               )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-navy mb-1.5">Fixed cost</label>
+                  <input type="number" min="0" value={fixedCost} onChange={(e) => setFixedCost(e.target.value)} placeholder="0" className="inp" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-navy mb-1.5">Handled by</label>
+                  <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="inp">
+                    <option value="">— None —</option>
+                    {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+                  </select>
+                </div>
+              </div>
 
               <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Notes (optional)" className="inp resize-none" />
 

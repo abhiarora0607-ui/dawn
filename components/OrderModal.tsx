@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/Toast";
+import { useSettings } from "@/lib/use-settings";
 import { Loader2, X, Trash2, ShoppingBag, Search, UserPlus } from "lucide-react";
 
 type CatItem = { id: string; name: string; price: number | null };
@@ -14,6 +15,7 @@ const STATUSES = ["Paid", "Partial", "Pending"];
 // contact: pre-selected customer (from profile). If null, user picks/creates one.
 export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | null; onClose: () => void; onDone: () => void }) {
   const { toast } = useToast();
+  const { currency } = useSettings();
   const [catalog, setCatalog] = useState<CatItem[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [employees, setEmployees] = useState<{ id: string; name: string; status: string }[]>([]);
@@ -141,7 +143,7 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
                 ) : (
                   <select onChange={(e) => { if (e.target.value) { addLine(e.target.value); e.target.value = ""; } }} className="inp">
                     <option value="">Add an item…</option>
-                    {catalog.map((i) => <option key={i.id} value={i.id}>{i.name} — ₹{i.price ?? 0}</option>)}
+                    {catalog.map((i) => <option key={i.id} value={i.id}>{i.name} — {currency}{i.price ?? 0}</option>)}
                   </select>
                 )}
               </div>
@@ -161,12 +163,12 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
               )}
 
               <div className="bg-navy rounded-xl p-4 text-white space-y-1.5">
-                <div className="flex justify-between text-sm"><span className="text-white/60">Subtotal</span><span>₹{subtotal}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-white/60">Subtotal</span><span>{currency}{subtotal}</span></div>
                 <div className="flex justify-between text-sm items-center">
                   <span className="text-white/60">Discount</span>
                   <input type="number" min="0" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" className="w-20 bg-white/10 rounded px-2 py-1 text-right text-white text-sm focus:outline-none" />
                 </div>
-                <div className="flex justify-between font-semibold pt-1 border-t border-white/10"><span>Total</span><span className="text-amber">₹{total}</span></div>
+                <div className="flex justify-between font-semibold pt-1 border-t border-white/10"><span>Total</span><span className="text-amber">{currency}{total}</span></div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -174,7 +176,7 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
                 <div><label className="block text-sm font-semibold text-navy mb-1.5">Method</label><select value={method} onChange={(e) => setMethod(e.target.value)} className="inp">{METHODS.map((m) => <option key={m}>{m}</option>)}</select></div>
               </div>
               {status === "Partial" && (
-                <div><label className="block text-sm font-semibold text-navy mb-1.5">Amount received</label><input type="number" min="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} className="inp" /><p className="text-xs text-muted mt-1">Balance: ₹{Math.max(0, total - (Number(amountPaid) || 0))}</p></div>
+                <div><label className="block text-sm font-semibold text-navy mb-1.5">Amount received</label><input type="number" min="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} className="inp" /><p className="text-xs text-muted mt-1">Balance: {currency}{Math.max(0, total - (Number(amountPaid) || 0))}</p></div>
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div>

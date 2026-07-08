@@ -7,6 +7,7 @@ import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
 import { ToastProvider, useToast } from "@/components/Toast";
 import { ConvertModal } from "@/components/ConvertModal";
+import { useSettings } from "@/lib/use-settings";
 import { Loader2, Plus, LayoutGrid, List, Phone, MessageCircle, X, Search } from "lucide-react";
 
 type Contact = {
@@ -15,7 +16,9 @@ type Contact = {
   follow_up_date: string | null; notes: string;
 };
 
-const STAGES = ["New Lead", "Contacted", "Negotiating", "Customer (Won)", "Lost"];
+// Stable internal stage values — never change (data integrity). Display
+// names come from settings so "renaming" is cosmetic and safe.
+const STAGE_VALUES = ["New Lead", "Contacted", "Negotiating", "Customer (Won)", "Lost"];
 const SOURCES = ["Instagram DM", "WhatsApp", "Referral", "Walk-in", "Website", "Other"];
 const stageColor: Record<string, string> = {
   "New Lead": "bg-blue-50 text-blue-700 border-blue-200",
@@ -95,6 +98,7 @@ function ContactCard({ c, onDragStart, onConvert }: { c: Contact; onDragStart?: 
 
 function ContactsInner() {
   const { data } = useBrief();
+  const { stages: stageNames } = useSettings();
   const { toast } = useToast();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,12 +160,13 @@ function ContactsInner() {
           </div>
         ) : view === "board" ? (
           <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1">
-            {STAGES.map((stage) => {
+            {STAGE_VALUES.map((stage, si) => {
               const inStage = filtered.filter((c) => c.stage === stage);
+              const displayName = stageNames[si] || stage;
               return (
                 <div key={stage} className="shrink-0 w-64" onDragOver={(e) => e.preventDefault()} onDrop={() => { if (dragId) moveStage(dragId, stage); setDragId(null); }}>
                   <div className="flex items-center justify-between mb-2 px-1">
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-lg border ${stageColor[stage]}`}>{stage}</span>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-lg border ${stageColor[stage]}`}>{displayName}</span>
                     <span className="text-xs text-muted">{inStage.length}</span>
                   </div>
                   <div className="space-y-2 min-h-[60px]">

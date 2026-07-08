@@ -8,6 +8,7 @@ import { useBrief } from "@/lib/use-brief";
 import { ToastProvider, useToast, ConfirmDialog } from "@/components/Toast";
 import { ConvertModal } from "@/components/ConvertModal";
 import { OrderModal } from "@/components/OrderModal";
+import { useSettings } from "@/lib/use-settings";
 import {
   Loader2, ArrowLeft, Phone, MessageCircle, Copy, Trash2, Send, ShoppingBag,
   StickyNote, GitBranch, Paperclip, Check, Plus,
@@ -30,11 +31,31 @@ function ProfileInner() {
   const router = useRouter();
   const { data } = useBrief();
   const { toast } = useToast();
+  const { currency } = useSettings();
   const [contact, setContact] = useState<any>(null);
   const [activities, setActivities] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState("");
+  const [uploadingAtt, setUploadingAtt] = useState(false);
+
+  async function uploadAttachment(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    setUploadingAtt(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const up = await (await fetch("/api/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl: reader.result }) })).json();
+        if (up.url) {
+          await fetch(`/api/contacts/${id}/attachment`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fileUrl: up.url, kind: "payment_screenshot" }) });
+          toast("Screenshot attached — check Suggestions to convert");
+          load();
+        } else toast(up.error || "Upload failed", "error");
+      } catch { toast("Upload error", "error"); }
+      setUploadingAtt(false);
+    };
+    reader.readAsDataURL(file);
+  }
   const [convert, setConvert] = useState(false);
   const [newOrder, setNewOrder] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -121,17 +142,21 @@ function ProfileInner() {
         {/* Customer stats */}
         {sales.length > 0 && (
           <div className="bg-navy rounded-2xl p-5 text-white flex items-center justify-between">
-            <div><p className="text-xs text-white/50 uppercase tracking-wide">Lifetime value</p><p className="text-2xl font-bold text-amber">₹{ltv}</p></div>
+            <div><p className="text-xs text-white/50 uppercase tracking-wide">Lifetime value</p><p className="text-2xl font-bold text-amber">{currency}{ltv}</p></div>
             <div className="text-right"><p className="text-xs text-white/50 uppercase tracking-wide">Orders</p><p className="text-2xl font-bold">{sales.length}</p></div>
           </div>
         )}
 
-        {/* Add note */}
-        <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
+        {/* Add note + attachment */}
+        <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card space-y-2">
           <div className="flex gap-2">
             <input value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addNote()} placeholder="Add a note…" className="flex-1 px-3 py-2 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber" />
             <button onClick={addNote} className="bg-navy text-white px-4 rounded-xl hover:bg-navy-soft"><Send className="w-4 h-4" /></button>
           </div>
+          <label className="cursor-pointer flex items-center gap-2 text-xs font-medium text-amber-deep w-fit">
+            {uploadingAtt ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Paperclip className="w-3.5 h-3.5" />} Attach payment screenshot
+            <input type="file" accept="image/*" onChange={uploadAttachment} className="hidden" />
+          </label>
         </div>
 
         {/* Timeline */}

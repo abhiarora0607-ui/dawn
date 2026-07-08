@@ -6,6 +6,7 @@ import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
 import { OrderModal } from "@/components/OrderModal";
 import { ConfirmDialog } from "@/components/Toast";
+import { useSettings, money } from "@/lib/use-settings";
 import { Loader2, Plus, Receipt, ShoppingBag, Search, Trash2, Truck } from "lucide-react";
 
 const ORDER_STATUSES = ["Placed", "Processing", "Shipped", "Delivered"];
@@ -14,12 +15,11 @@ const statusStyle: Record<string, string> = {
   Shipped: "bg-purple-50 text-purple-700", Delivered: "bg-emerald-50 text-emerald-700",
 };
 
-function fmt(n: number) { return "₹" + (n >= 100000 ? (n / 100000).toFixed(1) + "L" : n >= 1000 ? (n / 1000).toFixed(1) + "k" : n); }
-
 import { ToastProvider, useToast } from "@/components/Toast";
 
 function OrdersInner() {
   const { data } = useBrief();
+  const { currency } = useSettings();
   const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [customers, setCustomers] = useState<Record<string, string>>({});
@@ -98,9 +98,9 @@ function OrdersInner() {
               <div key={o.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-semibold text-navy text-sm">{customers[o.contact_id] || "Walk-in"} <span className="text-muted font-normal">· {fmt(Number(o.total))}</span></p>
+                    <p className="font-semibold text-navy text-sm">{customers[o.contact_id] || "Walk-in"} <span className="text-muted font-normal">· {money(Number(o.total), currency)}</span></p>
                     <p className="text-xs text-muted truncate">{(o.items || []).map((it: any) => `${it.qty}× ${it.name}`).join(", ")}</p>
-                    <p className="text-xs text-muted mt-0.5">{new Date(o.date).toLocaleDateString()} · {o.payment_method}</p>
+                    <p className="text-xs text-muted mt-0.5">{new Date(o.date).toLocaleDateString()} · {o.payment_method}{o.fixed_cost > 0 ? ` · cost ${money(Number(o.fixed_cost), currency)}` : ""}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${o.status === "paid" ? "bg-emerald-50 text-emerald-700" : o.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{o.status}</span>
@@ -116,7 +116,7 @@ function OrdersInner() {
                     ))}
                   </div>
                 </div>
-                {Number(o.balance) > 0 && <p className="text-xs text-amber-deep mt-1">Balance: {fmt(Number(o.balance))}</p>}
+                {Number(o.balance) > 0 && <p className="text-xs text-amber-deep mt-1">Balance: {money(Number(o.balance), currency)}</p>}
               </div>
             ))}
           </div>

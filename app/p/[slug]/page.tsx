@@ -57,7 +57,9 @@ export default async function PublicList({ params }: { params: { slug: string } 
                 {list.map((it) => (
                   <div key={it.id} className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                      <div className="flex items-start gap-3 min-w-0">
+                        {it.images?.[0] && <img src={it.images[0]} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0" />}
+                        <div className="min-w-0">
                         <p className="font-semibold text-navy">{it.name}</p>
                         {it.description && <p className="text-xs text-muted leading-snug mt-0.5">{it.description}</p>}
                         <div className="flex items-baseline gap-2 mt-1.5">
@@ -70,6 +72,7 @@ export default async function PublicList({ params }: { params: { slug: string } 
                             {it.variants.map((v: any, i: number) => <span key={i} className="text-[11px] bg-navy/5 text-navy/60 px-2 py-0.5 rounded-full">{v.name} {currency}{v.price}</span>)}
                           </div>
                         )}
+                        </div>
                       </div>
                       {wa && (
                         <a href={`https://wa.me/${wa}?text=${encodeURIComponent(`Hi! I'm interested in ${it.name}`)}`} target="_blank"

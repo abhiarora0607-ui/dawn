@@ -2,6 +2,7 @@
 
 import { Sunrise } from "lucide-react";
 import type { Account } from "@/lib/use-brief";
+import { GlobalSearch } from "@/components/GlobalSearch";
 
 export function DashTopbar({ account, pageTitle }: { account?: Account; pageTitle: string }) {
   return (
@@ -19,13 +20,16 @@ export function DashTopbar({ account, pageTitle }: { account?: Account; pageTitl
           </p>
         </div>
       </div>
-      <a
-        href="/api/instagram/connect"
-        className="text-xs font-semibold bg-amber text-navy px-3 sm:px-4 py-2 rounded-lg hover:bg-amber-deep hover:text-white transition-colors whitespace-nowrap shrink-0"
-      >
-        <span className="hidden sm:inline">Connect Instagram</span>
-        <span className="sm:hidden">Connect</span>
-      </a>
+      <div className="flex items-center gap-3 shrink-0">
+        <GlobalSearch />
+        <a
+          href="/api/instagram/connect"
+          className="text-xs font-semibold bg-amber text-navy px-3 sm:px-4 py-2 rounded-lg hover:bg-amber-deep hover:text-white transition-colors whitespace-nowrap shrink-0"
+        >
+          <span className="hidden sm:inline">Connect Instagram</span>
+          <span className="sm:hidden">Connect</span>
+        </a>
+      </div>
     </div>
   );
 }

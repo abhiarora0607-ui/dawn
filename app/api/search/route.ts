@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   try {
     const [contacts, items] = await Promise.all([
       fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&or=(name.ilike.*${q}*,phone.ilike.*${q}*,instagram_handle.ilike.*${q}*)&select=id,name,phone,stage&limit=6`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/catalog_items?uid=eq.${uid}&name.ilike=*${q}*&select=id,name,price&limit=6`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/catalog_items?uid=eq.${uid}&name=ilike.*${q}*&select=id,name,price&limit=6`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
     ]);
     const results = [
       ...(Array.isArray(contacts) ? contacts : []).map((c: any) => ({ kind: "contact", id: c.id, title: c.name, sub: c.phone || c.stage, href: `/dashboard/contacts/${c.id}` })),

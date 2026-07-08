@@ -5,15 +5,16 @@ import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
 import { ToastProvider, useToast, ConfirmDialog } from "@/components/Toast";
+import { useSettings } from "@/lib/use-settings";
 import {
-  Loader2, Plus, Search, Tag, Package, Wrench, X, Copy, Trash2, Eye, EyeOff, Pencil, ExternalLink,
+  Loader2, Plus, Search, Tag, Package, Wrench, X, Copy, Trash2, Eye, EyeOff, Pencil, ExternalLink, Upload,
 } from "lucide-react";
 
 type Variant = { name: string; price: string };
 type Item = {
   id: string; type: string; name: string; description: string; category: string;
   price: number | null; compare_at_price: number | null; unit: string; sku: string;
-  variants: Variant[]; is_active: boolean; is_public: boolean;
+  variants: Variant[]; is_active: boolean; is_public: boolean; images?: string[];
 };
 
 const UNITS = ["per item", "per hour", "per session", "per day", "per month", "per project", "custom"];
@@ -22,6 +23,23 @@ function ItemModal({ item, onClose, onSaved }: { item: Item | null; onClose: () 
   const { toast } = useToast();
   const [f, setF] = useState<any>(item || { type: "product", name: "", description: "", category: "", price: "", compareAtPrice: "", unit: "per item", sku: "", variants: [], isActive: true, isPublic: true });
   const [saving, setSaving] = useState(false);
+  const [uploadingImg, setUploadingImg] = useState(false);
+
+  async function uploadImg(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    setUploadingImg(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const res = await fetch("/api/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl: reader.result }) });
+        const d = await res.json();
+        if (d.url) { set("images", [d.url]); toast("Photo uploaded"); }
+        else toast(d.error || "Upload failed", "error");
+      } catch { toast("Upload error", "error"); }
+      setUploadingImg(false);
+    };
+    reader.readAsDataURL(file);
+  }
 
   function set(k: string, v: any) { setF((p: any) => ({ ...p, [k]: v })); }
   function addVariant() { set("variants", [...(f.variants || []), { name: "", price: "" }]); }
@@ -83,6 +101,22 @@ function ItemModal({ item, onClose, onSaved }: { item: Item | null; onClose: () 
           <Field label="SKU / code (optional)"><input value={f.sku} onChange={(e) => set("sku", e.target.value)} placeholder="optional" className="inp" /></Field>
 
           <div>
+            <label className="block text-sm font-semibold text-navy mb-1.5">Photo (optional)</label>
+            <div className="flex items-center gap-3">
+              {f.images?.[0] ? (
+                <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-navy-line shrink-0">
+                  <img src={f.images[0]} alt="" className="w-full h-full object-cover" />
+                  <button onClick={() => set("images", [])} className="absolute top-0 right-0 bg-navy/70 text-white p-0.5 rounded-bl-lg"><X className="w-3 h-3" /></button>
+                </div>
+              ) : null}
+              <label className="cursor-pointer flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface">
+                {uploadingImg ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} {f.images?.[0] ? "Replace" : "Upload"}
+                <input type="file" accept="image/*" onChange={uploadImg} className="hidden" />
+              </label>
+            </div>
+          </div>
+
+          <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-semibold text-navy">Variants (optional)</label>
               <button onClick={addVariant} className="text-xs font-medium text-amber-deep">+ Add variant</button>
@@ -121,6 +155,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function PriceListInner() {
   const { data } = useBrief();
   const { toast } = useToast();
+  const { currency } = useSettings();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [authed, setAuthed] = useState(true);
@@ -203,6 +238,7 @@ function PriceListInner() {
             {filtered.map((item) => (
               <div key={item.id} className={`bg-white rounded-2xl border border-navy-line p-4 shadow-card ${!item.is_active ? "opacity-60" : ""}`}>
                 <div className="flex items-start justify-between gap-3">
+                  {item.images?.[0] && <img src={item.images[0]} alt="" className="w-14 h-14 rounded-xl object-cover border border-navy-line shrink-0" />}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[10px] font-bold uppercase bg-navy/5 text-navy/60 px-1.5 py-0.5 rounded flex items-center gap-1">
@@ -214,13 +250,13 @@ function PriceListInner() {
                     <p className="font-semibold text-navy mt-1">{item.name}</p>
                     {item.description && <p className="text-xs text-muted leading-snug mt-0.5 line-clamp-2">{item.description}</p>}
                     <div className="flex items-baseline gap-2 mt-1.5">
-                      {item.price != null && <span className="text-lg font-bold text-navy">₹{item.price}</span>}
-                      {item.compare_at_price != null && <span className="text-sm text-muted line-through">₹{item.compare_at_price}</span>}
+                      {item.price != null && <span className="text-lg font-bold text-navy">{currency}{item.price}</span>}
+                      {item.compare_at_price != null && <span className="text-sm text-muted line-through">{currency}{item.compare_at_price}</span>}
                       <span className="text-xs text-muted">{item.unit}</span>
                     </div>
                     {item.variants?.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        {item.variants.map((v, i) => <span key={i} className="text-[11px] bg-navy/5 text-navy/60 px-2 py-0.5 rounded-full">{v.name} ₹{v.price}</span>)}
+                        {item.variants.map((v, i) => <span key={i} className="text-[11px] bg-navy/5 text-navy/60 px-2 py-0.5 rounded-full">{v.name} {currency}{v.price}</span>)}
                       </div>
                     )}
                   </div>

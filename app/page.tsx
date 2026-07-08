@@ -31,7 +31,7 @@ export default function Home() {
               Wake up<br />knowing<br /><span className="text-amber-deep">what to do.</span>
             </h1>
             <p className="mt-6 text-lg text-muted leading-relaxed max-w-md">
-              Every morning, Dawn reads your Instagram, tells you what changed, and hands you a plan of action. Not another dashboard — an AI that decides for you.
+              Every morning, Dawn reads your Instagram and your sales, tells you what changed, and hands you a plan. Plus a built-in CRM to manage leads, orders, and money — all in one place.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <a href="#waitlist" className="inline-flex items-center justify-center bg-navy text-white font-medium px-6 py-3.5 rounded-2xl hover:bg-navy-soft transition-colors shadow-card">
@@ -72,7 +72,7 @@ export default function Home() {
             {[
               { icon: Eye, title: "It watches everything", body: "Reach, followers, saves, DMs, and what your competitors are publicly posting — read and understood overnight." },
               { icon: Brain, title: "It remembers you", body: "Your voice, your winning hooks, your offers and goals live in Dawn's memory, so every suggestion fits your brand." },
-              { icon: PenLine, title: "It tells you what to do", body: "A ranked plan each morning: which DMs to reply to, what to post, when, and the hook to use. You tap approve." },
+              { icon: PenLine, title: "It runs your business", body: "A built-in CRM: track leads through your pipeline, record orders, manage employees, and see revenue, expenses, and profit — no spreadsheets." },
             ].map((f) => (
               <div key={f.title} className="bg-cream rounded-2xl p-7 border border-navy-line shadow-card hover:shadow-card-hover transition-shadow">
                 <div className="w-12 h-12 rounded-2xl bg-navy flex items-center justify-center mb-5">
