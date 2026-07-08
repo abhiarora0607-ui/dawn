@@ -90,6 +90,7 @@ function SettingsInner() {
             <Field label="WhatsApp"><input value={s.whatsapp || ""} onChange={(e) => set("whatsapp", e.target.value)} className="inp" placeholder="for public list" /></Field>
           </div>
           <Field label="Address"><input value={s.address || ""} onChange={(e) => set("address", e.target.value)} className="inp" /></Field>
+          <Field label="GST number (shown on invoices)"><input value={s.gst_number || ""} onChange={(e) => set("gst_number", e.target.value)} className="inp" placeholder="e.g. 22AAAAA0000A1Z5" /></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Currency"><select value={s.currency} onChange={(e) => set("currency", e.target.value)} className="inp">{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></Field>
             <Field label="Business type"><input value={s.business_type || ""} onChange={(e) => set("business_type", e.target.value)} className="inp" placeholder="e.g. D2C, salon" /></Field>

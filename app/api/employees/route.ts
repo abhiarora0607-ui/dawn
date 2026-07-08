@@ -12,18 +12,37 @@ function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process
 function H(key: string, extra: Record<string, string> = {}) { return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra }; }
 
 async function syncSalaryRecurring(url: string, key: string, uid: string, emp: any) {
-  // Find existing salary recurring for this employee
-  const existing = await (await fetch(`${url}/rest/v1/recurring_expenses?uid=eq.${uid}&employee_id=eq.${emp.id}&source=eq.salary&select=id&limit=1`, { headers: H(key), cache: "no-store" })).json();
+  const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const today = new Date().toISOString().slice(0, 10);
   const enabled = emp.status === "active";
-  if (existing?.[0]?.id) {
-    await fetch(`${url}/rest/v1/recurring_expenses?id=eq.${existing[0].id}`, {
+
+  // Find existing salary recurring for this employee
+  const existing = await (await fetch(`${url}/rest/v1/recurring_expenses?uid=eq.${uid}&employee_id=eq.${emp.id}&source=eq.salary&select=*&limit=1`, { headers: H(key), cache: "no-store" })).json();
+  let rec = existing?.[0];
+
+  if (rec?.id) {
+    await fetch(`${url}/rest/v1/recurring_expenses?id=eq.${rec.id}`, {
       method: "PATCH", headers: H(key, { Prefer: "return=minimal" }),
       body: JSON.stringify({ amount: emp.monthly_salary, enabled, note: `Salary — ${emp.name}` }),
     });
   } else if (enabled) {
-    await fetch(`${url}/rest/v1/recurring_expenses`, {
-      method: "POST", headers: H(key, { Prefer: "return=minimal" }),
+    const created = await (await fetch(`${url}/rest/v1/recurring_expenses`, {
+      method: "POST", headers: H(key, { Prefer: "return=representation" }),
       body: JSON.stringify({ uid, source: "salary", employee_id: emp.id, category: "Salaries", amount: emp.monthly_salary, note: `Salary — ${emp.name}`, enabled: true }),
+    })).json();
+    rec = created?.[0];
+  }
+
+  // Post THIS month's salary immediately (once) when active. The cron handles
+  // future months; this makes the expense appear right away.
+  if (enabled && rec && rec.last_generated !== month) {
+    await fetch(`${url}/rest/v1/expenses`, {
+      method: "POST", headers: H(key, { Prefer: "return=minimal" }),
+      body: JSON.stringify({ uid, date: today, category: "Salaries", amount: emp.monthly_salary, note: `Salary — ${emp.name}`, source: "salary", source_id: emp.id, recurring: true }),
+    });
+    await fetch(`${url}/rest/v1/recurring_expenses?id=eq.${rec.id}`, {
+      method: "PATCH", headers: H(key, { Prefer: "return=minimal" }),
+      body: JSON.stringify({ last_generated: month }),
     });
   }
 }
@@ -49,7 +68,7 @@ export async function POST(req: Request) {
     if (b.monthlySalary != null && Number(b.monthlySalary) < 0) return NextResponse.json({ error: "Salary can't be negative." }, { status: 400 });
     const res = await fetch(`${url}/rest/v1/employees`, {
       method: "POST", headers: H(key, { Prefer: "return=representation" }),
-      body: JSON.stringify({ uid, name: b.name.trim(), status: b.status || "active", monthly_salary: Number(b.monthlySalary) || 0 }),
+      body: JSON.stringify({ uid, name: b.name.trim(), status: b.status || "active", monthly_salary: Number(b.monthlySalary) || 0, joining_date: b.joiningDate || null, phone: b.phone || "", role: b.role || "", email: b.email || "" }),
     });
     const emp = (await res.json())?.[0];
     if (emp) await syncSalaryRecurring(url, key, uid, emp);
@@ -68,6 +87,10 @@ export async function PATCH(req: Request) {
     if (b.name !== undefined) patch.name = b.name;
     if (b.status !== undefined) patch.status = b.status;
     if (b.monthlySalary !== undefined) patch.monthly_salary = Number(b.monthlySalary) || 0;
+    if (b.joiningDate !== undefined) patch.joining_date = b.joiningDate || null;
+    if (b.phone !== undefined) patch.phone = b.phone;
+    if (b.role !== undefined) patch.role = b.role;
+    if (b.email !== undefined) patch.email = b.email;
     await fetch(`${url}/rest/v1/employees?id=eq.${b.id}&uid=eq.${uid}`, {
       method: "PATCH", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify(patch),
     });

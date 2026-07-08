@@ -158,7 +158,7 @@ function SalesInner() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${s.status === "paid" ? "bg-emerald-50 text-emerald-700" : s.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{s.status}</span>
-                      <a href={`/receipt/${s.id}`} target="_blank" className="p-1.5 text-navy/40 hover:text-navy" title="Receipt"><Receipt className="w-4 h-4" /></a>
+                      <a href={`/receipt/${s.id}?owner=1`} target="_blank" className="p-1.5 text-navy/40 hover:text-navy" title="Receipt"><Receipt className="w-4 h-4" /></a>
                     </div>
                   </div>
                   {Number(s.balance) > 0 && (

@@ -125,11 +125,14 @@ export async function POST(req: Request) {
       });
     }
 
-    // Convert contact → Customer + log timeline
+    // Convert contact → Customer + log timeline. Also stamp the handling
+    // employee onto the contact so future orders auto-fill.
     if (contactId) {
+      const contactPatch: any = { stage: "Customer (Won)" };
+      if (b.employeeId) contactPatch.employee_id = b.employeeId;
       await fetch(`${url}/rest/v1/contacts?id=eq.${contactId}&uid=eq.${uid}`, {
         method: "PATCH", headers: H(key, { Prefer: "return=minimal" }),
-        body: JSON.stringify({ stage: "Customer (Won)" }),
+        body: JSON.stringify(contactPatch),
       });
       await fetch(`${url}/rest/v1/activities`, {
         method: "POST", headers: H(key, { Prefer: "return=minimal" }),

@@ -62,8 +62,8 @@ body { overflow-x: hidden; }
    dawn glow at the top, instead of a flat grey. */
 .dawn-app-bg {
   background:
-    radial-gradient(80% 50% at 50% -10%, rgba(255,158,67,0.06) 0%, rgba(255,158,67,0) 60%),
-    linear-gradient(180deg, #FBFCFE 0%, #F6F8FC 40%, #F4F6FB 100%);
+    radial-gradient(90% 55% at 50% -5%, rgba(255,158,67,0.13) 0%, rgba(255,158,67,0.03) 45%, rgba(255,255,255,0) 72%),
+    linear-gradient(180deg, #FFF9F1 0%, #F7F9FD 30%, #F3F6FB 100%);
   background-attachment: fixed;
 }
 

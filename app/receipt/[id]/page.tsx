@@ -27,12 +27,13 @@ async function getSale(id: string) {
   } catch { return null; }
 }
 
-export default async function Receipt({ params }: { params: { id: string } }) {
+export default async function Receipt({ params, searchParams }: { params: { id: string }; searchParams: { owner?: string } }) {
   const data = await getSale(params.id);
   if (!data) return <main style={{ padding: 40, fontFamily: "sans-serif" }}>Receipt not found.</main>;
 
   const { sale, contact, store } = data;
   const currency = store?.currency || "₹";
+  const isOwner = searchParams?.owner === "1";
   const date = new Date(sale.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
   return (
@@ -50,6 +51,7 @@ export default async function Receipt({ params }: { params: { id: string } }) {
               {store?.logo_url ? <img src={store.logo_url} alt="" style={{ width: 48, height: 48, borderRadius: 12, objectFit: "cover", marginBottom: 8 }} /> : null}
               <h1 style={{ fontSize: 20, margin: "0 0 4px" }}>{store?.business_name || "Receipt"}</h1>
               {store?.phone && <p style={{ fontSize: 13, color: "#5B6478", margin: 0 }}>{store.phone}</p>}
+              {store?.gst_number && <p style={{ fontSize: 12, color: "#5B6478", margin: "2px 0 0" }}>GST: {store.gst_number}</p>}
             </div>
 
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#5B6478", marginBottom: 16 }}>
@@ -91,13 +93,15 @@ export default async function Receipt({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          <ReceiptSend
-            receiptUrl={`https://dawn-jet.vercel.app/receipt/${sale.id}`}
-            customerName={contact?.name || ""}
-            customerPhone={contact?.phone || ""}
-            total={Number(sale.total).toFixed(0)}
-            currency={currency}
-          />
+          {isOwner && (
+            <ReceiptSend
+              receiptUrl={`https://dawn-jet.vercel.app/receipt/${sale.id}`}
+              customerName={contact?.name || ""}
+              customerPhone={contact?.phone || ""}
+              total={Number(sale.total).toFixed(0)}
+              currency={currency}
+            />
+          )}
           <p style={{ textAlign: "center", fontSize: 11, color: "#9AA1B0", marginTop: 16 }}>Powered by Dawn</p>
         </div>
         <style dangerouslySetInnerHTML={{ __html: `@media print { .noprint { display: none !important; } body { background: #fff; } }` }} />

@@ -62,6 +62,7 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
 
   async function save() {
     if (lines.length === 0) { toast("Add at least one item.", "error"); return; }
+    if (!employeeId) { toast("Select the employee for this customer.", "error"); return; }
     setSaving(true);
     try {
       const res = await fetch("/api/sales", {

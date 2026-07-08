@@ -15,7 +15,7 @@ async function getData(slug: string) {
     const sfRes = await fetch(`${url}/rest/v1/storefront?slug=eq.${slug}&select=*&limit=1`, { headers: h, cache: "no-store" });
     const sf = (await sfRes.json())?.[0];
     if (!sf) return null;
-    const itemsRes = await fetch(`${url}/rest/v1/catalog_items?uid=eq.${sf.uid}&is_active=eq.true&is_public=eq.true&order=sort_order.asc`, { headers: h, cache: "no-store" });
+    const itemsRes = await fetch(`${url}/rest/v1/catalog_items?uid=eq.${sf.uid}&is_active=eq.true&order=sort_order.asc`, { headers: h, cache: "no-store" });
     const items = await itemsRes.json();
     return { sf, items: Array.isArray(items) ? items : [] };
   } catch { return null; }

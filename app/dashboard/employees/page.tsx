@@ -12,7 +12,7 @@ type Employee = { id: string; name: string; status: string; monthly_salary: numb
 
 function EmpModal({ emp, onClose, onSaved }: { emp: Employee | null; onClose: () => void; onSaved: () => void }) {
   const { toast } = useToast();
-  const [f, setF] = useState<any>(emp ? { name: emp.name, status: emp.status, monthlySalary: emp.monthly_salary } : { name: "", status: "active", monthlySalary: "" });
+  const [f, setF] = useState<any>(emp ? { name: emp.name, status: emp.status, monthlySalary: emp.monthly_salary, joiningDate: (emp as any).joining_date || "", phone: (emp as any).phone || "", role: (emp as any).role || "", email: (emp as any).email || "" } : { name: "", status: "active", monthlySalary: "", joiningDate: "", phone: "", role: "", email: "" });
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -22,7 +22,7 @@ function EmpModal({ emp, onClose, onSaved }: { emp: Employee | null; onClose: ()
     try {
       const res = await fetch("/api/employees", {
         method: emp ? "PATCH" : "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...(emp ? { id: emp.id } : {}), name: f.name.trim(), status: f.status, monthlySalary: Number(f.monthlySalary) || 0 }),
+        body: JSON.stringify({ ...(emp ? { id: emp.id } : {}), name: f.name.trim(), status: f.status, monthlySalary: Number(f.monthlySalary) || 0, joiningDate: f.joiningDate || null, phone: f.phone, role: f.role, email: f.email }),
       });
       if (res.ok) { toast(emp ? "Employee updated" : "Employee added"); onSaved(); onClose(); }
       else { const d = await res.json(); toast(d.error || "Failed", "error"); }
@@ -37,6 +37,15 @@ function EmpModal({ emp, onClose, onSaved }: { emp: Employee | null; onClose: ()
         <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">{emp ? "Edit employee" : "Add employee"}</h3><button onClick={onClose} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button></div>
         <div className="space-y-3">
           <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Name *" className="inp" />
+          <div className="grid grid-cols-2 gap-2">
+            <input value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })} placeholder="Role (e.g. Sales)" className="inp" />
+            <input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="Phone" className="inp" />
+          </div>
+          <input value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="Email (optional)" className="inp" />
+          <div>
+            <label className="block text-sm font-semibold text-navy mb-1.5">Joining date</label>
+            <input type="date" value={f.joiningDate} onChange={(e) => setF({ ...f, joiningDate: e.target.value })} className="inp" />
+          </div>
           <div>
             <label className="block text-sm font-semibold text-navy mb-1.5">Monthly salary</label>
             <input type="number" min="0" value={f.monthlySalary} onChange={(e) => setF({ ...f, monthlySalary: e.target.value })} placeholder="0" className="inp" />

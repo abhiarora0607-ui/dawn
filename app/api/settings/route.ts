@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   try {
     const b = await req.json();
     const row: any = { uid, updated_at: new Date().toISOString() };
-    for (const f of ["business_name", "logo_url", "phone", "whatsapp", "address", "currency", "business_type"]) {
+    for (const f of ["business_name", "logo_url", "phone", "whatsapp", "address", "currency", "business_type", "gst_number"]) {
       if (b[f] !== undefined) row[f] = b[f];
     }
     if (b.stage_names !== undefined) row.stage_names = b.stage_names;
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     if (b.business_name !== undefined || b.logo_url !== undefined || b.phone !== undefined || b.whatsapp !== undefined || b.currency !== undefined) {
       await fetch(`${url}/rest/v1/storefront`, {
         method: "POST", headers: H(key, { Prefer: "resolution=merge-duplicates,return=minimal" }),
-        body: JSON.stringify({ uid, business_name: b.business_name, logo_url: b.logo_url, phone: b.phone, whatsapp: b.whatsapp, currency: b.currency, updated_at: new Date().toISOString() }),
+        body: JSON.stringify({ uid, business_name: b.business_name, logo_url: b.logo_url, phone: b.phone, whatsapp: b.whatsapp, currency: b.currency, gst_number: b.gst_number, updated_at: new Date().toISOString() }),
       });
     }
     return NextResponse.json({ ok: true });

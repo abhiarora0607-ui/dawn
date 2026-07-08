@@ -59,7 +59,7 @@ function ItemModal({ item, onClose, onSaved }: { item: Item | null; onClose: () 
       compareAtPrice: f.compareAtPrice === "" || f.compareAtPrice == null ? null : Number(f.compareAtPrice),
       unit: f.unit, sku: f.sku,
       variants: (f.variants || []).filter((v: Variant) => v.name?.trim()),
-      isActive: f.isActive, isPublic: f.isPublic,
+      isActive: f.isActive, isPublic: true,
     };
     try {
       const res = await fetch("/api/catalog", { method: item?.id ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -133,10 +133,7 @@ function ItemModal({ item, onClose, onSaved }: { item: Item | null; onClose: () 
 
           <div className="flex gap-4 pt-1">
             <label className="flex items-center gap-2 text-sm text-navy cursor-pointer">
-              <input type="checkbox" checked={f.isActive} onChange={(e) => set("isActive", e.target.checked)} /> Active
-            </label>
-            <label className="flex items-center gap-2 text-sm text-navy cursor-pointer">
-              <input type="checkbox" checked={f.isPublic} onChange={(e) => set("isPublic", e.target.checked)} /> Show on public list
+              <input type="checkbox" checked={f.isActive} onChange={(e) => set("isActive", e.target.checked)} /> Active (visible on your public price list)
             </label>
           </div>
 
@@ -247,7 +244,7 @@ function PriceListInner() {
                         {item.type === "service" ? <Wrench className="w-3 h-3" /> : <Package className="w-3 h-3" />}{item.type}
                       </span>
                       {item.category && <span className="text-[10px] text-muted">{item.category}</span>}
-                      {!item.is_public && <span className="text-[10px] text-amber-deep">hidden from public</span>}
+                      
                     </div>
                     <p className="font-semibold text-navy mt-1">{item.name}</p>
                     {item.description && <p className="text-xs text-muted leading-snug mt-0.5 line-clamp-2">{item.description}</p>}
