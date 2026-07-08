@@ -21,7 +21,7 @@ const UNITS = ["per item", "per hour", "per session", "per day", "per month", "p
 
 function ItemModal({ item, onClose, onSaved }: { item: Item | null; onClose: () => void; onSaved: () => void }) {
   const { toast } = useToast();
-  const [f, setF] = useState<any>(item || { type: "product", name: "", description: "", category: "", price: "", compareAtPrice: "", unit: "per item", sku: "", variants: [], isActive: true, isPublic: true });
+  const [f, setF] = useState<any>(item || { type: "product", name: "", description: "", category: "", price: "", cost: "", compareAtPrice: "", unit: "per item", sku: "", variants: [], isActive: true, isPublic: true });
   const [saving, setSaving] = useState(false);
   const [uploadingImg, setUploadingImg] = useState(false);
 
@@ -55,6 +55,7 @@ function ItemModal({ item, onClose, onSaved }: { item: Item | null; onClose: () 
       ...(item?.id ? { id: item.id } : {}),
       type: f.type, name: f.name.trim(), description: f.description, category: f.category?.trim() || "",
       price: f.price === "" ? null : Number(f.price),
+      cost: f.cost === "" || f.cost == null ? 0 : Number(f.cost),
       compareAtPrice: f.compareAtPrice === "" || f.compareAtPrice == null ? null : Number(f.compareAtPrice),
       unit: f.unit, sku: f.sku,
       variants: (f.variants || []).filter((v: Variant) => v.name?.trim()),
@@ -90,8 +91,9 @@ function ItemModal({ item, onClose, onSaved }: { item: Item | null; onClose: () 
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Price"><input type="number" min="0" value={f.price} onChange={(e) => set("price", e.target.value)} placeholder="0" className="inp" /></Field>
-            <Field label="Compare-at (optional)"><input type="number" min="0" value={f.compareAtPrice} onChange={(e) => set("compareAtPrice", e.target.value)} placeholder="strikethrough" className="inp" /></Field>
+            <Field label="Cost (your cost)"><input type="number" min="0" value={f.cost} onChange={(e) => set("cost", e.target.value)} placeholder="0" className="inp" /></Field>
           </div>
+          <Field label="Compare-at price (optional)"><input type="number" min="0" value={f.compareAtPrice} onChange={(e) => set("compareAtPrice", e.target.value)} placeholder="strikethrough price" className="inp" /></Field>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Unit"><select value={f.unit} onChange={(e) => set("unit", e.target.value)} className="inp">{UNITS.map((u) => <option key={u}>{u}</option>)}</select></Field>

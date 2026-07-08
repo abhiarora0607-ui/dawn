@@ -6,7 +6,7 @@ export const metadata = { title: "Data Deletion — Dawn" };
 export default function DataDeletion() {
   return (
     <main className="max-w-2xl mx-auto px-6 py-16">
-      <Link href="/"><DawnLogo className="h-7 mb-10" /></Link>
+      <Link href="/"><DawnLogo className="h-10 mb-10" /></Link>
       <h1 className="text-3xl font-bold text-navy mb-2">Delete your data</h1>
       <p className="text-navy/50 text-sm mb-8">You&rsquo;re always in control of your data.</p>
 

@@ -32,6 +32,13 @@ function ProfileInner() {
   const { data } = useBrief();
   const { toast } = useToast();
   const { currency } = useSettings();
+  const { stages: stageNames } = useSettings();
+  const [pendingStage, setPendingStage] = useState<string | null>(null);
+
+  function askStageChange(newStage: string) {
+    if (newStage === contact.stage) return;
+    setPendingStage(newStage);
+  }
   const [contact, setContact] = useState<any>(null);
   const [activities, setActivities] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
@@ -129,8 +136,8 @@ function ProfileInner() {
         <div className="grid sm:grid-cols-2 gap-3">
           <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
             <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-2">Stage</label>
-            <select value={contact.stage} onChange={(e) => updateField({ stage: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber">
-              {STAGES.map((s) => <option key={s}>{s}</option>)}
+            <select value={contact.stage} onChange={(e) => askStageChange(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber">
+              {STAGES.map((s, i) => <option key={s} value={s}>{stageNames[i] || s}</option>)}
             </select>
           </div>
           <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
@@ -183,6 +190,14 @@ function ProfileInner() {
 
       {convert && <ConvertModal contact={contact} onClose={() => setConvert(false)} onDone={() => { setConvert(false); load(); }} />}
       {newOrder && <OrderModal contact={contact} onClose={() => setNewOrder(false)} onDone={() => { setNewOrder(false); load(); }} />}
+      <ConfirmDialog
+        open={!!pendingStage}
+        title="Change stage?"
+        body={pendingStage ? `Move ${contact.name} to "${stageNames[STAGES.indexOf(pendingStage)] || pendingStage}"?` : ""}
+        confirmLabel="Change"
+        onConfirm={() => { if (pendingStage) updateField({ stage: pendingStage }); setPendingStage(null); }}
+        onCancel={() => setPendingStage(null)}
+      />
       <ConfirmDialog open={confirmDel} title="Delete this contact?" body="This removes them and all their activity. Can't be undone." onConfirm={doDelete} onCancel={() => setConfirmDel(false)} />
     </DashboardShell>
   );

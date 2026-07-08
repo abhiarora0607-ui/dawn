@@ -9,7 +9,7 @@ export default function Home() {
       {/* Nav */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-cream/80 border-b border-navy-line">
         <div className="max-w-6xl mx-auto px-5 sm:px-6 h-16 flex items-center justify-between">
-          <DawnLogo className="h-7" />
+          <DawnLogo className="h-10" />
           <div className="flex items-center gap-2 sm:gap-4">
             <a href="/pricing" className="text-sm font-medium text-navy/70 hover:text-navy px-2 py-2">Pricing</a>
             <a href="#waitlist" className="text-sm font-medium bg-navy text-white px-4 py-2 rounded-xl hover:bg-navy-soft transition-colors">
@@ -125,7 +125,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-navy-line py-8 bg-cream">
         <div className="max-w-6xl mx-auto px-5 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <DawnLogo className="h-6" />
+          <DawnLogo className="h-9" />
           <p className="text-muted text-xs">© {new Date().getFullYear()} Dawn · Wake up knowing what to do.</p>
           <div className="flex gap-4 text-xs text-muted">
             <a href="/privacy" className="hover:text-navy">Privacy</a>

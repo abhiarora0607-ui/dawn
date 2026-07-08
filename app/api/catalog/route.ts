@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     if (b.price != null && Number(b.price) < 0) return NextResponse.json({ error: "Price can't be negative." }, { status: 400 });
     const row = {
       uid, type: b.type || "product", name: b.name.trim(), description: b.description || "",
-      category: b.category || "", price: b.price ?? null, compare_at_price: b.compareAtPrice ?? null,
+      category: b.category || "", price: b.price ?? null, compare_at_price: b.compareAtPrice ?? null, cost: b.cost ?? 0,
       unit: b.unit || "per item", sku: b.sku || "", images: b.images || [], variants: b.variants || [],
       is_active: b.isActive !== false, is_public: b.isPublic !== false, sort_order: b.sortOrder ?? 0,
     };
@@ -52,7 +52,7 @@ export async function PATCH(req: Request) {
     const b = await req.json();
     if (!b.id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
     const patch: any = {};
-    for (const f of ["type", "name", "description", "category", "price", "unit", "sku", "images", "variants"]) {
+    for (const f of ["type", "name", "description", "category", "price", "unit", "sku", "images", "variants", "cost"]) {
       if (b[f] !== undefined) patch[f] = b[f];
     }
     if (b.compareAtPrice !== undefined) patch.compare_at_price = b.compareAtPrice;

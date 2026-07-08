@@ -30,9 +30,12 @@ const stageColor: Record<string, string> = {
 
 function QuickAdd({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
   const { toast } = useToast();
-  const [f, setF] = useState<any>({ name: "", phone: "", instagramHandle: "", source: "Instagram DM", notes: "" });
+  const [f, setF] = useState<any>({ name: "", phone: "", instagramHandle: "", source: "Instagram DM", notes: "", employeeId: "" });
   const [saving, setSaving] = useState(false);
   const [dup, setDup] = useState<any>(null);
+  const [employees, setEmployees] = useState<{ id: string; name: string; status: string }[]>([]);
+
+  useEffect(() => { fetch("/api/employees").then((r) => r.json()).then((d) => setEmployees((d.employees || []).filter((e: any) => e.status === "active"))).catch(() => {}); }, []);
 
   async function checkDup(val: string) {
     if (!val) { setDup(null); return; }
@@ -64,6 +67,12 @@ function QuickAdd({ onClose, onAdded }: { onClose: () => void; onAdded: () => vo
           {dup && <p className="text-xs text-amber-deep">⚠ A contact &ldquo;{dup.name}&rdquo; already has this. Still add?</p>}
           <input value={f.instagramHandle} onChange={(e) => setF({ ...f, instagramHandle: e.target.value })} onBlur={(e) => checkDup(e.target.value.replace("@", ""))} placeholder="Instagram handle" className="inp" />
           <select value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} className="inp">{SOURCES.map((s) => <option key={s}>{s}</option>)}</select>
+          {employees.length > 0 && (
+            <select value={f.employeeId} onChange={(e) => setF({ ...f, employeeId: e.target.value })} className="inp">
+              <option value="">Assign employee (optional)</option>
+              {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+          )}
           <textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} rows={2} placeholder="Notes (optional)" className="inp resize-none" />
           <button onClick={save} disabled={saving} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl hover:bg-navy-soft disabled:opacity-60">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Add lead

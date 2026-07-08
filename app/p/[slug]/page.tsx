@@ -91,7 +91,7 @@ export default async function PublicList({ params }: { params: { slug: string } 
 
       <footer className="py-6 text-center">
         <a href="/" className="inline-flex items-center gap-1.5 text-xs text-muted">
-          <DawnLogo className="h-4" /> <span>Powered by Dawn</span>
+          <DawnLogo className="h-6" /> <span>Powered by Dawn</span>
         </a>
       </footer>
     </main>

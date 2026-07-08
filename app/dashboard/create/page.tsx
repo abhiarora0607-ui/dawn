@@ -37,6 +37,7 @@ export default function Create() {
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [imgBase64, setImgBase64] = useState<string>("");
   const [mimeType, setMimeType] = useState("image/jpeg");
+  const [isVideo, setIsVideo] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [enhanced, setEnhanced] = useState(true);
@@ -50,6 +51,23 @@ export default function Create() {
     if (!file) return;
     setError("");
     setResult(null);
+
+    // Reels / video: no resize or AI enhancement — just load for preview/upload.
+    if (file.type.startsWith("video/")) {
+      if (file.size > 50 * 1024 * 1024) { setError("Video too large (max 50MB)."); return; }
+      const vReader = new FileReader();
+      vReader.onload = () => {
+        const dataUrl = vReader.result as string;
+        setImgSrc(dataUrl);
+        setImgBase64(dataUrl.split(",")[1] || "");
+        setMimeType(file.type);
+        setIsVideo(true);
+      };
+      vReader.readAsDataURL(file);
+      return;
+    }
+    setIsVideo(false);
+
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
@@ -98,7 +116,7 @@ export default function Create() {
       const res = await fetch("/api/analyze-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: imgBase64, mimeType }),
+        body: JSON.stringify({ image: imgBase64, mimeType, isVideo }),
       });
       const d = await res.json();
       if (res.ok) {
@@ -149,13 +167,17 @@ export default function Create() {
             <div className="space-y-4">
               <div className="bg-white rounded-2xl border border-navy/8 p-4">
                 <div className="relative rounded-xl overflow-hidden bg-navy/5 aspect-square">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={imgSrc}
-                    alt="upload"
-                    className="w-full h-full object-cover transition-all duration-300"
-                    style={{ filter: enhanced ? applyFilters(result?.enhancement || null) : "none" }}
-                  />
+                  {isVideo ? (
+                    <video src={imgSrc} controls className="w-full h-full object-cover" />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imgSrc}
+                      alt="upload"
+                      className="w-full h-full object-cover transition-all duration-300"
+                      style={{ filter: enhanced ? applyFilters(result?.enhancement || null) : "none" }}
+                    />
+                  )}
                   {result && (
                     <div className="absolute top-3 left-3 flex gap-2">
                       <button
@@ -173,9 +195,14 @@ export default function Create() {
                   <button onClick={() => fileRef.current?.click()} className="flex-1 text-sm font-medium border border-navy/15 text-navy px-4 py-2.5 rounded-xl hover:border-navy/30 transition-colors">
                     Change image
                   </button>
-                  {!result && (
+                  {!result && !isVideo && (
                     <button onClick={analyze} disabled={analyzing} className="flex-1 flex items-center justify-center gap-2 text-sm font-medium bg-navy text-white px-4 py-2.5 rounded-xl hover:bg-navy-soft transition-colors disabled:opacity-60">
                       {analyzing ? <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing…</> : <><Wand2 className="w-4 h-4" /> Analyze &amp; enhance</>}
+                    </button>
+                  )}
+                  {isVideo && (
+                    <button onClick={analyze} disabled={analyzing} className="flex-1 flex items-center justify-center gap-2 text-sm font-medium bg-navy text-white px-4 py-2.5 rounded-xl hover:bg-navy-soft transition-colors disabled:opacity-60">
+                      {analyzing ? <><Loader2 className="w-4 h-4 animate-spin" /> Writing…</> : <><Wand2 className="w-4 h-4" /> Write caption &amp; hashtags</>}
                     </button>
                   )}
                 </div>
@@ -321,7 +348,7 @@ export default function Create() {
           </div>
         )}
 
-        <input ref={fileRef} type="file" accept="image/*" onChange={onFile} className="hidden" />
+        <input ref={fileRef} type="file" accept="image/*,video/*" onChange={onFile} className="hidden" />
       </div>
     </DashboardShell>
   );

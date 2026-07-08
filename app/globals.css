@@ -58,6 +58,29 @@ html { scroll-behavior: smooth; }
 
 body { overflow-x: hidden; }
 
+/* Premium dashboard backdrop — subtle warm-to-cool gradient with a faint
+   dawn glow at the top, instead of a flat grey. */
+.dawn-app-bg {
+  background:
+    radial-gradient(80% 50% at 50% -10%, rgba(255,158,67,0.06) 0%, rgba(255,158,67,0) 60%),
+    linear-gradient(180deg, #FBFCFE 0%, #F6F8FC 40%, #F4F6FB 100%);
+  background-attachment: fixed;
+}
+
+/* Cards get a hairline top highlight for a crafted, premium feel. */
+.card-premium {
+  background: linear-gradient(180deg, #FFFFFF 0%, #FDFEFF 100%);
+  border: 1px solid rgba(228,232,240,0.9);
+  box-shadow: 0 1px 2px rgba(22,35,63,0.04), 0 4px 16px rgba(22,35,63,0.06), 0 12px 32px rgba(22,35,63,0.04);
+}
+
+/* Gradient text accent for headings when we want extra polish. */
+.text-gradient-amber {
+  background: linear-gradient(120deg, #F97316 0%, #FF9E43 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+
 /* Nicer focus ring for accessibility */
 *:focus-visible { outline: 2px solid #F97316; outline-offset: 2px; }
 

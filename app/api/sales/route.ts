@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   try {
     if (wantCustomers) {
       // Return contacts that can receive an order (customers first, then anyone)
-      const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&select=id,name,phone,stage&order=name.asc`, { headers: H(key), cache: "no-store" });
+      const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&select=id,name,phone,stage,employee_id&order=name.asc`, { headers: H(key), cache: "no-store" });
       return NextResponse.json({ customers: await res.json() });
     }
     const res = await fetch(`${url}/rest/v1/sales?uid=eq.${uid}&order=date.desc`, { headers: H(key), cache: "no-store" });
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
       amount_paid: amountPaid, balance, payment_method: b.paymentMethod || "cash",
       status, payments: amountPaid > 0 ? [{ amount: amountPaid, date: new Date().toISOString(), method: b.paymentMethod || "cash" }] : [],
       notes: b.notes || "",
-      fixed_cost: Number(b.fixedCost) || 0,
+      fixed_cost: Number(b.orderCost) || 0,
       employee_id: b.employeeId || null,
       order_status: "Placed",
     };
@@ -117,11 +117,11 @@ export async function POST(req: Request) {
     });
     const sale = (await sRes.json())?.[0];
 
-    // Fixed cost → linked expense (auto-added; auto-removed if order deleted)
-    if (sale?.id && Number(b.fixedCost) > 0) {
+    // Order cost (sum of item costs × qty) → linked expense (auto-removed on delete)
+    if (sale?.id && Number(b.orderCost) > 0) {
       await fetch(`${url}/rest/v1/expenses`, {
         method: "POST", headers: H(key, { Prefer: "return=minimal" }),
-        body: JSON.stringify({ uid, date: new Date().toISOString().slice(0, 10), category: "Order cost", amount: Number(b.fixedCost), note: `Fixed cost for order #${String(sale.id).slice(0, 8)}`, source: "order", source_id: sale.id }),
+        body: JSON.stringify({ uid, date: new Date().toISOString().slice(0, 10), category: "Cost of goods", amount: Number(b.orderCost), note: `Item cost for order #${String(sale.id).slice(0, 8)}`, source: "order", source_id: sale.id }),
       });
     }
 

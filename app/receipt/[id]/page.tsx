@@ -5,6 +5,8 @@
 
 export const dynamic = "force-dynamic";
 
+import { ReceiptSend } from "@/components/ReceiptSend";
+
 async function getSale(id: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY;
@@ -89,6 +91,13 @@ export default async function Receipt({ params }: { params: { id: string } }) {
             </div>
           </div>
 
+          <ReceiptSend
+            receiptUrl={`https://dawn-jet.vercel.app/receipt/${sale.id}`}
+            customerName={contact?.name || ""}
+            customerPhone={contact?.phone || ""}
+            total={Number(sale.total).toFixed(0)}
+            currency={currency}
+          />
           <p style={{ textAlign: "center", fontSize: 11, color: "#9AA1B0", marginTop: 16 }}>Powered by Dawn</p>
         </div>
         <style dangerouslySetInnerHTML={{ __html: `@media print { .noprint { display: none !important; } body { background: #fff; } }` }} />

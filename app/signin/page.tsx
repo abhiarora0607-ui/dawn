@@ -29,7 +29,7 @@ export default function SignIn() {
   return (
     <main className="min-h-screen bg-cream flex flex-col">
       <header className="h-16 flex items-center px-5 sm:px-6 max-w-6xl mx-auto w-full">
-        <Link href="/"><DawnLogo className="h-7" /></Link>
+        <Link href="/"><DawnLogo className="h-10" /></Link>
       </header>
 
       <div className="flex-1 flex items-center justify-center px-5 pb-20">

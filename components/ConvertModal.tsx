@@ -6,8 +6,8 @@ import { useSettings } from "@/lib/use-settings";
 import { Loader2, X, Plus, Trash2, ShoppingBag } from "lucide-react";
 
 type Contact = { id: string; name: string; interested_item_ids?: string[] };
-type CatItem = { id: string; name: string; price: number | null; variants: any[] };
-type LineItem = { itemId: string; name: string; qty: number; unitPrice: number };
+type CatItem = { id: string; name: string; price: number | null; cost?: number; variants: any[] };
+type LineItem = { itemId: string; name: string; qty: number; unitPrice: number; cost: number };
 
 const METHODS = ["UPI", "bank transfer", "cash", "card", "other"];
 const STATUSES = ["Paid", "Partial", "Pending"];
@@ -18,7 +18,6 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
   const [catalog, setCatalog] = useState<CatItem[]>([]);
   const [employees, setEmployees] = useState<{ id: string; name: string; status: string }[]>([]);
   const [employeeId, setEmployeeId] = useState("");
-  const [fixedCost, setFixedCost] = useState("");
   const [lines, setLines] = useState<LineItem[]>([]);
   const [discount, setDiscount] = useState("");
   const [method, setMethod] = useState("UPI");
@@ -37,7 +36,7 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
       setCatalog(items);
       setEmployees((emp.employees || []).filter((e: any) => e.status === "active"));
       const pre = (contact.interested_item_ids || []).map((id) => items.find((i) => i.id === id)).filter(Boolean) as CatItem[];
-      if (pre.length) setLines(pre.map((i) => ({ itemId: i.id, name: i.name, qty: 1, unitPrice: Number(i.price) || 0 })));
+      if (pre.length) setLines(pre.map((i) => ({ itemId: i.id, name: i.name, qty: 1, unitPrice: Number(i.price) || 0, cost: Number(i.cost) || 0 })));
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [contact]);
@@ -54,11 +53,12 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
   function addLine(itemId: string) {
     const item = catalog.find((i) => i.id === itemId);
     if (!item) return;
-    setLines([...lines, { itemId: item.id, name: item.name, qty: 1, unitPrice: Number(item.price) || 0 }]);
+    setLines([...lines, { itemId: item.id, name: item.name, qty: 1, unitPrice: Number(item.price) || 0, cost: Number(item.cost) || 0 }]);
   }
   function setLine(i: number, k: string, v: any) {
     const arr = [...lines]; (arr[i] as any)[k] = v; setLines(arr);
   }
+  const orderCost = lines.reduce((s, l) => s + (Number(l.cost) || 0) * l.qty, 0);
 
   async function save() {
     if (lines.length === 0) { toast("Add at least one item.", "error"); return; }
@@ -68,8 +68,8 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contactId: contact.id, items: lines, discount: Number(discount) || 0,
-          amountPaid: Number(amountPaid) || 0, paymentMethod: method, notes,
-          fixedCost: Number(fixedCost) || 0, employeeId: employeeId || null,
+          amountPaid: Number(amountPaid) || 0, paymentMethod: status === "Pending" ? "" : method, notes,
+          orderCost, employeeId: employeeId || null,
         }),
       });
       if (res.ok) { toast(`${contact.name} is now a customer`); onDone(); }
@@ -140,7 +140,7 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-navy mb-1.5">Method</label>
-                  <select value={method} onChange={(e) => setMethod(e.target.value)} className="inp">{METHODS.map((m) => <option key={m}>{m}</option>)}</select>
+                  <select value={method} onChange={(e) => setMethod(e.target.value)} disabled={status === "Pending"} className="inp disabled:opacity-50 disabled:bg-surface disabled:cursor-not-allowed">{METHODS.map((m) => <option key={m}>{m}</option>)}</select>
                 </div>
               </div>
 
@@ -153,9 +153,10 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
               )}
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold text-navy mb-1.5">Fixed cost</label>
-                  <input type="number" min="0" value={fixedCost} onChange={(e) => setFixedCost(e.target.value)} placeholder="0" className="inp" />
+                <div className="bg-surface rounded-xl p-3">
+                  <p className="text-[11px] text-muted uppercase tracking-wide">Item cost</p>
+                  <p className="text-sm font-semibold text-navy">{currency}{orderCost}</p>
+                  <p className="text-[11px] text-muted">Auto-added to expenses</p>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-navy mb-1.5">Handled by</label>

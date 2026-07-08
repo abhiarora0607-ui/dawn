@@ -5,9 +5,9 @@ import { useToast } from "@/components/Toast";
 import { useSettings } from "@/lib/use-settings";
 import { Loader2, X, Trash2, ShoppingBag, Search, UserPlus } from "lucide-react";
 
-type CatItem = { id: string; name: string; price: number | null };
-type LineItem = { itemId: string; name: string; qty: number; unitPrice: number };
-type Customer = { id: string; name: string; phone: string; stage: string };
+type CatItem = { id: string; name: string; price: number | null; cost?: number };
+type LineItem = { itemId: string; name: string; qty: number; unitPrice: number; cost: number };
+type Customer = { id: string; name: string; phone: string; stage: string; employee_id?: string };
 
 const METHODS = ["UPI", "bank transfer", "cash", "card", "other"];
 const STATUSES = ["Paid", "Partial", "Pending"];
@@ -20,7 +20,6 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [employees, setEmployees] = useState<{ id: string; name: string; status: string }[]>([]);
   const [employeeId, setEmployeeId] = useState("");
-  const [fixedCost, setFixedCost] = useState("");
   const [selected, setSelected] = useState<Customer | null>(contact || null);
   const [walkInName, setWalkInName] = useState("");
   const [walkInPhone, setWalkInPhone] = useState("");
@@ -52,11 +51,18 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
   const total = Math.max(0, subtotal - (Number(discount) || 0));
   useEffect(() => { if (status === "Paid") setAmountPaid(String(total)); else if (status === "Pending") setAmountPaid("0"); }, [status, total]);
 
+  // Auto-fill employee from the chosen customer (editable). Only when empty.
+  useEffect(() => {
+    if (selected?.employee_id && !employeeId) setEmployeeId(selected.employee_id);
+  }, [selected]);
+
   function addLine(itemId: string) {
     const item = catalog.find((i) => i.id === itemId); if (!item) return;
-    setLines([...lines, { itemId: item.id, name: item.name, qty: 1, unitPrice: Number(item.price) || 0 }]);
+    setLines([...lines, { itemId: item.id, name: item.name, qty: 1, unitPrice: Number(item.price) || 0, cost: Number(item.cost) || 0 }]);
   }
   function setLine(i: number, k: string, v: any) { const arr = [...lines]; (arr[i] as any)[k] = v; setLines(arr); }
+
+  const orderCost = lines.reduce((s, l) => s + (Number(l.cost) || 0) * l.qty, 0);
 
   async function save() {
     if (custMode === "existing" && !selected) { toast("Pick a customer.", "error"); return; }
@@ -66,7 +72,7 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
     try {
       const body: any = {
         items: lines, discount: Number(discount) || 0, amountPaid: Number(amountPaid) || 0,
-        paymentMethod: method, notes, fixedCost: Number(fixedCost) || 0, employeeId: employeeId || null,
+        paymentMethod: status === "Pending" ? "" : method, notes, orderCost, employeeId: employeeId || null,
       };
       if (custMode === "existing") body.contactId = selected!.id;
       else { body.customerName = walkInName.trim(); body.customerPhone = walkInPhone; }
@@ -173,16 +179,16 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
 
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="block text-sm font-semibold text-navy mb-1.5">Status</label><select value={status} onChange={(e) => setStatus(e.target.value)} className="inp">{STATUSES.map((s) => <option key={s}>{s}</option>)}</select></div>
-                <div><label className="block text-sm font-semibold text-navy mb-1.5">Method</label><select value={method} onChange={(e) => setMethod(e.target.value)} className="inp">{METHODS.map((m) => <option key={m}>{m}</option>)}</select></div>
+                <div><label className="block text-sm font-semibold text-navy mb-1.5">Method</label><select value={method} onChange={(e) => setMethod(e.target.value)} disabled={status === "Pending"} className="inp disabled:opacity-50 disabled:bg-surface disabled:cursor-not-allowed">{METHODS.map((m) => <option key={m}>{m}</option>)}</select></div>
               </div>
               {status === "Partial" && (
                 <div><label className="block text-sm font-semibold text-navy mb-1.5">Amount received</label><input type="number" min="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} className="inp" /><p className="text-xs text-muted mt-1">Balance: {currency}{Math.max(0, total - (Number(amountPaid) || 0))}</p></div>
               )}
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-semibold text-navy mb-1.5">Fixed cost</label>
-                  <input type="number" min="0" value={fixedCost} onChange={(e) => setFixedCost(e.target.value)} placeholder="0" className="inp" />
-                  <p className="text-[11px] text-muted mt-1">Added to expenses automatically.</p>
+                <div className="bg-surface rounded-xl p-3">
+                  <p className="text-[11px] text-muted uppercase tracking-wide">Item cost</p>
+                  <p className="text-sm font-semibold text-navy">{currency}{orderCost}</p>
+                  <p className="text-[11px] text-muted">Auto-added to expenses</p>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-navy mb-1.5">Handled by</label>

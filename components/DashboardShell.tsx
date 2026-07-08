@@ -81,9 +81,9 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
   return (
     <div className="min-h-screen bg-surface flex">
       {/* Desktop sidebar */}
-      <aside className="w-60 bg-white border-r border-navy/8 flex-col hidden lg:flex fixed h-screen z-30">
+      <aside className="w-60 border-r border-navy/8 flex-col hidden lg:flex fixed h-screen z-30" style={{ background: "linear-gradient(180deg, #FFFFFF 0%, #FCFDFE 60%, #F9FBFD 100%)" }}>
         <div className="px-5 h-16 flex items-center border-b border-navy/8">
-          <Link href="/"><DawnLogo className="h-6" /></Link>
+          <Link href="/"><DawnLogo className="h-8" /></Link>
         </div>
         <nav className="p-3 space-y-1 flex-1 overflow-y-auto">
           <NavLinks pathname={pathname} suggCount={suggCount} />
@@ -97,7 +97,7 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
 
       {/* Mobile top bar */}
       <div className="lg:hidden fixed top-0 inset-x-0 h-14 bg-white border-b border-navy/8 flex items-center justify-between px-4 z-40">
-        <Link href="/"><DawnLogo className="h-6" /></Link>
+        <Link href="/"><DawnLogo className="h-8" /></Link>
         <button onClick={() => setOpen(true)} className="p-2 -mr-2 text-navy" aria-label="Menu">
           <Menu className="w-6 h-6" />
         </button>
@@ -109,7 +109,7 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
           <div className="absolute inset-0 bg-navy/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
           <div className="absolute left-0 top-0 bottom-0 w-72 max-w-[80%] bg-white flex flex-col animate-[slidein_0.2s_ease-out]">
             <div className="px-5 h-14 flex items-center justify-between border-b border-navy/8">
-              <DawnLogo className="h-6" />
+              <DawnLogo className="h-8" />
               <button onClick={() => setOpen(false)} className="p-2 -mr-2 text-navy/60" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
@@ -127,7 +127,7 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
       )}
 
       {/* Main content — pushed right on desktop, down on mobile */}
-      <main className="flex-1 lg:ml-60 pt-14 lg:pt-0 w-full min-w-0 pb-16 lg:pb-0">
+      <main className="flex-1 lg:ml-60 pt-14 lg:pt-0 w-full min-w-0 pb-16 lg:pb-0 dawn-app-bg min-h-screen">
         <TrialBanner />
         {children}
       </main>

@@ -28,8 +28,10 @@ export async function GET() {
     const now = new Date();
     const thisMonth = (d: string) => { const x = new Date(d); return x.getMonth() === now.getMonth() && x.getFullYear() === now.getFullYear(); };
 
-    const revenueMonth = S.filter((s) => thisMonth(s.date)).reduce((a, s) => a + (Number(s.total) || 0), 0);
-    const revenueAll = S.reduce((a, s) => a + (Number(s.total) || 0), 0);
+    // Revenue counts only money actually RECEIVED (amount_paid), never
+    // the full order value. Pending/unpaid stays out of revenue & profit.
+    const revenueMonth = S.filter((s) => thisMonth(s.date)).reduce((a, s) => a + (Number(s.amount_paid) || 0), 0);
+    const revenueAll = S.reduce((a, s) => a + (Number(s.amount_paid) || 0), 0);
     const expensesMonth = E.filter((e) => thisMonth(e.date)).reduce((a, e) => a + (Number(e.amount) || 0), 0);
     const pendingTotal = S.reduce((a, s) => a + (Number(s.balance) || 0), 0);
     const profitMonth = revenueMonth - expensesMonth;
@@ -43,7 +45,7 @@ export async function GET() {
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const label = d.toLocaleString("default", { month: "short" });
-      const val = S.filter((s) => { const x = new Date(s.date); return x.getMonth() === d.getMonth() && x.getFullYear() === d.getFullYear(); }).reduce((a, s) => a + (Number(s.total) || 0), 0);
+      const val = S.filter((s) => { const x = new Date(s.date); return x.getMonth() === d.getMonth() && x.getFullYear() === d.getFullYear(); }).reduce((a, s) => a + (Number(s.amount_paid) || 0), 0);
       revByMonth.push({ label, value: val });
     }
 

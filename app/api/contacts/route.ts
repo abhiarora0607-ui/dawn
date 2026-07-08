@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       uid, name: b.name.trim(), phone: b.phone || "", email: b.email || "",
       instagram_handle: (b.instagramHandle || "").replace("@", ""), source: b.source || "Other",
       stage: b.stage || "New Lead", tags: b.tags || [], interested_item_ids: b.interestedItemIds || [],
-      follow_up_date: b.followUpDate || null, notes: b.notes || "",
+      follow_up_date: b.followUpDate || null, notes: b.notes || "", employee_id: b.employeeId || null,
     };
     const res = await fetch(`${url}/rest/v1/contacts`, {
       method: "POST", headers: H(key, { Prefer: "return=representation" }), body: JSON.stringify(row),
@@ -68,6 +68,7 @@ export async function PATCH(req: Request) {
     if (b.instagramHandle !== undefined) patch.instagram_handle = (b.instagramHandle || "").replace("@", "");
     if (b.tags !== undefined) patch.tags = b.tags;
     if (b.interestedItemIds !== undefined) patch.interested_item_ids = b.interestedItemIds;
+    if (b.employeeId !== undefined) patch.employee_id = b.employeeId || null;
     if (b.followUpDate !== undefined) patch.follow_up_date = b.followUpDate || null;
     await fetch(`${url}/rest/v1/contacts?id=eq.${b.id}&uid=eq.${uid}`, {
       method: "PATCH", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify(patch),

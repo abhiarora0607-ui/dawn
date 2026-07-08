@@ -28,10 +28,12 @@ function OrdersInner() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<{ id: string; status: string } | null>(null);
 
   async function setOrderStatus(id: string, orderStatus: string) {
     setOrders((os) => os.map((o) => o.id === id ? { ...o, order_status: orderStatus } : o));
     await fetch("/api/sales", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, orderStatus }) });
+    setPendingStatus(null);
   }
   async function doDelete() {
     if (!confirmDel) return;
@@ -112,7 +114,7 @@ function OrdersInner() {
                   <Truck className="w-3.5 h-3.5 text-navy/40" />
                   <div className="flex gap-1 flex-wrap">
                     {ORDER_STATUSES.map((st) => (
-                      <button key={st} onClick={() => setOrderStatus(o.id, st)} className={`text-[11px] font-medium px-2 py-1 rounded-lg ${(o.order_status || "Placed") === st ? statusStyle[st] : "text-navy/40 hover:bg-surface"}`}>{st}</button>
+                      <button key={st} onClick={() => { if ((o.order_status || "Placed") !== st) setPendingStatus({ id: o.id, status: st }); }} className={`text-[11px] font-medium px-2 py-1 rounded-lg ${(o.order_status || "Placed") === st ? statusStyle[st] : "text-navy/40 hover:bg-surface"}`}>{st}</button>
                     ))}
                   </div>
                 </div>
@@ -123,7 +125,8 @@ function OrdersInner() {
         )}
       </div>
       {modal && <OrderModal onClose={() => setModal(false)} onDone={() => { setModal(false); load(); }} />}
-      <ConfirmDialog open={!!confirmDel} title="Delete this order?" body="This also removes its linked fixed-cost expense. Can't be undone." onConfirm={doDelete} onCancel={() => setConfirmDel(null)} />
+      <ConfirmDialog open={!!confirmDel} title="Delete this order?" body="This also removes its linked cost expense. Can't be undone." onConfirm={doDelete} onCancel={() => setConfirmDel(null)} />
+      <ConfirmDialog open={!!pendingStatus} title="Update order status?" body={pendingStatus ? `Mark this order as "${pendingStatus.status}"?` : ""} confirmLabel="Update" onConfirm={() => pendingStatus && setOrderStatus(pendingStatus.id, pendingStatus.status)} onCancel={() => setPendingStatus(null)} />
     </DashboardShell>
   );
 }

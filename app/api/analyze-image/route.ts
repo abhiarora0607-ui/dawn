@@ -49,10 +49,12 @@ export async function POST(req: Request) {
 
   let imageBase64 = "";
   let mimeType = "image/jpeg";
+  let isVideo = false;
   try {
     const body = await req.json();
     imageBase64 = body.image || "";
     mimeType = body.mimeType || "image/jpeg";
+    isVideo = !!body.isVideo;
     if (!imageBase64) throw new Error("no image");
   } catch {
     return NextResponse.json({ error: "No image provided." }, { status: 400 });
@@ -60,6 +62,26 @@ export async function POST(req: Request) {
 
   const voice = await getBrandVoice();
   const voicePrompt = brandVoicePrompt(voice);
+
+  // Reels / video: skip pixel analysis (Gemini vision is for stills). Generate
+  // a caption + hashtag package from brand voice only, and return neutral
+  // enhancement values so the UI stays consistent.
+  if (isVideo) {
+    const vPrompt = `You are Dawn, an Instagram creative director. Write a post-ready package for a REEL (short video) for this business. ${voicePrompt}\nRespond with JSON only (no markdown): {"captions":[{"style":"...","text":"..."},{"style":"...","text":"..."},{"style":"...","text":"..."}],"hashtags":{"trending":[],"niche":[],"low_competition":[],"local":[]}}`;
+    try {
+      const out = await callGemini([{ text: vPrompt }], key);
+      const parsed = JSON.parse((out || "").replace(/```json|```/g, "").trim());
+      return NextResponse.json({
+        analysis: { subject: "Reel", mood: "", strengths: [], issues: [] },
+        enhancement: { brightness: 0, contrast: 0, saturation: 0, warmth: 0, sharpness: 0 },
+        fix_flags: [],
+        captions: parsed.captions || [],
+        hashtags: parsed.hashtags || { trending: [], niche: [], low_competition: [], local: [] },
+      });
+    } catch {
+      return NextResponse.json({ error: "Couldn't generate caption. Try again." }, { status: 500 });
+    }
+  }
 
   const imagePart = { inline_data: { mime_type: mimeType, data: imageBase64 } };
 

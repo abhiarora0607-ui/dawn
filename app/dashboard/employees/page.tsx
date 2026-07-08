@@ -66,6 +66,7 @@ function EmployeesInner() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ open: boolean; emp: Employee | null }>({ open: false, emp: null });
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  const [pendingToggle, setPendingToggle] = useState<Employee | null>(null);
 
   function load() {
     setLoading(true);
@@ -75,7 +76,7 @@ function EmployeesInner() {
 
   async function toggleStatus(emp: Employee) {
     await fetch("/api/employees", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: emp.id, status: emp.status === "active" ? "inactive" : "active" }) });
-    toast(emp.status === "active" ? "Marked inactive — salary expenses stopped" : "Marked active — salary expenses resume"); load();
+    toast(emp.status === "active" ? "Marked inactive — salary expenses stopped" : "Marked active — salary expenses resume"); setPendingToggle(null); load();
   }
   async function doDelete() {
     if (!confirmDel) return;
@@ -110,7 +111,7 @@ function EmployeesInner() {
                   <p className="text-xs text-muted">{currency}{e.monthly_salary}/mo</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={() => toggleStatus(e)} className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${e.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-navy/5 text-navy/50"}`}>{e.status}</button>
+                  <button onClick={() => setPendingToggle(e)} className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${e.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-navy/5 text-navy/50"}`}>{e.status}</button>
                   <button onClick={() => setModal({ open: true, emp: e })} className="p-1.5 text-navy/40 hover:text-navy"><Pencil className="w-4 h-4" /></button>
                   <button onClick={() => setConfirmDel(e.id)} className="p-1.5 text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                 </div>
@@ -121,6 +122,7 @@ function EmployeesInner() {
       </div>
       {modal.open && <EmpModal emp={modal.emp} onClose={() => setModal({ open: false, emp: null })} onSaved={load} />}
       <ConfirmDialog open={!!confirmDel} title="Remove this employee?" body="Their past salary expenses stay; future ones stop." confirmLabel="Remove" onConfirm={doDelete} onCancel={() => setConfirmDel(null)} />
+      <ConfirmDialog open={!!pendingToggle} title={pendingToggle?.status === "active" ? "Mark inactive?" : "Mark active?"} body={pendingToggle?.status === "active" ? "Future monthly salary expenses will stop. Past ones stay." : "Monthly salary will resume as an expense while active."} confirmLabel="Confirm" onConfirm={() => pendingToggle && toggleStatus(pendingToggle)} onCancel={() => setPendingToggle(null)} />
     </DashboardShell>
   );
 }
