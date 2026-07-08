@@ -26,9 +26,18 @@ export async function POST(req: Request) {
   try {
     const b = await req.json();
     if (b.amount == null || Number(b.amount) < 0) return NextResponse.json({ error: "Enter a valid amount." }, { status: 400 });
+
+    // If flagged recurring, create a recurring definition too (manual recurring).
+    if (b.recurring) {
+      await fetch(`${url}/rest/v1/recurring_expenses`, {
+        method: "POST", headers: H(key, { Prefer: "return=minimal" }),
+        body: JSON.stringify({ uid, source: "manual", category: b.category || "Other", amount: Number(b.amount), note: b.note || "", enabled: true }),
+      });
+    }
+
     const res = await fetch(`${url}/rest/v1/expenses`, {
       method: "POST", headers: H(key, { Prefer: "return=minimal" }),
-      body: JSON.stringify({ uid, date: b.date || new Date().toISOString().slice(0, 10), category: b.category || "Other", amount: Number(b.amount), note: b.note || "" }),
+      body: JSON.stringify({ uid, date: b.date || new Date().toISOString().slice(0, 10), category: b.category || "Other", amount: Number(b.amount), note: b.note || "", source: b.recurring ? "recurring" : "manual", recurring: !!b.recurring }),
     });
     return res.ok ? NextResponse.json({ ok: true }) : NextResponse.json({ error: "Save failed." }, { status: 500 });
   } catch { return NextResponse.json({ error: "Invalid request." }, { status: 400 }); }

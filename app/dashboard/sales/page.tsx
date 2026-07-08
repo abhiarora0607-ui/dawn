@@ -5,7 +5,7 @@ import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
 import { ToastProvider, useToast } from "@/components/Toast";
-import { Loader2, TrendingUp, Wallet, Clock, Users, Plus, X, Receipt, ExternalLink } from "lucide-react";
+import { Loader2, TrendingUp, Wallet, Clock, Users, Plus, X, Receipt, ExternalLink, Trash2 } from "lucide-react";
 
 function fmt(n: number) { return "₹" + (n >= 100000 ? (n / 100000).toFixed(1) + "L" : n >= 1000 ? (n / 1000).toFixed(1) + "k" : n); }
 
@@ -39,9 +39,9 @@ function RevenueChart({ data }: { data: { label: string; value: number }[] }) {
 
 function ExpenseModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
   const { toast } = useToast();
-  const [f, setF] = useState({ amount: "", category: "Inventory", note: "", date: new Date().toISOString().slice(0, 10) });
+  const [f, setF] = useState({ amount: "", category: "Inventory", note: "", date: new Date().toISOString().slice(0, 10), recurring: false });
   const [saving, setSaving] = useState(false);
-  const cats = ["Inventory", "Marketing", "Packaging", "Shipping", "Tools", "Rent", "Other"];
+  const cats = ["Inventory", "Marketing", "Packaging", "Shipping", "Tools", "Rent", "Salaries", "Other"];
 
   async function save() {
     if (!f.amount || Number(f.amount) < 0) { toast("Enter a valid amount.", "error"); return; }
@@ -62,6 +62,9 @@ function ExpenseModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
           <select value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} className="inp">{cats.map((c) => <option key={c}>{c}</option>)}</select>
           <input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} className="inp" />
           <input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="Note (optional)" className="inp" />
+          <label className="flex items-center gap-2 text-sm text-navy cursor-pointer">
+            <input type="checkbox" checked={f.recurring} onChange={(e) => setF({ ...f, recurring: e.target.checked })} /> Repeat monthly (recurring expense)
+          </label>
           <button onClick={save} disabled={saving} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl disabled:opacity-60">{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Add expense</button>
         </div>
         <style jsx>{`.inp{width:100%;padding:0.6rem 0.75rem;border:1px solid #E4E8F0;border-radius:0.75rem;font-size:0.875rem;color:#16233F;outline:none}.inp:focus{border-color:#FF9E43}`}</style>
@@ -94,6 +97,11 @@ function SalesInner() {
     if (!amt) return;
     await fetch("/api/sales", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: saleId, addPayment: Number(amt), method: "cash" }) });
     toast("Payment recorded"); load();
+  }
+
+  async function delExpense(id: string) {
+    await fetch(`/api/expenses?id=${id}`, { method: "DELETE" });
+    toast("Expense deleted"); load();
   }
 
   const c = fin?.cards;
@@ -164,8 +172,11 @@ function SalesInner() {
             <div className="grid gap-2">
               {expenses.map((e) => (
                 <div key={e.id} className="bg-white rounded-xl border border-navy-line p-3 shadow-card flex items-center justify-between">
-                  <div><p className="font-semibold text-navy text-sm">{e.category}</p><p className="text-xs text-muted">{new Date(e.date).toLocaleDateString()}{e.note ? ` · ${e.note}` : ""}</p></div>
-                  <span className="font-semibold text-red-600">−{fmt(Number(e.amount))}</span>
+                  <div><p className="font-semibold text-navy text-sm">{e.category}{e.recurring ? <span className="ml-1.5 text-[10px] text-amber-deep">↻ monthly</span> : null}</p><p className="text-xs text-muted">{new Date(e.date).toLocaleDateString()}{e.note ? ` · ${e.note}` : ""}</p></div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-red-600">−{fmt(Number(e.amount))}</span>
+                    <button onClick={() => delExpense(e.id)} className="p-1.5 text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                  </div>
                 </div>
               ))}
             </div>

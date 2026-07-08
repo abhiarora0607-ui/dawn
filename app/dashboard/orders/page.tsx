@@ -4,20 +4,40 @@ import { useEffect, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
-import { ToastProvider } from "@/components/Toast";
 import { OrderModal } from "@/components/OrderModal";
-import { Loader2, Plus, Receipt, ShoppingBag, Search } from "lucide-react";
+import { ConfirmDialog } from "@/components/Toast";
+import { Loader2, Plus, Receipt, ShoppingBag, Search, Trash2, Truck } from "lucide-react";
+
+const ORDER_STATUSES = ["Placed", "Processing", "Shipped", "Delivered"];
+const statusStyle: Record<string, string> = {
+  Placed: "bg-blue-50 text-blue-700", Processing: "bg-amber/10 text-amber-deep",
+  Shipped: "bg-purple-50 text-purple-700", Delivered: "bg-emerald-50 text-emerald-700",
+};
 
 function fmt(n: number) { return "₹" + (n >= 100000 ? (n / 100000).toFixed(1) + "L" : n >= 1000 ? (n / 1000).toFixed(1) + "k" : n); }
 
+import { ToastProvider, useToast } from "@/components/Toast";
+
 function OrdersInner() {
   const { data } = useBrief();
+  const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [customers, setCustomers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [confirmDel, setConfirmDel] = useState<string | null>(null);
+
+  async function setOrderStatus(id: string, orderStatus: string) {
+    setOrders((os) => os.map((o) => o.id === id ? { ...o, order_status: orderStatus } : o));
+    await fetch("/api/sales", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, orderStatus }) });
+  }
+  async function doDelete() {
+    if (!confirmDel) return;
+    await fetch(`/api/sales?id=${confirmDel}`, { method: "DELETE" });
+    toast("Order deleted — linked expense removed"); setConfirmDel(null); load();
+  }
 
   function load() {
     Promise.all([
@@ -85,6 +105,15 @@ function OrdersInner() {
                   <div className="flex items-center gap-2 shrink-0">
                     <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${o.status === "paid" ? "bg-emerald-50 text-emerald-700" : o.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{o.status}</span>
                     <a href={`/receipt/${o.id}`} target="_blank" className="p-1.5 text-navy/40 hover:text-navy" title="Receipt"><Receipt className="w-4 h-4" /></a>
+                    <button onClick={() => setConfirmDel(o.id)} className="p-1.5 text-navy/40 hover:text-red-500" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-navy-line">
+                  <Truck className="w-3.5 h-3.5 text-navy/40" />
+                  <div className="flex gap-1 flex-wrap">
+                    {ORDER_STATUSES.map((st) => (
+                      <button key={st} onClick={() => setOrderStatus(o.id, st)} className={`text-[11px] font-medium px-2 py-1 rounded-lg ${(o.order_status || "Placed") === st ? statusStyle[st] : "text-navy/40 hover:bg-surface"}`}>{st}</button>
+                    ))}
                   </div>
                 </div>
                 {Number(o.balance) > 0 && <p className="text-xs text-amber-deep mt-1">Balance: {fmt(Number(o.balance))}</p>}
@@ -94,6 +123,7 @@ function OrdersInner() {
         )}
       </div>
       {modal && <OrderModal onClose={() => setModal(false)} onDone={() => { setModal(false); load(); }} />}
+      <ConfirmDialog open={!!confirmDel} title="Delete this order?" body="This also removes its linked fixed-cost expense. Can't be undone." onConfirm={doDelete} onCancel={() => setConfirmDel(null)} />
     </DashboardShell>
   );
 }

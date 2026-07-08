@@ -35,7 +35,16 @@ export async function PATCH(req: Request) {
   try {
     const b = await req.json();
     if (!b.id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
-    // Load current sale
+
+    // Order status update
+    if (b.orderStatus) {
+      await fetch(`${url}/rest/v1/sales?id=eq.${b.id}&uid=eq.${uid}`, {
+        method: "PATCH", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify({ order_status: b.orderStatus }),
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    // Add payment
     const cur = await (await fetch(`${url}/rest/v1/sales?id=eq.${b.id}&uid=eq.${uid}&select=*&limit=1`, { headers: H(key), cache: "no-store" })).json();
     const sale = cur?.[0];
     if (!sale) return NextResponse.json({ error: "Not found." }, { status: 404 });
@@ -52,6 +61,20 @@ export async function PATCH(req: Request) {
     });
     return NextResponse.json({ ok: true, status: newStatus, balance: newBalance });
   } catch { return NextResponse.json({ error: "Update failed." }, { status: 500 }); }
+}
+
+export async function DELETE(req: Request) {
+  const uid = await getUid();
+  const { url, key } = sb();
+  if (!uid || !url || !key) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
+  try {
+    // Cascade: remove the linked fixed-cost expense
+    await fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&source=eq.order&source_id=eq.${id}`, { method: "DELETE", headers: H(key) });
+    await fetch(`${url}/rest/v1/sales?id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: H(key) });
+    return NextResponse.json({ ok: true });
+  } catch { return NextResponse.json({ error: "Delete failed." }, { status: 500 }); }
 }
 
 export async function POST(req: Request) {
@@ -85,11 +108,22 @@ export async function POST(req: Request) {
       amount_paid: amountPaid, balance, payment_method: b.paymentMethod || "cash",
       status, payments: amountPaid > 0 ? [{ amount: amountPaid, date: new Date().toISOString(), method: b.paymentMethod || "cash" }] : [],
       notes: b.notes || "",
+      fixed_cost: Number(b.fixedCost) || 0,
+      employee_id: b.employeeId || null,
+      order_status: "Placed",
     };
     const sRes = await fetch(`${url}/rest/v1/sales`, {
       method: "POST", headers: H(key, { Prefer: "return=representation" }), body: JSON.stringify(saleRow),
     });
     const sale = (await sRes.json())?.[0];
+
+    // Fixed cost → linked expense (auto-added; auto-removed if order deleted)
+    if (sale?.id && Number(b.fixedCost) > 0) {
+      await fetch(`${url}/rest/v1/expenses`, {
+        method: "POST", headers: H(key, { Prefer: "return=minimal" }),
+        body: JSON.stringify({ uid, date: new Date().toISOString().slice(0, 10), category: "Order cost", amount: Number(b.fixedCost), note: `Fixed cost for order #${String(sale.id).slice(0, 8)}`, source: "order", source_id: sale.id }),
+      });
+    }
 
     // Convert contact → Customer + log timeline
     if (contactId) {

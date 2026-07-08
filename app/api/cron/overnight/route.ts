@@ -50,6 +50,27 @@ export async function GET(req: Request) {
   const today = new Date().toISOString().slice(0, 10);
   let briefed = 0, refreshed = 0, failed = 0;
 
+  // Generate this month's recurring expenses (salary + manual recurring),
+  // once per month, idempotently. Runs for every owner.
+  const month = today.slice(0, 7); // YYYY-MM
+  try {
+    const recs = await (await fetch(`${url}/rest/v1/recurring_expenses?enabled=eq.true&select=*`, { headers: sbHeaders(key), cache: "no-store" })).json();
+    for (const r of recs || []) {
+      if (r.last_generated === month) continue; // already done this month
+      await fetch(`${url}/rest/v1/expenses`, {
+        method: "POST", headers: sbHeaders(key),
+        body: JSON.stringify({
+          uid: r.uid, date: today, category: r.category || (r.source === "salary" ? "Salaries" : "Recurring"),
+          amount: r.amount, note: r.note || "Recurring expense",
+          source: r.source === "salary" ? "salary" : "recurring", source_id: r.employee_id || r.id, recurring: true,
+        }),
+      });
+      await fetch(`${url}/rest/v1/recurring_expenses?id=eq.${r.id}`, {
+        method: "PATCH", headers: sbHeaders(key), body: JSON.stringify({ last_generated: month }),
+      });
+    }
+  } catch { /* non-fatal */ }
+
   for (const conn of connections || []) {
     const igUserId = conn.ig_user_id;
     let token = conn.access_token;

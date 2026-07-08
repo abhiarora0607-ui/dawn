@@ -16,6 +16,9 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
   const { toast } = useToast();
   const [catalog, setCatalog] = useState<CatItem[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [employees, setEmployees] = useState<{ id: string; name: string; status: string }[]>([]);
+  const [employeeId, setEmployeeId] = useState("");
+  const [fixedCost, setFixedCost] = useState("");
   const [selected, setSelected] = useState<Customer | null>(contact || null);
   const [walkInName, setWalkInName] = useState("");
   const [walkInPhone, setWalkInPhone] = useState("");
@@ -34,9 +37,11 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
     Promise.all([
       fetch("/api/catalog").then((r) => r.json()),
       fetch("/api/sales?customers=1").then((r) => r.json()),
-    ]).then(([cat, cust]) => {
+      fetch("/api/employees").then((r) => r.json()),
+    ]).then(([cat, cust, emp]) => {
       setCatalog(cat.items || []);
       setCustomers(cust.customers || []);
+      setEmployees((emp.employees || []).filter((e: any) => e.status === "active"));
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -59,7 +64,7 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
     try {
       const body: any = {
         items: lines, discount: Number(discount) || 0, amountPaid: Number(amountPaid) || 0,
-        paymentMethod: method, notes,
+        paymentMethod: method, notes, fixedCost: Number(fixedCost) || 0, employeeId: employeeId || null,
       };
       if (custMode === "existing") body.contactId = selected!.id;
       else { body.customerName = walkInName.trim(); body.customerPhone = walkInPhone; }
@@ -171,6 +176,21 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
               {status === "Partial" && (
                 <div><label className="block text-sm font-semibold text-navy mb-1.5">Amount received</label><input type="number" min="0" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} className="inp" /><p className="text-xs text-muted mt-1">Balance: ₹{Math.max(0, total - (Number(amountPaid) || 0))}</p></div>
               )}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-navy mb-1.5">Fixed cost</label>
+                  <input type="number" min="0" value={fixedCost} onChange={(e) => setFixedCost(e.target.value)} placeholder="0" className="inp" />
+                  <p className="text-[11px] text-muted mt-1">Added to expenses automatically.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-navy mb-1.5">Handled by</label>
+                  <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="inp">
+                    <option value="">— None —</option>
+                    {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
               <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Notes (optional)" className="inp resize-none" />
 
               <button onClick={save} disabled={saving} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl hover:bg-navy-soft disabled:opacity-60">
