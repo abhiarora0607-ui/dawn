@@ -13,6 +13,10 @@ export type BizSettings = {
 
 let cache: BizSettings | null = null;
 
+// Clear the cached settings (call after saving settings so other mounted
+// pages pick up changes without a full reload).
+export function invalidateSettingsCache() { cache = null; }
+
 export function useSettings() {
   const [settings, setSettings] = useState<BizSettings>(cache || { currency: "₹", stage_names: DEFAULT_STAGES });
   const [loaded, setLoaded] = useState(!!cache);

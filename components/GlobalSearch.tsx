@@ -38,6 +38,7 @@ export function GlobalSearch() {
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => q.length >= 2 && setOpen(true)}
           placeholder="Search contacts, items…"
+          aria-label="Search contacts and items"
           className="flex-1 py-2 text-sm bg-transparent text-navy focus:outline-none"
         />
         {q && <button onClick={() => { setQ(""); setResults([]); }} className="text-navy/40 hover:text-navy"><X className="w-3.5 h-3.5" /></button>}
