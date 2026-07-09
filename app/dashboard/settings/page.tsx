@@ -5,6 +5,7 @@ import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
 import { ToastProvider, useToast, ConfirmDialog } from "@/components/Toast";
+import { invalidateSettingsCache } from "@/lib/use-settings";
 import { Loader2, Save, Upload, Database, Trash2, Download, Building2 } from "lucide-react";
 
 const CURRENCIES = ["₹", "$", "€", "£", "₨", "R$", "A$"];
@@ -48,7 +49,7 @@ function SettingsInner() {
     setSaving(true);
     try {
       const res = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(s) });
-      if (res.ok) toast("Settings saved"); else toast("Save failed", "error");
+      if (res.ok) { invalidateSettingsCache(); toast("Settings saved"); } else toast("Save failed", "error");
     } catch { toast("Network error", "error"); }
     setSaving(false);
   }

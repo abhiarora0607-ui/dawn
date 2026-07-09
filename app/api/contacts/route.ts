@@ -24,7 +24,9 @@ export async function GET(req: Request) {
   const check = new URL(req.url).searchParams.get("check"); // duplicate check: phone or handle
   try {
     if (check) {
-      const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&or=(phone.eq.${encodeURIComponent(check)},instagram_handle.eq.${encodeURIComponent(check)})&select=id,name&limit=1`, { headers: H(key), cache: "no-store" });
+      const safe = String(check).replace(/[*(),\\]/g, "").slice(0, 60);
+      const enc = encodeURIComponent(safe);
+      const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&or=(phone.eq.${enc},instagram_handle.eq.${enc})&select=id,name&limit=1`, { headers: H(key), cache: "no-store" });
       const rows = await res.json();
       return NextResponse.json({ duplicate: rows?.[0] || null });
     }

@@ -9,8 +9,14 @@ function H(key: string) { return { apikey: key, Authorization: `Bearer ${key}` }
 export async function GET(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
-  const q = (new URL(req.url).searchParams.get("q") || "").trim();
-  if (!uid || !url || !key || q.length < 2) return NextResponse.json({ results: [] });
+  const raw = (new URL(req.url).searchParams.get("q") || "").trim();
+  if (!uid || !url || !key || raw.length < 2) return NextResponse.json({ results: [] });
+
+  // Strip PostgREST filter metacharacters so the query can't be broken out of
+  // (*, comma, parentheses, backslash), then URL-encode the safe remainder.
+  const safe = raw.replace(/[*(),\\]/g, " ").trim().slice(0, 60);
+  if (safe.length < 2) return NextResponse.json({ results: [] });
+  const q = encodeURIComponent(safe);
 
   try {
     const [contacts, items] = await Promise.all([

@@ -6,6 +6,7 @@
 export const dynamic = "force-dynamic";
 
 import { ReceiptSend } from "@/components/ReceiptSend";
+import { PrintButton } from "@/components/PrintButton";
 
 async function getSale(id: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -41,10 +42,7 @@ export default async function Receipt({ params, searchParams }: { params: { id: 
       <head><title>Receipt</title><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
       <body style={{ margin: 0, background: "#F8F9FC", fontFamily: "Inter, system-ui, sans-serif", color: "#16233F" }}>
         <div style={{ maxWidth: 420, margin: "0 auto", padding: "24px 16px" }}>
-          <button onClick={undefined} className="noprint" id="printbtn"
-            style={{ width: "100%", padding: "12px", background: "#16233F", color: "#fff", border: 0, borderRadius: 12, fontWeight: 600, marginBottom: 16, cursor: "pointer" }}>
-            Print / Save as PDF
-          </button>
+          <PrintButton />
 
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, border: "1px solid #E4E8F0" }}>
             <div style={{ textAlign: "center", borderBottom: "1px solid #E4E8F0", paddingBottom: 16, marginBottom: 16 }}>
@@ -105,7 +103,6 @@ export default async function Receipt({ params, searchParams }: { params: { id: 
           <p style={{ textAlign: "center", fontSize: 11, color: "#9AA1B0", marginTop: 16 }}>Powered by Dawn</p>
         </div>
         <style dangerouslySetInnerHTML={{ __html: `@media print { .noprint { display: none !important; } body { background: #fff; } }` }} />
-        <script dangerouslySetInnerHTML={{ __html: `document.getElementById('printbtn').addEventListener('click', function(){ window.print(); });` }} />
       </body>
     </html>
   );

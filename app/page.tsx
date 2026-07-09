@@ -4,7 +4,18 @@ import { DawnLogo } from "@/components/DawnLogo";
 import { Sunrise, Brain, Eye, PenLine, Check, Sparkles } from "lucide-react";
 
 export default function Home() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Dawn",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description: "An AI-powered tool for Instagram-first businesses: a daily plan for your account plus a built-in CRM for leads, orders, and money.",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "INR" },
+  };
   return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     <main className="min-h-screen bg-cream">
       {/* Nav */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-cream/80 border-b border-navy-line">
@@ -135,5 +146,6 @@ export default function Home() {
         </div>
       </footer>
     </main>
+    </>
   );
 }

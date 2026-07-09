@@ -2,15 +2,30 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Dawn — Wake up knowing what to do",
-  description:
-    "Dawn is your AI Instagram manager. Every morning it tells you what happened on your account and exactly what to do about it.",
-  icons: { icon: "/icon.svg" },
-  openGraph: {
-    title: "Dawn — Wake up knowing what to do",
-    description: "Your AI Instagram manager. A daily plan of action, before breakfast.",
-    type: "website",
+  metadataBase: new URL("https://dawn-jet.vercel.app"),
+  title: {
+    default: "Dawn — Run your Instagram business in one place",
+    template: "%s · Dawn",
   },
+  description:
+    "Dawn is an AI-powered tool for Instagram-first businesses: a daily plan for your account plus a built-in CRM for leads, orders, and money.",
+  applicationName: "Dawn",
+  keywords: ["Instagram CRM", "small business CRM", "Instagram business tool", "lead management", "order tracking"],
+  icons: { icon: "/icon.svg" },
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Dawn — Run your Instagram business in one place",
+    description: "A daily AI plan for your Instagram, plus a built-in CRM for leads, orders, and money.",
+    type: "website",
+    url: "/",
+    siteName: "Dawn",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Dawn — Run your Instagram business in one place",
+    description: "A daily AI plan for your Instagram, plus a built-in CRM for leads, orders, and money.",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
