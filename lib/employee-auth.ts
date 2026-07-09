@@ -78,3 +78,24 @@ export async function getEmployee(): Promise<EmployeeContext | null> {
 export function hasPermission(ctx: EmployeeContext | null, perm: Permission): boolean {
   return !!ctx && Array.isArray(ctx.permissions) && ctx.permissions.includes(perm);
 }
+
+// Guard for employee API routes. Returns context or an error signal, and
+// checks a required permission. Ownership (employee_id scoping) is applied
+// by each route using ctx.employeeId.
+export type EmpGuard =
+  | { ok: false; status: number; error: string }
+  | { ok: true; ctx: EmployeeContext; url: string; key: string };
+
+export async function guardEmployee(perm?: Permission): Promise<EmpGuard> {
+  const ctx = await getEmployee();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !key) return { ok: false, status: 500, error: "Not configured." };
+  if (!ctx) return { ok: false, status: 401, error: "Please sign in." };
+  if (perm && !hasPermission(ctx, perm)) return { ok: false, status: 403, error: "You don't have access to this." };
+  return { ok: true, ctx, url, key };
+}
+
+export function empHeaders(key: string, extra: Record<string, string> = {}) {
+  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
+}
