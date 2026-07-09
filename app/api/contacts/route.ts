@@ -1,6 +1,7 @@
 // app/api/contacts/route.ts
 import { NextResponse } from "next/server";
 import { getUid } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +88,7 @@ export async function DELETE(req: Request) {
   try {
     await fetch(`${url}/rest/v1/contacts?id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: H(key) });
     await fetch(`${url}/rest/v1/activities?contact_id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: H(key) });
+    await audit({ uid, action: "contact.delete", entity: "contacts", entityId: id });
     return NextResponse.json({ ok: true });
   } catch { return NextResponse.json({ error: "Delete failed." }, { status: 500 }); }
 }

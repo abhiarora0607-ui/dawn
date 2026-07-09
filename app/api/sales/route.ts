@@ -5,6 +5,7 @@
 
 import { NextResponse } from "next/server";
 import { getUid } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SECRET_KEY }; }
@@ -73,6 +74,7 @@ export async function DELETE(req: Request) {
     // Cascade: remove the linked fixed-cost expense
     await fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&source=eq.order&source_id=eq.${id}`, { method: "DELETE", headers: H(key) });
     await fetch(`${url}/rest/v1/sales?id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: H(key) });
+    await audit({ uid, action: "order.delete", entity: "sales", entityId: id });
     return NextResponse.json({ ok: true });
   } catch { return NextResponse.json({ error: "Delete failed." }, { status: 500 }); }
 }
@@ -140,6 +142,7 @@ export async function POST(req: Request) {
       });
     }
 
+    if (sale?.id) await audit({ uid, action: "order.create", entity: "sales", entityId: sale.id, meta: { total, status } });
     return sRes.ok ? NextResponse.json({ ok: true, sale }) : NextResponse.json({ error: "Save failed." }, { status: 500 });
   } catch { return NextResponse.json({ error: "Invalid request." }, { status: 400 }); }
 }
