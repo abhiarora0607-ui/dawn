@@ -17,7 +17,15 @@ export async function GET(req: Request) {
 
   const uid = ctx.uid;
   const empId = ctx.employeeId;
-  const out: any = { me: { name: ctx.name, permissions: ctx.permissions } };
+
+  // Include must-change-password flag for first-login prompt.
+  let mustChange = false;
+  try {
+    const acc = (await (await fetch(`${url}/rest/v1/employee_accounts?id=eq.${ctx.accountId}&select=must_change_password&limit=1`, { headers: H(key), cache: "no-store" })).json())?.[0];
+    mustChange = !!acc?.must_change_password;
+  } catch {}
+
+  const out: any = { me: { name: ctx.name, permissions: ctx.permissions, mustChangePassword: mustChange } };
 
   try {
     // Contacts / leads / customers assigned to this employee
