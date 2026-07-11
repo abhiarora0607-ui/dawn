@@ -34,6 +34,7 @@ export async function POST(req: Request) {
       uid: ctx.uid, name: b.name.trim(), phone: b.phone || "", email: b.email || "",
       instagram_handle: (b.instagramHandle || "").replace("@", ""), source: b.source || "Other",
       stage: b.stage || "New Lead", notes: b.notes || "", employee_id: ctx.employeeId,
+      follow_up_date: b.followUpDate || null,
     };
     const res = await fetch(`${url}/rest/v1/contacts`, {
       method: "POST", headers: empHeaders(key, { Prefer: "return=representation" }), body: JSON.stringify(row),

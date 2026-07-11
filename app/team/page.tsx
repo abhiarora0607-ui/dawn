@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DawnLogo } from "@/components/DawnLogo";
-import { Loader2, Users, ShoppingBag, LogOut, Phone, MessageCircle, TrendingUp, Plus, X, Send, MessageSquare, KeyRound } from "lucide-react";
+import { Loader2, Users, ShoppingBag, LogOut, Phone, MessageCircle, TrendingUp, Plus, X, Send, MessageSquare, KeyRound, Bell, Clock } from "lucide-react";
 
 type Tab = "dashboard" | "leads" | "customers" | "orders" | "messages";
 
@@ -77,6 +77,20 @@ export default function TeamDashboard() {
               {can("leads") && <button onClick={() => setModal("lead")} className="flex-1 flex items-center justify-center gap-2 bg-white border border-navy-line rounded-xl py-3 text-sm font-medium text-navy hover:bg-surface"><Plus className="w-4 h-4" /> Add lead</button>}
               {can("orders") && <button onClick={() => setModal("order")} className="flex-1 flex items-center justify-center gap-2 bg-navy text-white rounded-xl py-3 text-sm font-medium hover:bg-navy-soft"><Plus className="w-4 h-4" /> New order</button>}
             </div>
+            {can("leads") && leads.filter((l: any) => l.follow_up_date && new Date(l.follow_up_date) <= new Date()).length > 0 && (
+              <div className="bg-amber/10 border border-amber/30 rounded-2xl p-4">
+                <p className="text-sm font-semibold text-navy mb-2 flex items-center gap-1.5"><Bell className="w-4 h-4 text-amber-deep" /> Follow-ups due</p>
+                <div className="space-y-1.5">
+                  {leads.filter((l: any) => l.follow_up_date && new Date(l.follow_up_date) <= new Date()).slice(0, 5).map((l: any) => (
+                    <div key={l.id} className="flex items-center justify-between text-sm">
+                      <span className="text-navy">{l.name}</span>
+                      {l.phone && <a href={`https://wa.me/${(l.phone || "").replace(/[^0-9]/g, "")}`} target="_blank" className="text-emerald-600 text-xs font-medium">Message →</a>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <ActivityFeed />
           </>
         )}
 
@@ -108,6 +122,29 @@ export default function TeamDashboard() {
       {modal === "lead" && <LeadModal onClose={() => setModal(null)} onSaved={loadAll} />}
       {modal === "order" && <OrderModal customers={customers} onClose={() => setModal(null)} onSaved={loadAll} />}
       {pwModal && <PasswordModal force={me.mustChangePassword} onClose={() => setPwModal(false)} />}
+    </div>
+  );
+}
+
+function ActivityFeed() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    fetch("/api/team/activity").then((r) => r.json()).then((d) => { setItems(d.activity || []); setLoaded(true); }).catch(() => setLoaded(true));
+  }, []);
+  if (!loaded || items.length === 0) return null;
+  const LABELS: Record<string, string> = { "contact.create": "Added a lead", "order.create": "Created an order", "message.send": "Sent a message" };
+  return (
+    <div className="bg-white rounded-2xl border border-navy-line p-4">
+      <p className="text-sm font-semibold text-navy mb-2 flex items-center gap-1.5"><Clock className="w-4 h-4 text-navy/40" /> Recent activity</p>
+      <div className="space-y-2">
+        {items.slice(0, 8).map((it, i) => (
+          <div key={i} className="flex items-center justify-between text-sm">
+            <span className="text-navy/70">{LABELS[it.action] || it.action}</span>
+            <span className="text-xs text-muted">{new Date(it.at).toLocaleDateString()}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -181,7 +218,7 @@ function OrderList({ orders, onAdd, onChanged }: { orders: any[]; onAdd: () => v
 }
 
 function LeadModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const [f, setF] = useState<any>({ name: "", phone: "", instagramHandle: "", source: "Instagram DM", notes: "" });
+  const [f, setF] = useState<any>({ name: "", phone: "", instagramHandle: "", source: "Instagram DM", notes: "", followUpDate: "" });
   const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
   async function save() {
     if (!f.name.trim()) { setErr("Name is required."); return; }
@@ -196,6 +233,10 @@ function LeadModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => v
       <input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="Phone" className="tinp" />
       <input value={f.instagramHandle} onChange={(e) => setF({ ...f, instagramHandle: e.target.value })} placeholder="Instagram handle" className="tinp" />
       <select value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} className="tinp">{["Instagram DM", "WhatsApp", "Referral", "Walk-in", "Website", "Other"].map((s) => <option key={s}>{s}</option>)}</select>
+      <div>
+        <label className="block text-xs font-semibold text-navy mb-1">Follow up on (optional)</label>
+        <input type="date" value={f.followUpDate} onChange={(e) => setF({ ...f, followUpDate: e.target.value })} className="tinp" />
+      </div>
       <textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} rows={2} placeholder="Notes" className="tinp resize-none" />
       {err && <p className="text-sm text-red-600">{err}</p>}
       <button onClick={save} disabled={busy} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl disabled:opacity-60">{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Add lead</button>

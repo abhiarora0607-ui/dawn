@@ -29,11 +29,12 @@ export async function GET(req: Request) {
 
   try {
     // Contacts / leads / customers assigned to this employee
+    // Leads and customers gate independently.
     if (hasPermission(ctx, "leads") || hasPermission(ctx, "customers")) {
       const rows = await (await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&employee_id=eq.${empId}&order=created_at.desc`, { headers: H(key), cache: "no-store" })).json();
       const all = Array.isArray(rows) ? rows : [];
-      out.leads = all.filter((c: any) => !["Customer (Won)", "Lost"].includes(c.stage));
-      out.customers = all.filter((c: any) => c.stage === "Customer (Won)");
+      out.leads = hasPermission(ctx, "leads") ? all.filter((c: any) => !["Customer (Won)", "Lost"].includes(c.stage)) : [];
+      out.customers = hasPermission(ctx, "customers") ? all.filter((c: any) => c.stage === "Customer (Won)") : [];
     }
     // Orders handled by this employee
     if (hasPermission(ctx, "orders")) {

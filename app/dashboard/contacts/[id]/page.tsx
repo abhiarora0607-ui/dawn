@@ -11,7 +11,7 @@ import { OrderModal } from "@/components/OrderModal";
 import { useSettings } from "@/lib/use-settings";
 import {
   Loader2, ArrowLeft, Phone, MessageCircle, Copy, Trash2, Send, ShoppingBag,
-  StickyNote, GitBranch, Paperclip, Check, Plus,
+  StickyNote, GitBranch, Paperclip, Check, Plus, Pencil, X,
 } from "lucide-react";
 
 const STAGES = ["New Lead", "Contacted", "Negotiating", "Customer (Won)", "Lost"];
@@ -44,26 +44,8 @@ function ProfileInner() {
   const [sales, setSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState("");
-  const [uploadingAtt, setUploadingAtt] = useState(false);
-
-  async function uploadAttachment(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file) return;
-    setUploadingAtt(true);
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const up = await (await fetch("/api/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl: reader.result }) })).json();
-        if (up.url) {
-          await fetch(`/api/contacts/${id}/attachment`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fileUrl: up.url, kind: "payment_screenshot" }) });
-          toast("Screenshot attached — check Suggestions to convert");
-          load();
-        } else toast(up.error || "Upload failed", "error");
-      } catch { toast("Upload error", "error"); }
-      setUploadingAtt(false);
-    };
-    reader.readAsDataURL(file);
-  }
   const [convert, setConvert] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [newOrder, setNewOrder] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
 
@@ -116,7 +98,10 @@ function ProfileInner() {
                 <span>· {contact.source}</span>
               </div>
             </div>
-            <button onClick={() => setConfirmDel(true)} className="p-2 text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setEditing(true)} className="p-2 text-navy/40 hover:text-navy" title="Edit"><Pencil className="w-4 h-4" /></button>
+              <button onClick={() => setConfirmDel(true)} className="p-2 text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+            </div>
           </div>
 
           {/* One-tap actions */}
@@ -160,10 +145,6 @@ function ProfileInner() {
             <input value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addNote()} placeholder="Add a note…" className="flex-1 px-3 py-2 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber" />
             <button onClick={addNote} className="bg-navy text-white px-4 rounded-xl hover:bg-navy-soft"><Send className="w-4 h-4" /></button>
           </div>
-          <label className="cursor-pointer flex items-center gap-2 text-xs font-medium text-amber-deep w-fit">
-            {uploadingAtt ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Paperclip className="w-3.5 h-3.5" />} Attach payment screenshot
-            <input type="file" accept="image/*" onChange={uploadAttachment} className="hidden" />
-          </label>
         </div>
 
         {/* Timeline */}
@@ -198,6 +179,7 @@ function ProfileInner() {
         onConfirm={() => { if (pendingStage) updateField({ stage: pendingStage }); setPendingStage(null); }}
         onCancel={() => setPendingStage(null)}
       />
+      {editing && <EditContactModal contact={contact} onClose={() => setEditing(false)} onSaved={(patch) => { const display: any = { ...patch }; if (patch.instagramHandle !== undefined) { display.instagram_handle = patch.instagramHandle; } setContact((c: any) => ({ ...c, ...display })); setEditing(false); fetch("/api/contacts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...patch }) }); toast("Contact updated"); }} />}
       <ConfirmDialog open={confirmDel} title="Delete this contact?" body="This removes them and all their activity. Can't be undone." onConfirm={doDelete} onCancel={() => setConfirmDel(false)} />
     </DashboardShell>
   );
@@ -205,4 +187,25 @@ function ProfileInner() {
 
 export default function ContactProfile() {
   return <ToastProvider><ProfileInner /></ToastProvider>;
+}
+
+function EditContactModal({ contact, onClose, onSaved }: { contact: any; onClose: () => void; onSaved: (patch: any) => void }) {
+  const [f, setF] = useState({ name: contact.name || "", phone: contact.phone || "", email: contact.email || "", instagram_handle: contact.instagram_handle || "", source: contact.source || "Other" });
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
+      <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-5 animate-rise max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">Edit contact</h3><button onClick={onClose} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button></div>
+        <div className="space-y-3">
+          <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Name *" className="cinp" />
+          <input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="Phone" className="cinp" />
+          <input value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="Email" className="cinp" />
+          <input value={f.instagram_handle} onChange={(e) => setF({ ...f, instagram_handle: e.target.value.replace("@", "") })} placeholder="Instagram handle" className="cinp" />
+          <select value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} className="cinp">{["Instagram DM", "WhatsApp", "Referral", "Walk-in", "Website", "Other"].map((s) => <option key={s}>{s}</option>)}</select>
+          <button onClick={() => { if (!f.name.trim()) return; const { instagram_handle, ...rest } = f; onSaved({ ...rest, instagramHandle: instagram_handle }); }} className="w-full bg-navy text-white font-medium py-3 rounded-xl hover:bg-navy-soft">Save changes</button>
+        </div>
+        <style jsx>{`.cinp{width:100%;padding:0.6rem 0.75rem;border:1px solid #E4E8F0;border-radius:0.75rem;font-size:0.875rem;color:#16233F;outline:none}.cinp:focus{border-color:#FF9E43}`}</style>
+      </div>
+    </div>
+  );
 }

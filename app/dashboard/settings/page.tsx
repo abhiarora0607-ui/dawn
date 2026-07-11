@@ -6,7 +6,7 @@ import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
 import { ToastProvider, useToast, ConfirmDialog } from "@/components/Toast";
 import { invalidateSettingsCache } from "@/lib/use-settings";
-import { Loader2, Save, Upload, Database, Trash2, Download, Building2 } from "lucide-react";
+import { Loader2, Save, Upload, Database, Trash2, Download, Building2, Copy, Check } from "lucide-react";
 
 const CURRENCIES = ["₹", "$", "€", "£", "₨", "R$", "A$"];
 
@@ -122,10 +122,42 @@ function SettingsInner() {
             <a href="/api/catalog/export" className="flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface"><Download className="w-4 h-4" /> Export catalog CSV</a>
           </div>
         </section>
+
+        <LoginLinksSection />
       </div>
       <ConfirmDialog open={confirmClear} title="Clear demo data?" body="Removes only demo contacts, orders, and items. Your real data stays." confirmLabel="Clear" onConfirm={clearDemo} onCancel={() => setConfirmClear(false)} />
       <style jsx global>{`.inp{width:100%;padding:0.6rem 0.75rem;border:1px solid #E4E8F0;border-radius:0.75rem;font-size:0.875rem;color:#16233F;outline:none}.inp:focus{border-color:#FF9E43}`}</style>
     </DashboardShell>
+  );
+}
+
+function LoginLinksSection() {
+  const [origin, setOrigin] = useState("");
+  const [copied, setCopied] = useState("");
+  useEffect(() => { setOrigin(window.location.origin); }, []);
+  function copy(label: string, text: string) { navigator.clipboard.writeText(text); setCopied(label); setTimeout(() => setCopied(""), 1500); }
+  const links = [
+    { key: "admin", label: "Admin login", desc: "For you, the business owner", url: `${origin}/dashboard` },
+    { key: "team", label: "Employee login", desc: "Share with your team members", url: `${origin}/team-login` },
+  ];
+  return (
+    <section className="bg-white rounded-2xl border border-navy-line p-5 sm:p-6">
+      <h2 className="font-display font-semibold text-lg text-navy mb-1">Login links</h2>
+      <p className="text-muted text-sm mb-4">Quick access to share with your team. The employee link is where staff sign in with the login you create for them.</p>
+      <div className="space-y-3">
+        {links.map((l) => (
+          <div key={l.key} className="flex items-center justify-between gap-3 border border-navy-line rounded-xl p-3">
+            <div className="min-w-0">
+              <p className="font-medium text-navy text-sm">{l.label}</p>
+              <p className="text-xs text-muted truncate">{l.url || "…"}</p>
+            </div>
+            <button onClick={() => copy(l.key, l.url)} className="shrink-0 flex items-center gap-1.5 text-sm font-medium bg-navy text-white px-3 py-2 rounded-lg hover:bg-navy-soft">
+              {copied === l.key ? <><Check className="w-4 h-4" /> Copied</> : <><Copy className="w-4 h-4" /> Copy</>}
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
