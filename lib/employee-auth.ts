@@ -14,23 +14,28 @@ function H(extra: Record<string, string> = {}) {
   return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
 }
 
-// All grantable permissions. Keep in sync with the admin UI.
+// All grantable permissions. Every permission here maps to a REAL screen or
+// capability in the employee portal — nothing decorative. Keep in sync with
+// the admin UI grid in components/TeamAccessModal.tsx.
+//   - file_uploads was removed (image uploads were removed from the CRM).
+//   - team_management was removed (managing the team is admin-only).
 export const ALL_PERMISSIONS = [
-  "dashboard", "leads", "customers", "orders", "messaging", "tasks",
-  "calendar", "notes", "reports", "file_uploads", "data_export",
-  "financials", "team_management", "settings",
+  "dashboard", "leads", "customers", "orders",
+  "edit_leads", "edit_customers", "edit_orders",
+  "messaging", "tasks", "calendar", "notes",
+  "reports", "data_export", "financials", "settings",
 ] as const;
 export type Permission = (typeof ALL_PERMISSIONS)[number];
 
 export const PERMISSION_LABELS: Record<string, string> = {
   dashboard: "Dashboard", leads: "Leads", customers: "Customers", orders: "Orders",
+  edit_leads: "Edit leads", edit_customers: "Edit customers", edit_orders: "Edit orders & payments",
   messaging: "Messaging", tasks: "Tasks", calendar: "Calendar", notes: "Notes",
-  reports: "Reports", file_uploads: "File uploads", data_export: "Data export",
-  financials: "Financial info", team_management: "Team management", settings: "Settings",
+  reports: "My reports", data_export: "Data export", financials: "Financial info", settings: "Profile & settings",
 };
 
 // Sensible default for a new sales employee.
-export const DEFAULT_EMPLOYEE_PERMISSIONS: Permission[] = ["dashboard", "leads", "customers", "orders", "tasks", "notes"];
+export const DEFAULT_EMPLOYEE_PERMISSIONS: Permission[] = ["dashboard", "leads", "customers", "orders", "tasks", "calendar", "notes", "settings"];
 
 export function newSessionToken(): string {
   return "es_" + crypto.randomBytes(24).toString("hex");

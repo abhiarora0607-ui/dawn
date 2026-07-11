@@ -5,17 +5,18 @@ import { useToast, ConfirmDialog } from "@/components/Toast";
 import { Loader2, X, KeyRound, Copy, Check, Shield } from "lucide-react";
 
 const ALL_PERMISSIONS = [
-  "dashboard", "leads", "customers", "orders", "messaging", "tasks",
-  "calendar", "notes", "reports", "file_uploads", "data_export",
-  "financials", "team_management", "settings",
+  "dashboard", "leads", "customers", "orders",
+  "edit_leads", "edit_customers", "edit_orders",
+  "messaging", "tasks", "calendar", "notes",
+  "reports", "data_export", "financials", "settings",
 ];
 const LABELS: Record<string, string> = {
   dashboard: "Dashboard", leads: "Leads", customers: "Customers", orders: "Orders",
+  edit_leads: "Edit leads", edit_customers: "Edit customers", edit_orders: "Edit orders & payments",
   messaging: "Messaging", tasks: "Tasks", calendar: "Calendar", notes: "Notes",
-  reports: "Reports", file_uploads: "File uploads", data_export: "Data export",
-  financials: "Financial info", team_management: "Team management", settings: "Settings",
+  reports: "My reports", data_export: "Data export", financials: "Financial info", settings: "Profile & settings",
 };
-const DEFAULTS = ["dashboard", "leads", "customers", "orders", "tasks", "notes"];
+const DEFAULTS = ["dashboard", "leads", "customers", "orders", "tasks", "calendar", "notes", "settings"];
 
 export function TeamAccessModal({ employee, onClose }: { employee: { id: string; name: string }; onClose: () => void }) {
   const { toast } = useToast();

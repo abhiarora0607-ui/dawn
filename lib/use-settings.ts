@@ -27,7 +27,9 @@ export function useSettings() {
       const s = d.settings || {};
       const resolved: BizSettings = {
         currency: s.currency || "₹",
-        stage_names: Array.isArray(s.stage_names) && s.stage_names.length === 5 ? s.stage_names : DEFAULT_STAGES,
+        // Pipeline stages are FIXED product-wide. Stored renames are ignored
+        // so every business (and every employee) sees the same stable stages.
+        stage_names: DEFAULT_STAGES,
         business_name: s.business_name,
       };
       cache = resolved;
