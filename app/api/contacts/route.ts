@@ -68,6 +68,12 @@ export async function PATCH(req: Request) {
     const patch: any = {};
     const map: Record<string, string> = { name: "name", phone: "phone", email: "email", source: "source", stage: "stage", notes: "notes" };
     for (const k in map) if (b[k] !== undefined) patch[map[k]] = b[k];
+    // Marking Lost requires a reason — enforced here, not just in the UI.
+    if (b.stage === "Lost") {
+      const note = (b.lostNote || "").trim();
+      if (!note) return NextResponse.json({ error: "A note is required when marking a lead Lost." }, { status: 400 });
+      patch.lost_reason = note.slice(0, 500);
+    }
     if (b.instagramHandle !== undefined) patch.instagram_handle = (b.instagramHandle || "").replace("@", "");
     if (b.tags !== undefined) patch.tags = b.tags;
     if (b.interestedItemIds !== undefined) patch.interested_item_ids = b.interestedItemIds;
@@ -76,7 +82,10 @@ export async function PATCH(req: Request) {
     await fetch(`${url}/rest/v1/contacts?id=eq.${b.id}&uid=eq.${uid}`, {
       method: "PATCH", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify(patch),
     });
-    if (b.stage !== undefined && b.logStage) await logActivity(url, key, uid, b.id, "stage_change", `Moved to ${b.stage}`);
+    if (b.stage !== undefined && b.logStage) {
+      const msg = b.stage === "Lost" && b.lostNote ? `Marked Lost — ${String(b.lostNote).trim().slice(0, 300)}` : `Moved to ${b.stage}`;
+      await logActivity(url, key, uid, b.id, "stage_change", msg);
+    }
     return NextResponse.json({ ok: true });
   } catch { return NextResponse.json({ error: "Update failed." }, { status: 500 }); }
 }

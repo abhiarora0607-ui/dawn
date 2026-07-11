@@ -98,16 +98,6 @@ function SettingsInner() {
           </div>
         </section>
 
-        <section className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
-          <h2 className="font-semibold text-navy mb-3">Pipeline stages</h2>
-          <div className="space-y-2">
-            {(s.stage_names || []).map((name: string, i: number) => (
-              <input key={i} value={name} onChange={(e) => { const arr = [...s.stage_names]; arr[i] = e.target.value; set("stage_names", arr); }} className="inp" />
-            ))}
-          </div>
-          <p className="text-xs text-muted mt-2">Rename stages to fit your business.</p>
-        </section>
-
         <button onClick={save} disabled={saving} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl hover:bg-navy-soft disabled:opacity-60">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save settings
         </button>

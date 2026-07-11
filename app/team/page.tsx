@@ -1,11 +1,21 @@
 "use client";
 
+// Employee portal — a scoped mini-CRM. Every tab maps to a real permission
+// and every write is enforced server-side; the UI only reflects what the
+// APIs already allow.
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DawnLogo } from "@/components/DawnLogo";
-import { Loader2, Users, ShoppingBag, LogOut, Phone, MessageCircle, TrendingUp, Plus, X, Send, MessageSquare, KeyRound, Bell, Clock } from "lucide-react";
+import { LostDialog, PaymentModal } from "@/components/SharedModals";
+import {
+  Loader2, Users, ShoppingBag, LogOut, Phone, MessageCircle, TrendingUp, Plus, X, Send,
+  MessageSquare, KeyRound, Bell, Clock, CheckSquare, CalendarDays, StickyNote, BarChart3,
+  Settings as SettingsIcon, MoreHorizontal, Pencil, Download, Trash2, Home,
+} from "lucide-react";
 
-type Tab = "dashboard" | "leads" | "customers" | "orders" | "messages";
+type Tab = "dashboard" | "leads" | "customers" | "orders" | "messages" | "tasks" | "calendar" | "notes" | "reports" | "settings";
+const STAGES = ["New Lead", "Contacted", "Negotiating", "Customer (Won)", "Lost"];
 
 export default function TeamDashboard() {
   const router = useRouter();
@@ -18,6 +28,9 @@ export default function TeamDashboard() {
   const [stats, setStats] = useState<any>({});
   const [modal, setModal] = useState<null | "lead" | "order">(null);
   const [pwModal, setPwModal] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [editContact, setEditContact] = useState<any>(null);
+  const [payOrder, setPayOrder] = useState<any>(null);
 
   function loadAll() {
     fetch("/api/team/data").then((r) => { if (r.status === 401) { router.push("/team-login"); return null; } return r.json(); })
@@ -38,22 +51,32 @@ export default function TeamDashboard() {
   const perms: string[] = me.permissions || [];
   const can = (p: string) => perms.includes(p);
 
-  const tabs: { id: Tab; label: string; icon: any }[] = [
-    can("dashboard") && { id: "dashboard", label: "Home", icon: TrendingUp },
-    can("leads") && { id: "leads", label: "Leads", icon: Users },
-    can("customers") && { id: "customers", label: "Customers", icon: Users },
-    can("orders") && { id: "orders", label: "Orders", icon: ShoppingBag },
-    can("messaging") && { id: "messages", label: "Messages", icon: MessageSquare },
-  ].filter(Boolean) as any;
+  const ALL_TABS: { id: Tab; label: string; icon: any; perm: string }[] = [
+    { id: "dashboard", label: "Home", icon: Home, perm: "dashboard" },
+    { id: "leads", label: "Leads", icon: Users, perm: "leads" },
+    { id: "customers", label: "Customers", icon: Users, perm: "customers" },
+    { id: "orders", label: "Orders", icon: ShoppingBag, perm: "orders" },
+    { id: "messages", label: "Messages", icon: MessageSquare, perm: "messaging" },
+    { id: "tasks", label: "Tasks", icon: CheckSquare, perm: "tasks" },
+    { id: "calendar", label: "Calendar", icon: CalendarDays, perm: "calendar" },
+    { id: "notes", label: "Notes", icon: StickyNote, perm: "notes" },
+    { id: "reports", label: "Reports", icon: BarChart3, perm: "reports" },
+    { id: "settings", label: "Profile", icon: SettingsIcon, perm: "settings" },
+  ];
+  const allowed = ALL_TABS.filter((t) => can(t.perm));
+  const mainTabs = allowed.slice(0, 4);
+  const moreTabs = allowed.slice(4);
+
+  function contactChanged() { loadAll(); }
 
   return (
     <div className="min-h-screen bg-surface pb-20">
+      <style jsx global>{`.tinp{width:100%;padding:0.6rem 0.75rem;border:1px solid #E4E8F0;border-radius:0.75rem;font-size:0.875rem;color:#16233F;outline:none;background:#fff}.tinp:focus{border-color:#FF9E43}`}</style>
       <header className="bg-white border-b border-navy-line sticky top-0 z-20">
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
           <DawnLogo className="h-8" />
           <div className="flex items-center gap-3">
             <span className="text-sm text-navy/60 hidden sm:inline">Hi, {me.name || "there"}</span>
-            <button onClick={() => setPwModal(true)} className="p-2 text-navy/40 hover:text-navy" title="Change password"><KeyRound className="w-4 h-4" /></button>
             <button onClick={logout} className="p-2 text-navy/40 hover:text-navy" title="Sign out"><LogOut className="w-4 h-4" /></button>
           </div>
         </div>
@@ -98,30 +121,78 @@ export default function TeamDashboard() {
           <ContactList
             title={tab === "leads" ? "My leads" : "My customers"}
             items={tab === "leads" ? leads : customers}
+            canEdit={can(tab === "leads" ? "edit_leads" : "edit_customers")}
             onAdd={tab === "leads" && can("leads") ? () => setModal("lead") : undefined}
-            onChanged={loadAll}
+            onEdit={setEditContact}
           />
         )}
 
         {tab === "orders" && can("orders") && (
-          <OrderList orders={orders} onAdd={() => setModal("order")} onChanged={loadAll} />
+          <OrderList orders={orders} canEdit={can("edit_orders")} onAdd={() => setModal("order")} onChanged={loadAll} onPay={setPayOrder} />
         )}
 
         {tab === "messages" && can("messaging") && <Messages />}
+        {tab === "tasks" && can("tasks") && <Tasks contacts={[...leads, ...customers]} />}
+        {tab === "calendar" && can("calendar") && <CalendarView leads={leads} />}
+        {tab === "notes" && can("notes") && <Notes />}
+        {tab === "reports" && can("reports") && <Reports />}
+        {tab === "settings" && can("settings") && <Profile me={me} canExport={can("data_export")} onChangePassword={() => setPwModal(true)} onLogout={logout} />}
       </div>
 
-      {/* Bottom nav */}
+      {/* Bottom nav: up to 4 main tabs + More */}
       <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-navy-line flex items-center justify-around h-16 z-20">
-        {tabs.map((t) => (
+        {mainTabs.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)} className={`flex flex-col items-center gap-0.5 flex-1 py-1 ${tab === t.id ? "text-amber-deep" : "text-navy/50"}`}>
             <t.icon className="w-5 h-5" /><span className="text-[10px] font-medium">{t.label}</span>
           </button>
         ))}
+        {moreTabs.length > 0 && (
+          <button onClick={() => setMoreOpen(true)} className={`flex flex-col items-center gap-0.5 flex-1 py-1 ${moreTabs.some((t) => t.id === tab) ? "text-amber-deep" : "text-navy/50"}`}>
+            <MoreHorizontal className="w-5 h-5" /><span className="text-[10px] font-medium">More</span>
+          </button>
+        )}
       </nav>
+
+      {moreOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={() => setMoreOpen(false)} />
+          <div className="relative bg-white rounded-t-3xl w-full max-w-3xl p-5 animate-rise">
+            <div className="grid grid-cols-3 gap-3">
+              {moreTabs.map((t) => (
+                <button key={t.id} onClick={() => { setTab(t.id); setMoreOpen(false); }} className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border ${tab === t.id ? "border-amber bg-amber/5 text-navy" : "border-navy-line text-navy/70"}`}>
+                  <t.icon className="w-5 h-5" /><span className="text-xs font-medium">{t.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {modal === "lead" && <LeadModal onClose={() => setModal(null)} onSaved={loadAll} />}
       {modal === "order" && <OrderModal customers={customers} onClose={() => setModal(null)} onSaved={loadAll} />}
       {pwModal && <PasswordModal force={me.mustChangePassword} onClose={() => setPwModal(false)} />}
+      {editContact && <EditContactModal contact={editContact} onClose={() => setEditContact(null)} onSaved={() => { setEditContact(null); contactChanged(); }} />}
+      {payOrder && (
+        <PaymentModal
+          balance={Number(payOrder.balance) || 0}
+          onClose={() => setPayOrder(null)}
+          onSubmit={async (amount, method) => {
+            const res = await fetch("/api/team/orders", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: payOrder.id, addPayment: amount, method }) });
+            if (!res.ok) throw new Error();
+            loadAll();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value, icon: Icon }: { label: string; value: number; icon: any }) {
+  return (
+    <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
+      <Icon className="w-4 h-4 text-amber-deep mb-1" />
+      <p className="text-xl font-bold text-navy">{value}</p>
+      <p className="text-xs text-muted">{label}</p>
     </div>
   );
 }
@@ -133,7 +204,7 @@ function ActivityFeed() {
     fetch("/api/team/activity").then((r) => r.json()).then((d) => { setItems(d.activity || []); setLoaded(true); }).catch(() => setLoaded(true));
   }, []);
   if (!loaded || items.length === 0) return null;
-  const LABELS: Record<string, string> = { "contact.create": "Added a lead", "order.create": "Created an order", "message.send": "Sent a message" };
+  const LABELS: Record<string, string> = { "contact.create": "Added a lead", "contact.update": "Updated a contact", "order.create": "Created an order", "order.status": "Updated order status", "order.payment": "Recorded a payment", "message.send": "Sent a message" };
   return (
     <div className="bg-white rounded-2xl border border-navy-line p-4">
       <p className="text-sm font-semibold text-navy mb-2 flex items-center gap-1.5"><Clock className="w-4 h-4 text-navy/40" /> Recent activity</p>
@@ -149,17 +220,7 @@ function ActivityFeed() {
   );
 }
 
-function Stat({ label, value, icon: Icon }: { label: string; value: number; icon: any }) {
-  return (
-    <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
-      <Icon className="w-4 h-4 text-amber-deep mb-1" />
-      <p className="text-xl font-bold text-navy">{value}</p>
-      <p className="text-xs text-muted">{label}</p>
-    </div>
-  );
-}
-
-function ContactList({ title, items, onAdd, onChanged }: { title: string; items: any[]; onAdd?: () => void; onChanged: () => void }) {
+function ContactList({ title, items, canEdit, onAdd, onEdit }: { title: string; items: any[]; canEdit: boolean; onAdd?: () => void; onEdit: (c: any) => void }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -172,8 +233,13 @@ function ContactList({ title, items, onAdd, onChanged }: { title: string; items:
             const wa = (c.phone || "").replace(/[^0-9]/g, "");
             return (
               <div key={c.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card flex items-center justify-between">
-                <div className="min-w-0"><p className="font-semibold text-navy text-sm">{c.name}</p><p className="text-xs text-muted">{c.phone || (c.instagram_handle ? "@" + c.instagram_handle : c.source)} · {c.stage}</p></div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-navy text-sm">{c.name}</p>
+                  <p className="text-xs text-muted">{c.phone || (c.instagram_handle ? "@" + c.instagram_handle : c.source)} · {c.stage}</p>
+                  {c.follow_up_date && <p className="text-[10px] text-amber-deep mt-0.5">Follow up: {new Date(c.follow_up_date).toLocaleDateString()}</p>}
+                </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  {canEdit && <button onClick={() => onEdit(c)} className="p-2 text-navy/40 hover:text-navy rounded-lg" title="Edit"><Pencil className="w-4 h-4" /></button>}
                   {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><MessageCircle className="w-4 h-4" /></a>}
                   {c.phone && <a href={`tel:${c.phone}`} className="p-2 text-navy/50 hover:bg-navy/5 rounded-lg"><Phone className="w-4 h-4" /></a>}
                 </div>
@@ -186,7 +252,51 @@ function ContactList({ title, items, onAdd, onChanged }: { title: string; items:
   );
 }
 
-function OrderList({ orders, onAdd, onChanged }: { orders: any[]; onAdd: () => void; onChanged: () => void }) {
+function EditContactModal({ contact, onClose, onSaved }: { contact: any; onClose: () => void; onSaved: () => void }) {
+  const [f, setF] = useState<any>({
+    name: contact.name || "", phone: contact.phone || "", instagramHandle: contact.instagram_handle || "",
+    source: contact.source || "Other", notes: contact.notes || "", followUpDate: contact.follow_up_date || "", stage: contact.stage,
+  });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [lostAsk, setLostAsk] = useState(false);
+
+  async function save(lostNote?: string) {
+    if (!f.name.trim()) { setErr("Name is required."); return; }
+    if (f.stage === "Lost" && contact.stage !== "Lost" && !lostNote) { setLostAsk(true); return; }
+    setBusy(true);
+    const res = await fetch("/api/team/contacts", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: contact.id, ...f, ...(lostNote ? { lostNote } : {}) }),
+    });
+    if (res.ok) onSaved(); else { const d = await res.json(); setErr(d.error || "Failed"); setBusy(false); }
+  }
+
+  return (
+    <>
+      <Sheet title="Edit" onClose={onClose}>
+        <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Name *" className="tinp" />
+        <input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="Phone" className="tinp" />
+        <input value={f.instagramHandle} onChange={(e) => setF({ ...f, instagramHandle: e.target.value.replace("@", "") })} placeholder="Instagram handle" className="tinp" />
+        <select value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} className="tinp">{["Instagram DM", "WhatsApp", "Referral", "Walk-in", "Website", "Other"].map((s) => <option key={s}>{s}</option>)}</select>
+        <div>
+          <label className="block text-xs font-semibold text-navy mb-1">Stage</label>
+          <select value={f.stage} onChange={(e) => setF({ ...f, stage: e.target.value })} className="tinp">{STAGES.map((s) => <option key={s}>{s}</option>)}</select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-navy mb-1">Follow up on</label>
+          <input type="date" value={f.followUpDate || ""} onChange={(e) => setF({ ...f, followUpDate: e.target.value })} className="tinp" />
+        </div>
+        <textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} rows={2} placeholder="Notes" className="tinp resize-none" />
+        {err && <p className="text-sm text-red-600">{err}</p>}
+        <button onClick={() => save()} disabled={busy} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl disabled:opacity-60">{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Save changes</button>
+      </Sheet>
+      {lostAsk && <LostDialog name={f.name} onCancel={() => setLostAsk(false)} onConfirm={(note) => { setLostAsk(false); save(note); }} />}
+    </>
+  );
+}
+
+function OrderList({ orders, canEdit, onAdd, onChanged, onPay }: { orders: any[]; canEdit: boolean; onAdd: () => void; onChanged: () => void; onPay: (o: any) => void }) {
   const STATUSES = ["Placed", "Processing", "Shipped", "Delivered"];
   async function setStatus(id: string, s: string) {
     await fetch("/api/team/orders", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, orderStatus: s }) });
@@ -206,8 +316,123 @@ function OrderList({ orders, onAdd, onChanged }: { orders: any[]; onAdd: () => v
                 <div><p className="font-semibold text-navy text-sm">₹{o.total} <span className="text-xs font-normal text-muted">· {(o.items || []).length} item(s)</span></p><p className="text-xs text-muted">{new Date(o.date).toLocaleDateString()}</p></div>
                 <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${o.status === "paid" ? "bg-emerald-50 text-emerald-700" : o.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{o.status}</span>
               </div>
-              <div className="flex gap-1 mt-3 pt-3 border-t border-navy-line flex-wrap">
-                {STATUSES.map((s) => <button key={s} onClick={() => setStatus(o.id, s)} className={`text-[11px] font-medium px-2 py-1 rounded-lg ${(o.order_status || "Placed") === s ? "bg-navy text-white" : "text-navy/40 hover:bg-surface"}`}>{s}</button>)}
+              {canEdit && (
+                <div className="flex gap-1 mt-3 pt-3 border-t border-navy-line flex-wrap">
+                  {STATUSES.map((s) => <button key={s} onClick={() => setStatus(o.id, s)} className={`text-[11px] font-medium px-2 py-1 rounded-lg ${(o.order_status || "Placed") === s ? "bg-navy text-white" : "text-navy/40 hover:bg-surface"}`}>{s}</button>)}
+                </div>
+              )}
+              {Number(o.balance) > 0 && (
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-xs text-amber-deep">Balance: ₹{o.balance}</p>
+                  {canEdit && <button onClick={() => onPay(o)} className="text-[11px] font-semibold text-white bg-amber-deep px-2.5 py-1 rounded-lg">Record payment</button>}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Tasks({ contacts }: { contacts: any[] }) {
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [title, setTitle] = useState("");
+  const [due, setDue] = useState("");
+  const [loading, setLoading] = useState(true);
+  function load() { fetch("/api/team/tasks").then((r) => r.json()).then((d) => { setTasks(d.tasks || []); setLoading(false); }); }
+  useEffect(() => { load(); }, []);
+  async function add() {
+    if (!title.trim()) return;
+    await fetch("/api/team/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, dueDate: due || null }) });
+    setTitle(""); setDue(""); load();
+  }
+  async function toggle(t: any) {
+    await fetch("/api/team/tasks", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: t.id, done: !t.done }) });
+    load();
+  }
+  async function remove(id: string) {
+    await fetch(`/api/team/tasks?id=${id}`, { method: "DELETE" }); load();
+  }
+  const open = tasks.filter((t) => !t.done);
+  const done = tasks.filter((t) => t.done);
+  const overdue = (t: any) => t.due_date && new Date(t.due_date) < new Date(new Date().toDateString());
+  if (loading) return <Spinner />;
+  return (
+    <div className="space-y-3">
+      <h2 className="font-display font-semibold text-lg text-navy">Tasks</h2>
+      <div className="bg-white rounded-2xl border border-navy-line p-3 space-y-2">
+        <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="Add a task…" className="tinp" />
+        <div className="flex gap-2">
+          <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="tinp flex-1" />
+          <button onClick={add} className="bg-navy text-white px-4 rounded-xl text-sm font-medium">Add</button>
+        </div>
+      </div>
+      {open.length === 0 && done.length === 0 ? <div className="bg-white rounded-2xl border border-navy-line p-10 text-center text-muted text-sm">No tasks yet — add your first above.</div> : (
+        <>
+          <div className="grid gap-2">
+            {open.map((t) => (
+              <div key={t.id} className="bg-white rounded-xl border border-navy-line p-3 shadow-card flex items-center gap-3">
+                <input type="checkbox" checked={false} onChange={() => toggle(t)} className="w-4 h-4 accent-amber-deep shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-navy">{t.title}</p>
+                  {t.due_date && <p className={`text-[10px] ${overdue(t) ? "text-red-600 font-semibold" : "text-muted"}`}>{overdue(t) ? "Overdue · " : "Due "}{new Date(t.due_date).toLocaleDateString()}</p>}
+                </div>
+                <button onClick={() => remove(t.id)} className="p-1.5 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+              </div>
+            ))}
+          </div>
+          {done.length > 0 && (
+            <details className="text-sm text-muted">
+              <summary className="cursor-pointer font-medium">Completed ({done.length})</summary>
+              <div className="grid gap-2 mt-2">
+                {done.map((t) => (
+                  <div key={t.id} className="bg-white/60 rounded-xl border border-navy-line p-3 flex items-center gap-3">
+                    <input type="checkbox" checked onChange={() => toggle(t)} className="w-4 h-4 accent-amber-deep shrink-0" />
+                    <p className="text-sm text-navy/50 line-through flex-1">{t.title}</p>
+                    <button onClick={() => remove(t.id)} className="p-1.5 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function CalendarView({ leads }: { leads: any[] }) {
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { fetch("/api/team/tasks").then((r) => r.json()).then((d) => { setTasks((d.tasks || []).filter((t: any) => !t.done && t.due_date)); setLoading(false); }).catch(() => setLoading(false)); }, []);
+  if (loading) return <Spinner />;
+  // Merge follow-ups + task due dates into a date-grouped agenda.
+  const entries: { date: string; label: string; kind: string }[] = [];
+  for (const t of tasks) entries.push({ date: t.due_date, label: t.title, kind: "Task" });
+  for (const l of leads) if (l.follow_up_date) entries.push({ date: l.follow_up_date, label: `Follow up: ${l.name}`, kind: "Follow-up" });
+  entries.sort((a, b) => a.date.localeCompare(b.date));
+  const groups: Record<string, typeof entries> = {};
+  for (const e of entries) { (groups[e.date] = groups[e.date] || []).push(e); }
+  const dates = Object.keys(groups);
+  const today = new Date().toISOString().slice(0, 10);
+  return (
+    <div className="space-y-3">
+      <h2 className="font-display font-semibold text-lg text-navy">Calendar</h2>
+      {dates.length === 0 ? <div className="bg-white rounded-2xl border border-navy-line p-10 text-center text-muted text-sm">Nothing scheduled. Add tasks with due dates or set follow-up dates on leads.</div> : (
+        <div className="space-y-3">
+          {dates.map((d) => (
+            <div key={d} className="bg-white rounded-2xl border border-navy-line p-4">
+              <p className={`text-xs font-bold uppercase tracking-wide mb-2 ${d < today ? "text-red-600" : d === today ? "text-amber-deep" : "text-muted"}`}>
+                {d < today ? "Overdue · " : ""}{new Date(d).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
+              </p>
+              <div className="space-y-1.5">
+                {groups[d].map((e, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm">
+                    <span className="text-navy">{e.label}</span>
+                    <span className="text-[10px] text-muted bg-surface px-2 py-0.5 rounded">{e.kind}</span>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
@@ -216,6 +441,101 @@ function OrderList({ orders, onAdd, onChanged }: { orders: any[]; onAdd: () => v
     </div>
   );
 }
+
+function Notes() {
+  const [notes, setNotes] = useState<any[]>([]);
+  const [body, setBody] = useState("");
+  const [loading, setLoading] = useState(true);
+  function load() { fetch("/api/team/notes").then((r) => r.json()).then((d) => { setNotes(d.notes || []); setLoading(false); }); }
+  useEffect(() => { load(); }, []);
+  async function add() {
+    if (!body.trim()) return;
+    await fetch("/api/team/notes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body }) });
+    setBody(""); load();
+  }
+  async function remove(id: string) { await fetch(`/api/team/notes?id=${id}`, { method: "DELETE" }); load(); }
+  if (loading) return <Spinner />;
+  return (
+    <div className="space-y-3">
+      <h2 className="font-display font-semibold text-lg text-navy">Notes</h2>
+      <div className="bg-white rounded-2xl border border-navy-line p-3 space-y-2">
+        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Write a note…" className="tinp resize-none" />
+        <button onClick={add} className="w-full bg-navy text-white py-2.5 rounded-xl text-sm font-medium">Save note</button>
+      </div>
+      <div className="grid gap-2">
+        {notes.map((n) => (
+          <div key={n.id} className="bg-white rounded-xl border border-navy-line p-3 shadow-card">
+            <p className="text-sm text-navy whitespace-pre-wrap">{n.body}</p>
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-navy-line">
+              <span className="text-[10px] text-muted">{new Date(n.updated_at).toLocaleString()}</span>
+              <button onClick={() => remove(n.id)} className="p-1 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Reports() {
+  const WINDOWS = [{ id: "day", label: "Today" }, { id: "week", label: "Week" }, { id: "month", label: "Month" }, { id: "year", label: "Year" }, { id: "all", label: "All" }];
+  const [win, setWin] = useState("month");
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/team/reports?window=${win}`).then((r) => r.json()).then((d) => { setStats(d.stats); setLoading(false); }).catch(() => setLoading(false));
+  }, [win]);
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h2 className="font-display font-semibold text-lg text-navy">My reports</h2>
+        <div className="flex gap-1 bg-white p-1 rounded-xl border border-navy-line">
+          {WINDOWS.map((w) => <button key={w.id} onClick={() => setWin(w.id)} className={`text-xs font-medium px-2.5 py-1.5 rounded-lg ${win === w.id ? "bg-navy text-white" : "text-muted"}`}>{w.label}</button>)}
+        </div>
+      </div>
+      {loading || !stats ? <Spinner /> : (
+        <>
+          {stats.revenue != null && (
+            <div className="bg-navy rounded-2xl p-5 text-white">
+              <p className="text-xs text-white/50 uppercase tracking-wide">Revenue collected</p>
+              <p className="text-2xl font-bold text-amber">₹{stats.revenue}</p>
+              {stats.avgOrderValue != null && <p className="text-xs text-white/50 mt-1">Avg order ₹{stats.avgOrderValue}</p>}
+            </div>
+          )}
+          <div className="grid grid-cols-3 gap-3">
+            <Stat label="Leads" value={stats.leads} icon={Users} />
+            <Stat label="Customers" value={stats.customers} icon={Users} />
+            <Stat label="Orders" value={stats.orders} icon={ShoppingBag} />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Stat label="Delivered" value={stats.delivered} icon={CheckSquare} />
+            <Stat label="Pending orders" value={stats.pendingOrders} icon={Clock} />
+            <Stat label="Conversion %" value={stats.conversion} icon={TrendingUp} />
+          </div>
+          {stats.pendingAmount > 0 && <p className="text-xs text-amber-deep">₹{stats.pendingAmount} still to collect from your orders.</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
+function Profile({ me, canExport, onChangePassword, onLogout }: { me: any; canExport: boolean; onChangePassword: () => void; onLogout: () => void }) {
+  return (
+    <div className="space-y-3">
+      <h2 className="font-display font-semibold text-lg text-navy">Profile & settings</h2>
+      <div className="bg-white rounded-2xl border border-navy-line p-4">
+        <p className="font-semibold text-navy">{me.name || "Team member"}</p>
+        <p className="text-xs text-muted mt-0.5">Access: {(me.permissions || []).length} permissions granted by your admin</p>
+      </div>
+      <button onClick={onChangePassword} className="w-full flex items-center gap-2 bg-white border border-navy-line rounded-xl p-4 text-sm font-medium text-navy hover:bg-surface"><KeyRound className="w-4 h-4 text-amber-deep" /> Change password</button>
+      {canExport && <a href="/api/team/export" className="w-full flex items-center gap-2 bg-white border border-navy-line rounded-xl p-4 text-sm font-medium text-navy hover:bg-surface"><Download className="w-4 h-4 text-amber-deep" /> Export my data (CSV)</a>}
+      <button onClick={onLogout} className="w-full flex items-center gap-2 bg-white border border-navy-line rounded-xl p-4 text-sm font-medium text-red-600 hover:bg-red-50"><LogOut className="w-4 h-4" /> Sign out</button>
+    </div>
+  );
+}
+
+function Spinner() { return <div className="py-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-navy/40" /></div>; }
 
 function LeadModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [f, setF] = useState<any>({ name: "", phone: "", instagramHandle: "", source: "Instagram DM", notes: "", followUpDate: "" });
@@ -331,7 +651,7 @@ function Messages() {
     setText("");
     if (d.delivered === false) setNote(d.note || "Message saved but not delivered.");
   }
-  if (loading) return <div className="py-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-navy/40" /></div>;
+  if (loading) return <Spinner />;
   if (active) return (
     <div className="space-y-3">
       <button onClick={() => { setActive(null); setNote(""); }} className="text-sm text-muted">← All conversations</button>
@@ -358,7 +678,7 @@ function Messages() {
       {convs.length === 0 ? <div className="bg-white rounded-2xl border border-navy-line p-10 text-center text-muted text-sm">No conversations yet.</div> : (
         <div className="grid gap-2">
           {convs.map((c) => (
-            <button key={c.id} onClick={() => open(c)} className="bg-white rounded-xl border border-navy-line p-4 shadow-card text-left flex items-center justify-between">
+            <button key={c.id} onClick={() => open(c)} className="bg-white rounded-xl border border-navy-line p-4 shadow-card text-left flex items-center justify-between w-full">
               <div className="min-w-0"><p className="font-semibold text-navy text-sm">{c.external_username || "Customer"}</p><p className="text-xs text-muted truncate">{c.last_message_preview || "…"}</p></div>
               {c.unread_count > 0 && <span className="text-[10px] font-bold bg-amber text-navy px-2 py-0.5 rounded-full">{c.unread_count}</span>}
             </button>
@@ -377,7 +697,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
         <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">{title}</h3><button onClick={onClose} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button></div>
         <div className="space-y-3">{children}</div>
       </div>
-      <style jsx>{`.tinp{width:100%;padding:0.6rem 0.75rem;border:1px solid #E4E8F0;border-radius:0.75rem;font-size:0.875rem;color:#16233F;outline:none}.tinp:focus{border-color:#FF9E43}`}</style>
+      <style jsx global>{`.tinp{width:100%;padding:0.6rem 0.75rem;border:1px solid #E4E8F0;border-radius:0.75rem;font-size:0.875rem;color:#16233F;outline:none;background:#fff}.tinp:focus{border-color:#FF9E43}`}</style>
     </div>
   );
 }

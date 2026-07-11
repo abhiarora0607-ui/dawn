@@ -8,6 +8,7 @@ import { useBrief } from "@/lib/use-brief";
 import { ToastProvider, useToast, ConfirmDialog } from "@/components/Toast";
 import { ConvertModal } from "@/components/ConvertModal";
 import { OrderModal } from "@/components/OrderModal";
+import { LostDialog } from "@/components/SharedModals";
 import { useSettings } from "@/lib/use-settings";
 import {
   Loader2, ArrowLeft, Phone, MessageCircle, Copy, Trash2, Send, ShoppingBag,
@@ -172,13 +173,20 @@ function ProfileInner() {
       {convert && <ConvertModal contact={contact} onClose={() => setConvert(false)} onDone={() => { setConvert(false); load(); }} />}
       {newOrder && <OrderModal contact={contact} onClose={() => setNewOrder(false)} onDone={() => { setNewOrder(false); load(); }} />}
       <ConfirmDialog
-        open={!!pendingStage}
+        open={!!pendingStage && pendingStage !== "Lost"}
         title="Change stage?"
         body={pendingStage ? `Move ${contact.name} to "${stageNames[STAGES.indexOf(pendingStage)] || pendingStage}"?` : ""}
         confirmLabel="Change"
         onConfirm={() => { if (pendingStage) updateField({ stage: pendingStage }); setPendingStage(null); }}
         onCancel={() => setPendingStage(null)}
       />
+      {pendingStage === "Lost" && (
+        <LostDialog
+          name={contact.name}
+          onCancel={() => setPendingStage(null)}
+          onConfirm={(lostNote) => { updateField({ stage: "Lost", lostNote }); setPendingStage(null); toast("Marked Lost"); }}
+        />
+      )}
       {editing && <EditContactModal contact={contact} onClose={() => setEditing(false)} onSaved={(patch) => { const display: any = { ...patch }; if (patch.instagramHandle !== undefined) { display.instagram_handle = patch.instagramHandle; } setContact((c: any) => ({ ...c, ...display })); setEditing(false); fetch("/api/contacts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...patch }) }); toast("Contact updated"); }} />}
       <ConfirmDialog open={confirmDel} title="Delete this contact?" body="This removes them and all their activity. Can't be undone." onConfirm={doDelete} onCancel={() => setConfirmDel(false)} />
     </DashboardShell>

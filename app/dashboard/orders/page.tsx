@@ -5,6 +5,7 @@ import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
 import { OrderModal } from "@/components/OrderModal";
+import { PaymentModal } from "@/components/SharedModals";
 import { ConfirmDialog } from "@/components/Toast";
 import { useSettings, money } from "@/lib/use-settings";
 import { Loader2, Plus, Receipt, ShoppingBag, Search, Trash2, Truck } from "lucide-react";
@@ -25,6 +26,7 @@ function OrdersInner() {
   const [customers, setCustomers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
+  const [payFor, setPayFor] = useState<any>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
@@ -118,13 +120,31 @@ function OrdersInner() {
                     ))}
                   </div>
                 </div>
-                {Number(o.balance) > 0 && <p className="text-xs text-amber-deep mt-1">Balance: {money(Number(o.balance), currency)}</p>}
+                {Number(o.balance) > 0 && (
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-amber-deep">Balance: {money(Number(o.balance), currency)}</p>
+                    <button onClick={() => setPayFor(o)} className="text-[11px] font-semibold text-white bg-amber-deep px-2.5 py-1 rounded-lg hover:opacity-90">Record payment</button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
       {modal && <OrderModal onClose={() => setModal(false)} onDone={() => { setModal(false); load(); }} />}
+      {payFor && (
+        <PaymentModal
+          balance={Number(payFor.balance) || 0}
+          currency={currency}
+          onClose={() => setPayFor(null)}
+          onSubmit={async (amount, method) => {
+            const res = await fetch("/api/sales", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: payFor.id, addPayment: amount, method }) });
+            if (!res.ok) throw new Error();
+            toast("Payment recorded");
+            load();
+          }}
+        />
+      )}
       <ConfirmDialog open={!!confirmDel} title="Delete this order?" body="This also removes its linked cost expense. Can't be undone." onConfirm={doDelete} onCancel={() => setConfirmDel(null)} />
       <ConfirmDialog open={!!pendingStatus} title="Update order status?" body={pendingStatus ? `Mark this order as "${pendingStatus.status}"?` : ""} confirmLabel="Update" onConfirm={() => pendingStatus && setOrderStatus(pendingStatus.id, pendingStatus.status)} onCancel={() => setPendingStatus(null)} />
     </DashboardShell>

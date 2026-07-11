@@ -51,6 +51,9 @@ export async function PATCH(req: Request) {
     if (!sale) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
     const addAmount = Number(b.addPayment) || 0;
+    if (addAmount <= 0) return NextResponse.json({ error: "Enter a valid payment amount." }, { status: 400 });
+    const curBalance = Math.max(0, Number(sale.total) - (Number(sale.amount_paid) || 0));
+    if (addAmount > curBalance + 0.001) return NextResponse.json({ error: "Payment can't exceed the balance due." }, { status: 400 });
     const newPaid = Math.min(Number(sale.total), (Number(sale.amount_paid) || 0) + addAmount);
     const newBalance = Math.max(0, Number(sale.total) - newPaid);
     const newStatus = newBalance <= 0 ? "paid" : newPaid > 0 ? "partial" : "pending";
@@ -58,8 +61,15 @@ export async function PATCH(req: Request) {
 
     await fetch(`${url}/rest/v1/sales?id=eq.${b.id}&uid=eq.${uid}`, {
       method: "PATCH", headers: H(key, { Prefer: "return=minimal" }),
-      body: JSON.stringify({ amount_paid: newPaid, balance: newBalance, status: newStatus, payments }),
+      body: JSON.stringify({ amount_paid: newPaid, balance: newBalance, status: newStatus, payments, ...(newStatus !== "pending" && !sale.payment_method ? { payment_method: b.method || "cash" } : {}) }),
     });
+    if (sale.contact_id) {
+      await fetch(`${url}/rest/v1/activities`, {
+        method: "POST", headers: H(key, { Prefer: "return=minimal" }),
+        body: JSON.stringify({ uid, contact_id: sale.contact_id, type: "sale", content: `Payment received: ₹${addAmount} (${b.method || "cash"})`, meta: { saleId: sale.id } }),
+      });
+    }
+    await audit({ uid, action: "order.payment", entity: "sales", entityId: sale.id, meta: { amount: addAmount, method: b.method || "cash", newStatus } });
     return NextResponse.json({ ok: true, status: newStatus, balance: newBalance });
   } catch { return NextResponse.json({ error: "Update failed." }, { status: 500 }); }
 }

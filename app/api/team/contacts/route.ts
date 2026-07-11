@@ -49,22 +49,43 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  const g = await guardEmployee("leads");
+  // Base auth first; the specific edit permission depends on what the
+  // contact currently is (lead vs customer).
+  const g = await guardEmployee();
   if (!g.ok) return NextResponse.json({ error: g.error }, { status: g.status });
   const { ctx, url, key } = g;
   try {
     const b = await req.json();
     if (!b.id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
-    // Verify this contact belongs to this employee before editing.
-    const owned = (await (await fetch(`${url}/rest/v1/contacts?id=eq.${b.id}&uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&select=id&limit=1`, { headers: empHeaders(key), cache: "no-store" })).json())?.[0];
+    // Verify ownership and load current stage to pick the right permission.
+    const owned = (await (await fetch(`${url}/rest/v1/contacts?id=eq.${b.id}&uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&select=id,stage,name&limit=1`, { headers: empHeaders(key), cache: "no-store" })).json())?.[0];
     if (!owned) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+    const needed = owned.stage === "Customer (Won)" ? "edit_customers" : "edit_leads";
+    if (!ctx.permissions.includes(needed)) {
+      return NextResponse.json({ error: "You don't have permission to edit this." }, { status: 403 });
+    }
+
     const patch: any = {};
     for (const f of ["name", "phone", "email", "source", "stage", "notes"]) if (b[f] !== undefined) patch[f] = b[f];
+    if (b.instagramHandle !== undefined) patch.instagram_handle = (b.instagramHandle || "").replace("@", "");
     if (b.followUpDate !== undefined) patch.follow_up_date = b.followUpDate || null;
+
+    // Marking Lost requires a reason — enforced server-side.
+    if (b.stage === "Lost") {
+      const note = (b.lostNote || "").trim();
+      if (!note) return NextResponse.json({ error: "A note is required when marking a lead Lost." }, { status: 400 });
+      patch.lost_reason = note.slice(0, 500);
+    }
+
     await fetch(`${url}/rest/v1/contacts?id=eq.${b.id}&uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}`, {
       method: "PATCH", headers: empHeaders(key, { Prefer: "return=minimal" }), body: JSON.stringify(patch),
     });
-    if (b.stage) await fetch(`${url}/rest/v1/activities`, { method: "POST", headers: empHeaders(key, { Prefer: "return=minimal" }), body: JSON.stringify({ uid: ctx.uid, contact_id: b.id, type: "stage_change", content: `Moved to ${b.stage} by ${ctx.name || "employee"}` }) });
+    if (b.stage) {
+      const msg = b.stage === "Lost" ? `Marked Lost — ${String(b.lostNote).trim().slice(0, 300)} (by ${ctx.name || "employee"})` : `Moved to ${b.stage} by ${ctx.name || "employee"}`;
+      await fetch(`${url}/rest/v1/activities`, { method: "POST", headers: empHeaders(key, { Prefer: "return=minimal" }), body: JSON.stringify({ uid: ctx.uid, contact_id: b.id, type: "stage_change", content: msg }) });
+    }
+    await audit({ uid: ctx.uid, actor: ctx.employeeId, actorType: "employee", action: "contact.update", entity: "contacts", entityId: b.id });
     return NextResponse.json({ ok: true });
   } catch { return NextResponse.json({ error: "Update failed." }, { status: 500 }); }
 }

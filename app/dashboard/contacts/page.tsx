@@ -7,6 +7,7 @@ import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
 import { ToastProvider, useToast } from "@/components/Toast";
 import { ConvertModal } from "@/components/ConvertModal";
+import { LostDialog } from "@/components/SharedModals";
 import { useSettings } from "@/lib/use-settings";
 import { Loader2, Plus, LayoutGrid, List, Phone, MessageCircle, X, Search } from "lucide-react";
 
@@ -84,7 +85,7 @@ function QuickAdd({ onClose, onAdded }: { onClose: () => void; onAdded: () => vo
   );
 }
 
-function ContactCard({ c, onDragStart, onConvert }: { c: Contact; onDragStart?: (e: any) => void; onConvert: (c: Contact) => void }) {
+function ContactCard({ c, stageNames, onDragStart, onConvert, onMove }: { c: Contact; stageNames: string[]; onDragStart?: (e: any) => void; onConvert: (c: Contact) => void; onMove: (id: string, stage: string) => void }) {
   const wa = (c.phone || "").replace(/[^0-9]/g, "");
   return (
     <div draggable onDragStart={onDragStart} className="bg-white rounded-xl border border-navy-line p-3 shadow-card cursor-grab active:cursor-grabbing">
@@ -101,6 +102,15 @@ function ContactCard({ c, onDragStart, onConvert }: { c: Contact; onDragStart?: 
           <button onClick={() => onConvert(c)} className="ml-auto text-[11px] font-semibold text-amber-deep bg-amber/10 px-2 py-1 rounded-lg hover:bg-amber/20">Convert →</button>
         )}
       </div>
+      <select
+        value={c.stage}
+        onChange={(e) => onMove(c.id, e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+        className="mt-2 w-full text-[11px] text-navy/70 border border-navy-line rounded-lg px-2 py-1.5 bg-surface focus:outline-none focus:border-amber"
+        aria-label={`Move ${c.name} to another stage`}
+      >
+        {STAGE_VALUES.map((s, i) => <option key={s} value={s}>{stageNames[i] || s}</option>)}
+      </select>
     </div>
   );
 }
@@ -115,6 +125,7 @@ function ContactsInner() {
   const [quickAdd, setQuickAdd] = useState(false);
   const [query, setQuery] = useState("");
   const [convert, setConvert] = useState<Contact | null>(null);
+  const [lostFor, setLostFor] = useState<Contact | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
 
   function load() {
@@ -125,13 +136,14 @@ function ContactsInner() {
 
   const filtered = contacts.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()) || (c.phone || "").includes(query) || (c.instagram_handle || "").toLowerCase().includes(query.toLowerCase()));
 
-  async function moveStage(id: string, stage: string) {
-    setContacts((cs) => cs.map((c) => c.id === id ? { ...c, stage } : c));
-    await fetch("/api/contacts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, stage, logStage: true }) });
-    if (stage === "Customer (Won)") {
-      const c = contacts.find((x) => x.id === id);
-      if (c && c.stage !== "Customer (Won)") setConvert(c);
-    }
+  async function moveStage(id: string, stage: string, lostNote?: string) {
+    const c = contacts.find((x) => x.id === id);
+    if (!c || c.stage === stage) return;
+    // Marking Lost always requires a reason — intercept and ask first.
+    if (stage === "Lost" && !lostNote) { setLostFor(c); return; }
+    setContacts((cs) => cs.map((x) => x.id === id ? { ...x, stage } : x));
+    await fetch("/api/contacts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, stage, logStage: true, ...(lostNote ? { lostNote } : {}) }) });
+    if (stage === "Customer (Won)" && c.stage !== "Customer (Won)") setConvert(c);
   }
 
   return (
@@ -179,7 +191,7 @@ function ContactsInner() {
                     <span className="text-xs text-muted">{inStage.length}</span>
                   </div>
                   <div className="space-y-2 min-h-[60px]">
-                    {inStage.map((c) => <ContactCard key={c.id} c={c} onDragStart={() => setDragId(c.id)} onConvert={setConvert} />)}
+                    {inStage.map((c) => <ContactCard key={c.id} c={c} stageNames={stageNames} onDragStart={() => setDragId(c.id)} onConvert={setConvert} onMove={moveStage} />)}
                   </div>
                 </div>
               );
@@ -188,13 +200,20 @@ function ContactsInner() {
         ) : (
           <div className="grid gap-2">
             {filtered.map((c) => (
-              <Link key={c.id} href={`/dashboard/contacts/${c.id}`} className="bg-white rounded-xl border border-navy-line p-3 shadow-card flex items-center justify-between hover:border-amber/40">
-                <div className="min-w-0">
+              <div key={c.id} className="bg-white rounded-xl border border-navy-line p-3 shadow-card flex items-center justify-between gap-3 hover:border-amber/40">
+                <Link href={`/dashboard/contacts/${c.id}`} className="min-w-0 flex-1">
                   <p className="font-semibold text-navy text-sm">{c.name}</p>
                   <p className="text-xs text-muted">{c.phone || c.instagram_handle ? (c.phone || "@" + c.instagram_handle) : c.source}</p>
-                </div>
-                <span className={`text-[10px] font-semibold px-2 py-1 rounded-lg border shrink-0 ${stageColor[c.stage] || ""}`}>{c.stage}</span>
-              </Link>
+                </Link>
+                <select
+                  value={c.stage}
+                  onChange={(e) => moveStage(c.id, e.target.value)}
+                  className={`text-[11px] font-semibold px-2 py-1.5 rounded-lg border shrink-0 focus:outline-none ${stageColor[c.stage] || "border-navy-line text-navy/70"}`}
+                  aria-label={`Move ${c.name} to another stage`}
+                >
+                  {STAGE_VALUES.map((s, i) => <option key={s} value={s}>{stageNames[i] || s}</option>)}
+                </select>
+              </div>
             ))}
           </div>
         )}
@@ -207,6 +226,7 @@ function ContactsInner() {
 
       {quickAdd && <QuickAdd onClose={() => setQuickAdd(false)} onAdded={load} />}
       {convert && <ConvertModal contact={convert} onClose={() => setConvert(null)} onDone={() => { setConvert(null); load(); }} />}
+      {lostFor && <LostDialog name={lostFor.name} onCancel={() => setLostFor(null)} onConfirm={(note) => { const lid = lostFor.id; setLostFor(null); moveStage(lid, "Lost", note); toast("Marked Lost"); }} />}
     </DashboardShell>
   );
 }

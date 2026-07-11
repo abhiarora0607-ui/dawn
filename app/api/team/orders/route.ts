@@ -78,17 +78,41 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  const g = await guardEmployee("orders");
+  const g = await guardEmployee("edit_orders");
   if (!g.ok) return NextResponse.json({ error: g.error }, { status: g.status });
   const { ctx, url, key } = g;
   try {
     const b = await req.json();
     if (!b.id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
-    const owned = (await (await fetch(`${url}/rest/v1/sales?id=eq.${b.id}&uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&select=id&limit=1`, { headers: empHeaders(key), cache: "no-store" })).json())?.[0];
+    const owned = (await (await fetch(`${url}/rest/v1/sales?id=eq.${b.id}&uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&select=*&limit=1`, { headers: empHeaders(key), cache: "no-store" })).json())?.[0];
     if (!owned) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
     if (b.orderStatus) {
       await fetch(`${url}/rest/v1/sales?id=eq.${b.id}&uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}`, { method: "PATCH", headers: empHeaders(key, { Prefer: "return=minimal" }), body: JSON.stringify({ order_status: b.orderStatus }) });
+      await audit({ uid: ctx.uid, actor: ctx.employeeId, actorType: "employee", action: "order.status", entity: "sales", entityId: b.id, meta: { status: b.orderStatus } });
+      return NextResponse.json({ ok: true });
     }
-    return NextResponse.json({ ok: true });
+
+    // Record a payment against the balance.
+    if (b.addPayment !== undefined) {
+      const addAmount = Number(b.addPayment) || 0;
+      if (addAmount <= 0) return NextResponse.json({ error: "Enter a valid payment amount." }, { status: 400 });
+      const curBalance = Math.max(0, Number(owned.total) - (Number(owned.amount_paid) || 0));
+      if (addAmount > curBalance + 0.001) return NextResponse.json({ error: "Payment can't exceed the balance due." }, { status: 400 });
+      const newPaid = Math.min(Number(owned.total), (Number(owned.amount_paid) || 0) + addAmount);
+      const newBalance = Math.max(0, Number(owned.total) - newPaid);
+      const newStatus = newBalance <= 0 ? "paid" : newPaid > 0 ? "partial" : "pending";
+      const payments = [...(owned.payments || []), { amount: addAmount, date: new Date().toISOString(), method: b.method || "cash", by: ctx.employeeId }];
+      await fetch(`${url}/rest/v1/sales?id=eq.${b.id}&uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}`, {
+        method: "PATCH", headers: empHeaders(key, { Prefer: "return=minimal" }),
+        body: JSON.stringify({ amount_paid: newPaid, balance: newBalance, status: newStatus, payments, ...(newStatus !== "pending" && !owned.payment_method ? { payment_method: b.method || "cash" } : {}) }),
+      });
+      if (owned.contact_id) {
+        await fetch(`${url}/rest/v1/activities`, { method: "POST", headers: empHeaders(key, { Prefer: "return=minimal" }), body: JSON.stringify({ uid: ctx.uid, contact_id: owned.contact_id, type: "sale", content: `Payment received: ₹${addAmount} (${b.method || "cash"}) by ${ctx.name || "employee"}`, meta: { saleId: b.id } }) });
+      }
+      await audit({ uid: ctx.uid, actor: ctx.employeeId, actorType: "employee", action: "order.payment", entity: "sales", entityId: b.id, meta: { amount: addAmount, newStatus } });
+      return NextResponse.json({ ok: true, status: newStatus, balance: newBalance });
+    }
+    return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
   } catch { return NextResponse.json({ error: "Update failed." }, { status: 500 }); }
 }
