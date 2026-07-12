@@ -4,6 +4,7 @@
 
 import { NextResponse } from "next/server";
 import { guardEmployee, empHeaders } from "@/lib/employee-auth";
+import { cleanName, cleanPhone, cleanEmail } from "@/lib/validate";
 import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
@@ -28,12 +29,33 @@ export async function POST(req: Request) {
   const { ctx, url, key } = g;
   try {
     const b = await req.json();
-    if (!b.name?.trim()) return NextResponse.json({ error: "Name is required." }, { status: 400 });
+    const nm = cleanName(b.name);
+    if (!nm.ok) return NextResponse.json({ error: nm.error }, { status: 400 });
+    const ph = cleanPhone(b.phone);
+    if (!ph.ok) return NextResponse.json({ error: ph.error }, { status: 400 });
+    const em = cleanEmail(b.email);
+    if (!em.ok) return NextResponse.json({ error: em.error }, { status: 400 });
+    // Employees create LEADS. Customers are created by recording an order.
+    const LEAD_STAGES = ["New Lead", "Contacted", "Negotiating"];
+    const stage = LEAD_STAGES.includes(b.stage) ? b.stage : "New Lead";
+    // Hard duplicate block for employees: same phone or handle anywhere in
+    // this business = stop. Prevents two employees fighting over one contact.
+    const handle = (b.instagramHandle || "").replace("@", "").trim();
+    if (ph.value || handle) {
+      const ors: string[] = [];
+      if (ph.value) ors.push(`phone.eq.${encodeURIComponent(ph.value)}`);
+      if (handle) ors.push(`instagram_handle.eq.${encodeURIComponent(handle)}`);
+      const dup = await (await fetch(`${url}/rest/v1/contacts?uid=eq.${ctx.uid}&or=(${ors.join(",")})&select=id,employee_id&limit=1`, { headers: empHeaders(key), cache: "no-store" })).json();
+      if (Array.isArray(dup) && dup.length > 0) {
+        const mine = dup[0].employee_id === ctx.employeeId;
+        return NextResponse.json({ error: mine ? "You already have a contact with this phone or handle." : "This contact already exists in the business — ask your admin about the assignment." }, { status: 409 });
+      }
+    }
     // employee_id is FORCED to the logged-in employee — cannot assign to others.
     const row = {
-      uid: ctx.uid, name: b.name.trim(), phone: b.phone || "", email: b.email || "",
-      instagram_handle: (b.instagramHandle || "").replace("@", ""), source: b.source || "Other",
-      stage: b.stage || "New Lead", notes: b.notes || "", employee_id: ctx.employeeId,
+      uid: ctx.uid, name: nm.value, phone: ph.value, email: em.value,
+      instagram_handle: handle, source: b.source || "Other",
+      stage, notes: b.notes || "", employee_id: ctx.employeeId,
       follow_up_date: b.followUpDate || null,
     };
     const res = await fetch(`${url}/rest/v1/contacts`, {
@@ -70,19 +92,35 @@ export async function PATCH(req: Request) {
     for (const f of ["name", "phone", "email", "source", "stage", "notes"]) if (b[f] !== undefined) patch[f] = b[f];
     if (b.instagramHandle !== undefined) patch.instagram_handle = (b.instagramHandle || "").replace("@", "");
     if (b.followUpDate !== undefined) patch.follow_up_date = b.followUpDate || null;
+    if (patch.name !== undefined) { const nm = cleanName(patch.name); if (!nm.ok) return NextResponse.json({ error: nm.error }, { status: 400 }); patch.name = nm.value; }
+    if (patch.phone !== undefined) { const ph = cleanPhone(patch.phone); if (!ph.ok) return NextResponse.json({ error: ph.error }, { status: 400 }); patch.phone = ph.value; }
+    if (patch.email !== undefined) { const em = cleanEmail(patch.email); if (!em.ok) return NextResponse.json({ error: em.error }, { status: 400 }); patch.email = em.value; }
 
-    // Marking Lost requires a reason — enforced server-side.
-    if (b.stage === "Lost") {
+    // Marking Lost requires a reason — enforced server-side (only when the
+    // stage is actually changing, not when re-saving an already-Lost contact).
+    if (b.stage === "Lost" && owned.stage !== "Lost") {
       const note = (b.lostNote || "").trim();
       if (!note) return NextResponse.json({ error: "A note is required when marking a lead Lost." }, { status: 400 });
       patch.lost_reason = note.slice(0, 500);
+    }
+    // Marking Won requires an existing order or an explicit reason (only on transition).
+    if (b.stage === "Customer (Won)" && owned.stage !== "Customer (Won)") {
+      const wonNote = (b.wonNote || "").trim();
+      if (wonNote) {
+        patch.won_reason = wonNote.slice(0, 500);
+      } else {
+        const hasOrder = (await (await fetch(`${url}/rest/v1/sales?contact_id=eq.${b.id}&uid=eq.${ctx.uid}&select=id&limit=1`, { headers: empHeaders(key), cache: "no-store" })).json())?.length > 0;
+        if (!hasOrder) return NextResponse.json({ error: "Record an order to mark this contact as won, or provide a reason for winning without one." }, { status: 400 });
+      }
     }
 
     await fetch(`${url}/rest/v1/contacts?id=eq.${b.id}&uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}`, {
       method: "PATCH", headers: empHeaders(key, { Prefer: "return=minimal" }), body: JSON.stringify(patch),
     });
-    if (b.stage) {
-      const msg = b.stage === "Lost" ? `Marked Lost — ${String(b.lostNote).trim().slice(0, 300)} (by ${ctx.name || "employee"})` : `Moved to ${b.stage} by ${ctx.name || "employee"}`;
+    if (b.stage && b.stage !== owned.stage) {
+      const msg = b.stage === "Lost" ? `Marked Lost — ${String(b.lostNote).trim().slice(0, 300)} (by ${ctx.name || "employee"})`
+        : b.stage === "Customer (Won)" && b.wonNote ? `Marked won without an order — ${String(b.wonNote).trim().slice(0, 300)} (by ${ctx.name || "employee"})`
+        : `Moved to ${b.stage} by ${ctx.name || "employee"}`;
       await fetch(`${url}/rest/v1/activities`, { method: "POST", headers: empHeaders(key, { Prefer: "return=minimal" }), body: JSON.stringify({ uid: ctx.uid, contact_id: b.id, type: "stage_change", content: msg }) });
     }
     await audit({ uid: ctx.uid, actor: ctx.employeeId, actorType: "employee", action: "contact.update", entity: "contacts", entityId: b.id });

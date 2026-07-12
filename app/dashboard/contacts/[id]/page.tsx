@@ -38,6 +38,8 @@ function ProfileInner() {
 
   function askStageChange(newStage: string) {
     if (newStage === contact.stage) return;
+    // Winning goes through the order flow (or won-with-reason inside it).
+    if (newStage === "Customer (Won)") { setConvert(true); return; }
     setPendingStage(newStage);
   }
   const [contact, setContact] = useState<any>(null);
@@ -59,8 +61,15 @@ function ProfileInner() {
   useEffect(() => { load(); }, [id]);
 
   async function updateField(patch: any) {
+    const prev = contact;
     setContact((c: any) => ({ ...c, ...patch }));
-    await fetch("/api/contacts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...patch, logStage: patch.stage !== undefined }) });
+    const res = await fetch("/api/contacts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...patch, logStage: patch.stage !== undefined }) });
+    if (!res.ok) {
+      setContact(prev); // server rejected — don't let the UI lie
+      const d = await res.json().catch(() => ({}));
+      toast(d.error || "Couldn't save — try again.", "error");
+      return;
+    }
     if (patch.stage) load();
   }
 
@@ -174,8 +183,8 @@ function ProfileInner() {
       {newOrder && <OrderModal contact={contact} onClose={() => setNewOrder(false)} onDone={() => { setNewOrder(false); load(); }} />}
       <ConfirmDialog
         open={!!pendingStage && pendingStage !== "Lost"}
-        title="Change stage?"
-        body={pendingStage ? `Move ${contact.name} to "${stageNames[STAGES.indexOf(pendingStage)] || pendingStage}"?` : ""}
+        title={contact?.stage === "Customer (Won)" ? "Move customer back into the pipeline?" : "Change stage?"}
+        body={pendingStage ? (contact?.stage === "Customer (Won)" ? `${contact.name} is a customer. Their order history stays, but they'll be treated as a lead again.` : `Move ${contact.name} to "${stageNames[STAGES.indexOf(pendingStage)] || pendingStage}"?`) : ""}
         confirmLabel="Change"
         onConfirm={() => { if (pendingStage) updateField({ stage: pendingStage }); setPendingStage(null); }}
         onCancel={() => setPendingStage(null)}

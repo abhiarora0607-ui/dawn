@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DawnLogo } from "@/components/DawnLogo";
-import { LostDialog, PaymentModal } from "@/components/SharedModals";
+import { LostDialog, PaymentModal, WonDialog } from "@/components/SharedModals";
 import {
   Loader2, Users, ShoppingBag, LogOut, Phone, MessageCircle, TrendingUp, Plus, X, Send,
   MessageSquare, KeyRound, Bell, Clock, CheckSquare, CalendarDays, StickyNote, BarChart3,
@@ -31,6 +31,22 @@ export default function TeamDashboard() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [editContact, setEditContact] = useState<any>(null);
   const [payOrder, setPayOrder] = useState<any>(null);
+  const [lostFor, setLostFor] = useState<any>(null);
+  const [wonFor, setWonFor] = useState<any>(null);
+  const [backFor, setBackFor] = useState<{ c: any; stage: string } | null>(null);
+  const [flash, setFlash] = useState("");
+
+  function say(msg: string) { setFlash(msg); setTimeout(() => setFlash(""), 3500); }
+
+  async function quickStage(c: any, stage: string, extra?: any, confirmedBack?: boolean) {
+    if (c.stage === stage) return;
+    if (stage === "Lost" && !extra?.lostNote) { setLostFor(c); return; }
+    if (stage === "Customer (Won)" && !extra?.wonNote) { setWonFor(c); return; }
+    if (c.stage === "Customer (Won)" && stage !== "Lost" && !confirmedBack) { setBackFor({ c, stage }); return; }
+    const res = await fetch("/api/team/contacts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c.id, stage, ...(extra || {}) }) });
+    if (res.ok) { say(`${c.name} → ${stage}`); loadAll(); }
+    else { const d = await res.json().catch(() => ({})); say(d.error || "Couldn't move — try again."); }
+  }
 
   function loadAll() {
     fetch("/api/team/data").then((r) => { if (r.status === 401) { router.push("/team-login"); return null; } return r.json(); })
@@ -122,8 +138,10 @@ export default function TeamDashboard() {
             title={tab === "leads" ? "My leads" : "My customers"}
             items={tab === "leads" ? leads : customers}
             canEdit={can(tab === "leads" ? "edit_leads" : "edit_customers")}
+            isLeads={tab === "leads"}
             onAdd={tab === "leads" && can("leads") ? () => setModal("lead") : undefined}
             onEdit={setEditContact}
+            onQuickStage={quickStage}
           />
         )}
 
@@ -172,6 +190,17 @@ export default function TeamDashboard() {
       {modal === "order" && <OrderModal customers={customers} onClose={() => setModal(null)} onSaved={loadAll} />}
       {pwModal && <PasswordModal force={me.mustChangePassword} onClose={() => setPwModal(false)} />}
       {editContact && <EditContactModal contact={editContact} onClose={() => setEditContact(null)} onSaved={() => { setEditContact(null); contactChanged(); }} />}
+      {lostFor && <LostDialog name={lostFor.name} onCancel={() => setLostFor(null)} onConfirm={(note) => { const c = lostFor; setLostFor(null); quickStage(c, "Lost", { lostNote: note }); }} />}
+      {wonFor && <WonDialog name={wonFor.name} onCancel={() => setWonFor(null)} onConfirm={(note) => { const c = wonFor; setWonFor(null); quickStage(c, "Customer (Won)", { wonNote: note }); }} />}
+      {backFor && (
+        <ConfirmSheet
+          title="Move customer back into the pipeline?"
+          body={`${backFor.c.name} is a customer. Their order history stays.`}
+          onCancel={() => setBackFor(null)}
+          onConfirm={() => { const { c, stage } = backFor; setBackFor(null); quickStage(c, stage, undefined, true); }}
+        />
+      )}
+      {flash && <div className="fixed bottom-20 inset-x-4 z-[70] max-w-md mx-auto bg-navy text-white text-sm px-4 py-3 rounded-xl shadow-lg text-center">{flash}</div>}
       {payOrder && (
         <PaymentModal
           balance={Number(payOrder.balance) || 0}
@@ -220,29 +249,54 @@ function ActivityFeed() {
   );
 }
 
-function ContactList({ title, items, canEdit, onAdd, onEdit }: { title: string; items: any[]; canEdit: boolean; onAdd?: () => void; onEdit: (c: any) => void }) {
+function ContactList({ title, items, canEdit, isLeads, onAdd, onEdit, onQuickStage }: { title: string; items: any[]; canEdit: boolean; isLeads?: boolean; onAdd?: () => void; onEdit: (c: any) => void; onQuickStage: (c: any, stage: string) => void }) {
+  const [q, setQ] = useState("");
+  const [pill, setPill] = useState("All");
+  const PILLS = ["All", "New Lead", "Contacted", "Negotiating", "Due today"];
+  const today = new Date(new Date().toDateString());
+  let shown = items.filter((c) => (c.name || "").toLowerCase().includes(q.toLowerCase()) || (c.phone || "").includes(q) || (c.instagram_handle || "").toLowerCase().includes(q.toLowerCase()));
+  if (isLeads && pill !== "All") {
+    shown = pill === "Due today"
+      ? shown.filter((c) => c.follow_up_date && new Date(c.follow_up_date) <= today)
+      : shown.filter((c) => c.stage === pill);
+  }
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="font-display font-semibold text-lg text-navy">{title}</h2>
         {onAdd && <button onClick={onAdd} className="flex items-center gap-1.5 text-sm font-medium bg-navy text-white px-3 py-1.5 rounded-lg"><Plus className="w-4 h-4" /> Add</button>}
       </div>
-      {items.length === 0 ? <div className="bg-white rounded-2xl border border-navy-line p-10 text-center text-muted text-sm">Nothing here yet.</div> : (
+      {items.length > 3 && <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, phone, handle…" className="tinp" />}
+      {isLeads && items.length > 0 && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+          {PILLS.map((p) => (
+            <button key={p} onClick={() => setPill(p)} className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border ${pill === p ? "bg-navy text-white border-navy" : "bg-white text-navy/60 border-navy-line"}`}>{p}</button>
+          ))}
+        </div>
+      )}
+      {shown.length === 0 ? <div className="bg-white rounded-2xl border border-navy-line p-10 text-center text-muted text-sm">{items.length === 0 ? "Nothing here yet." : "No matches."}</div> : (
         <div className="grid gap-2">
-          {items.map((c) => {
+          {shown.map((c) => {
             const wa = (c.phone || "").replace(/[^0-9]/g, "");
             return (
-              <div key={c.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card flex items-center justify-between">
-                <div className="min-w-0">
-                  <p className="font-semibold text-navy text-sm">{c.name}</p>
-                  <p className="text-xs text-muted">{c.phone || (c.instagram_handle ? "@" + c.instagram_handle : c.source)} · {c.stage}</p>
-                  {c.follow_up_date && <p className="text-[10px] text-amber-deep mt-0.5">Follow up: {new Date(c.follow_up_date).toLocaleDateString()}</p>}
+              <div key={c.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-navy text-sm">{c.name}</p>
+                    <p className="text-xs text-muted">{c.phone || (c.instagram_handle ? "@" + c.instagram_handle : c.source)}</p>
+                    {c.follow_up_date && <p className={`text-[10px] mt-0.5 ${new Date(c.follow_up_date) <= today ? "text-red-600 font-semibold" : "text-amber-deep"}`}>Follow up: {new Date(c.follow_up_date).toLocaleDateString()}</p>}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {canEdit && <button onClick={() => onEdit(c)} className="p-2 text-navy/40 hover:text-navy rounded-lg" title="Edit"><Pencil className="w-4 h-4" /></button>}
+                    {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><MessageCircle className="w-4 h-4" /></a>}
+                    {c.phone && <a href={`tel:${c.phone}`} className="p-2 text-navy/50 hover:bg-navy/5 rounded-lg"><Phone className="w-4 h-4" /></a>}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {canEdit && <button onClick={() => onEdit(c)} className="p-2 text-navy/40 hover:text-navy rounded-lg" title="Edit"><Pencil className="w-4 h-4" /></button>}
-                  {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><MessageCircle className="w-4 h-4" /></a>}
-                  {c.phone && <a href={`tel:${c.phone}`} className="p-2 text-navy/50 hover:bg-navy/5 rounded-lg"><Phone className="w-4 h-4" /></a>}
-                </div>
+                {canEdit && (
+                  <select value={c.stage} onChange={(e) => onQuickStage(c, e.target.value)} className="mt-2.5 w-full text-[11px] text-navy/70 border border-navy-line rounded-lg px-2 py-1.5 bg-surface focus:outline-none focus:border-amber" aria-label={`Move ${c.name} to another stage`}>
+                    {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                )}
               </div>
             );
           })}
@@ -260,14 +314,16 @@ function EditContactModal({ contact, onClose, onSaved }: { contact: any; onClose
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [lostAsk, setLostAsk] = useState(false);
+  const [wonAsk, setWonAsk] = useState(false);
 
-  async function save(lostNote?: string) {
+  async function save(extra?: { lostNote?: string; wonNote?: string }) {
     if (!f.name.trim()) { setErr("Name is required."); return; }
-    if (f.stage === "Lost" && contact.stage !== "Lost" && !lostNote) { setLostAsk(true); return; }
+    if (f.stage === "Lost" && contact.stage !== "Lost" && !extra?.lostNote) { setLostAsk(true); return; }
+    if (f.stage === "Customer (Won)" && contact.stage !== "Customer (Won)" && !extra?.wonNote) { setWonAsk(true); return; }
     setBusy(true);
     const res = await fetch("/api/team/contacts", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: contact.id, ...f, ...(lostNote ? { lostNote } : {}) }),
+      body: JSON.stringify({ id: contact.id, ...f, ...(extra || {}) }),
     });
     if (res.ok) onSaved(); else { const d = await res.json(); setErr(d.error || "Failed"); setBusy(false); }
   }
@@ -291,7 +347,8 @@ function EditContactModal({ contact, onClose, onSaved }: { contact: any; onClose
         {err && <p className="text-sm text-red-600">{err}</p>}
         <button onClick={() => save()} disabled={busy} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl disabled:opacity-60">{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Save changes</button>
       </Sheet>
-      {lostAsk && <LostDialog name={f.name} onCancel={() => setLostAsk(false)} onConfirm={(note) => { setLostAsk(false); save(note); }} />}
+      {lostAsk && <LostDialog name={f.name} onCancel={() => setLostAsk(false)} onConfirm={(note) => { setLostAsk(false); save({ lostNote: note }); }} />}
+      {wonAsk && <WonDialog name={f.name} onCancel={() => setWonAsk(false)} onConfirm={(note) => { setWonAsk(false); save({ wonNote: note }); }} />}
     </>
   );
 }
@@ -698,6 +755,22 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
         <div className="space-y-3">{children}</div>
       </div>
       <style jsx global>{`.tinp{width:100%;padding:0.6rem 0.75rem;border:1px solid #E4E8F0;border-radius:0.75rem;font-size:0.875rem;color:#16233F;outline:none;background:#fff}.tinp:focus{border-color:#FF9E43}`}</style>
+    </div>
+  );
+}
+
+function ConfirmSheet({ title, body, onConfirm, onCancel }: { title: string; body: string; onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-6">
+      <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm p-5 animate-rise">
+        <h3 className="font-semibold text-navy mb-2">{title}</h3>
+        <p className="text-sm text-muted mb-4">{body}</p>
+        <div className="flex gap-2">
+          <button onClick={onCancel} className="flex-1 border border-navy-line text-navy font-medium py-2.5 rounded-xl hover:bg-surface">Cancel</button>
+          <button onClick={onConfirm} className="flex-1 bg-navy text-white font-medium py-2.5 rounded-xl hover:bg-navy-soft">Confirm</button>
+        </div>
+      </div>
     </div>
   );
 }

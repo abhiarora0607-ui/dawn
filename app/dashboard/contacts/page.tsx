@@ -5,7 +5,7 @@ import Link from "next/link";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
-import { ToastProvider, useToast } from "@/components/Toast";
+import { ToastProvider, useToast, ConfirmDialog } from "@/components/Toast";
 import { ConvertModal } from "@/components/ConvertModal";
 import { LostDialog } from "@/components/SharedModals";
 import { useSettings } from "@/lib/use-settings";
@@ -126,6 +126,7 @@ function ContactsInner() {
   const [query, setQuery] = useState("");
   const [convert, setConvert] = useState<Contact | null>(null);
   const [lostFor, setLostFor] = useState<Contact | null>(null);
+  const [backFor, setBackFor] = useState<{ c: Contact; stage: string } | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
 
   function load() {
@@ -136,14 +137,25 @@ function ContactsInner() {
 
   const filtered = contacts.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()) || (c.phone || "").includes(query) || (c.instagram_handle || "").toLowerCase().includes(query.toLowerCase()));
 
-  async function moveStage(id: string, stage: string, lostNote?: string) {
+  async function moveStage(id: string, stage: string, lostNote?: string, confirmedBack?: boolean) {
     const c = contacts.find((x) => x.id === id);
     if (!c || c.stage === stage) return;
+    // Winning goes THROUGH the order modal — the stage is only committed by
+    // the server when an order is recorded (or explicitly won with a reason).
+    if (stage === "Customer (Won)") { setConvert(c); return; }
     // Marking Lost always requires a reason — intercept and ask first.
     if (stage === "Lost" && !lostNote) { setLostFor(c); return; }
+    // Moving a customer BACK into the pipeline is unusual — confirm it.
+    // (Churning to Lost is handled by the Lost dialog above, not this.)
+    if (c.stage === "Customer (Won)" && stage !== "Lost" && !confirmedBack) { setBackFor({ c, stage }); return; }
+    const prev = contacts;
     setContacts((cs) => cs.map((x) => x.id === id ? { ...x, stage } : x));
-    await fetch("/api/contacts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, stage, logStage: true, ...(lostNote ? { lostNote } : {}) }) });
-    if (stage === "Customer (Won)" && c.stage !== "Customer (Won)") setConvert(c);
+    const res = await fetch("/api/contacts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, stage, logStage: true, ...(lostNote ? { lostNote } : {}) }) });
+    if (!res.ok) {
+      setContacts(prev); // revert — the server said no, the board shouldn't lie
+      const d = await res.json().catch(() => ({}));
+      toast(d.error || "Couldn't move — try again.", "error");
+    }
   }
 
   return (
@@ -227,6 +239,14 @@ function ContactsInner() {
       {quickAdd && <QuickAdd onClose={() => setQuickAdd(false)} onAdded={load} />}
       {convert && <ConvertModal contact={convert} onClose={() => setConvert(null)} onDone={() => { setConvert(null); load(); }} />}
       {lostFor && <LostDialog name={lostFor.name} onCancel={() => setLostFor(null)} onConfirm={(note) => { const lid = lostFor.id; setLostFor(null); moveStage(lid, "Lost", note); toast("Marked Lost"); }} />}
+      <ConfirmDialog
+        open={!!backFor}
+        title="Move customer back into the pipeline?"
+        body={backFor ? `${backFor.c.name} is a customer. Their order history stays, but they'll be treated as a lead again.` : ""}
+        confirmLabel="Move back"
+        onConfirm={() => { if (backFor) { const { c, stage } = backFor; setBackFor(null); moveStage(c.id, stage, undefined, true); } }}
+        onCancel={() => setBackFor(null)}
+      />
     </DashboardShell>
   );
 }

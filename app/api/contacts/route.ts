@@ -1,6 +1,7 @@
 // app/api/contacts/route.ts
 import { NextResponse } from "next/server";
 import { getUid } from "@/lib/auth";
+import { cleanName, cleanPhone, cleanEmail } from "@/lib/validate";
 import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
@@ -42,9 +43,14 @@ export async function POST(req: Request) {
   if (!url || !key) return NextResponse.json({ error: "Not configured." }, { status: 500 });
   try {
     const b = await req.json();
-    if (!b.name?.trim()) return NextResponse.json({ error: "Name is required." }, { status: 400 });
+    const nm = cleanName(b.name);
+    if (!nm.ok) return NextResponse.json({ error: nm.error }, { status: 400 });
+    const ph = cleanPhone(b.phone);
+    if (!ph.ok) return NextResponse.json({ error: ph.error }, { status: 400 });
+    const em = cleanEmail(b.email);
+    if (!em.ok) return NextResponse.json({ error: em.error }, { status: 400 });
     const row = {
-      uid, name: b.name.trim(), phone: b.phone || "", email: b.email || "",
+      uid, name: nm.value, phone: ph.value, email: em.value,
       instagram_handle: (b.instagramHandle || "").replace("@", ""), source: b.source || "Other",
       stage: b.stage || "New Lead", tags: b.tags || [], interested_item_ids: b.interestedItemIds || [],
       follow_up_date: b.followUpDate || null, notes: b.notes || "", employee_id: b.employeeId || null,
@@ -68,11 +74,29 @@ export async function PATCH(req: Request) {
     const patch: any = {};
     const map: Record<string, string> = { name: "name", phone: "phone", email: "email", source: "source", stage: "stage", notes: "notes" };
     for (const k in map) if (b[k] !== undefined) patch[map[k]] = b[k];
+    if (patch.name !== undefined) { const nm = cleanName(patch.name); if (!nm.ok) return NextResponse.json({ error: nm.error }, { status: 400 }); patch.name = nm.value; }
+    if (patch.phone !== undefined) { const ph = cleanPhone(patch.phone); if (!ph.ok) return NextResponse.json({ error: ph.error }, { status: 400 }); patch.phone = ph.value; }
+    if (patch.email !== undefined) { const em = cleanEmail(patch.email); if (!em.ok) return NextResponse.json({ error: em.error }, { status: 400 }); patch.email = em.value; }
+    // Stage rules apply only on actual transitions — fetch current stage once.
+    let curStage: string | null = null;
+    if (b.stage === "Lost" || b.stage === "Customer (Won)") {
+      curStage = (await (await fetch(`${url}/rest/v1/contacts?id=eq.${b.id}&uid=eq.${uid}&select=stage&limit=1`, { headers: H(key), cache: "no-store" })).json())?.[0]?.stage || null;
+    }
     // Marking Lost requires a reason — enforced here, not just in the UI.
-    if (b.stage === "Lost") {
+    if (b.stage === "Lost" && curStage !== "Lost") {
       const note = (b.lostNote || "").trim();
       if (!note) return NextResponse.json({ error: "A note is required when marking a lead Lost." }, { status: 400 });
       patch.lost_reason = note.slice(0, 500);
+    }
+    // Marking Won requires either an existing order or an explicit reason.
+    if (b.stage === "Customer (Won)" && curStage !== "Customer (Won)") {
+      const wonNote = (b.wonNote || "").trim();
+      if (wonNote) {
+        patch.won_reason = wonNote.slice(0, 500);
+      } else {
+        const hasOrder = (await (await fetch(`${url}/rest/v1/sales?contact_id=eq.${b.id}&uid=eq.${uid}&select=id&limit=1`, { headers: H(key), cache: "no-store" })).json())?.length > 0;
+        if (!hasOrder) return NextResponse.json({ error: "Record an order to mark this contact as won, or provide a reason for winning without one." }, { status: 400 });
+      }
     }
     if (b.instagramHandle !== undefined) patch.instagram_handle = (b.instagramHandle || "").replace("@", "");
     if (b.tags !== undefined) patch.tags = b.tags;
@@ -83,7 +107,9 @@ export async function PATCH(req: Request) {
       method: "PATCH", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify(patch),
     });
     if (b.stage !== undefined && b.logStage) {
-      const msg = b.stage === "Lost" && b.lostNote ? `Marked Lost — ${String(b.lostNote).trim().slice(0, 300)}` : `Moved to ${b.stage}`;
+      const msg = b.stage === "Lost" && b.lostNote ? `Marked Lost — ${String(b.lostNote).trim().slice(0, 300)}`
+        : b.stage === "Customer (Won)" && b.wonNote ? `Marked won without an order — ${String(b.wonNote).trim().slice(0, 300)}`
+        : `Moved to ${b.stage}`;
       await logActivity(url, key, uid, b.id, "stage_change", msg);
     }
     return NextResponse.json({ ok: true });

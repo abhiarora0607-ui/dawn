@@ -130,6 +130,8 @@ export default function PerformancePage() {
               ))}
             </div>
 
+            <TeamActivity />
+
             <p className="text-xs text-muted text-center">Revenue counts payments collected. Conversion = customers ÷ total contacts assigned. Pending = undelivered orders and uncollected balances.</p>
           </>
         )}
@@ -150,4 +152,33 @@ function TotalCard({ label, value, icon: Icon, accent }: { label: string; value:
 
 function Mini({ label, value }: { label: string; value: any }) {
   return <div><p className="font-bold text-navy text-sm">{value}</p><p className="text-[10px] text-muted">{label}</p></div>;
+}
+
+function TeamActivity() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    fetch("/api/audit").then((r) => r.json()).then((d) => { setLogs(d.logs || []); setLoaded(true); }).catch(() => setLoaded(true));
+  }, []);
+  const LABELS: Record<string, string> = {
+    "contact.create": "added a lead", "contact.update": "updated a contact",
+    "order.create": "created an order", "order.status": "updated an order status",
+    "order.payment": "recorded a payment", "message.send": "sent a message",
+    "employee_account.create": "login created", "employee_account.update": "login updated",
+  };
+  if (!loaded || logs.length === 0) return null;
+  return (
+    <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+      <h2 className="font-semibold text-navy mb-3">Recent team activity</h2>
+      <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+        {logs.map((l, i) => (
+          <div key={i} className="flex items-center justify-between text-sm border-b border-navy-line/60 last:border-0 pb-2 last:pb-0">
+            <span className="text-navy"><span className="font-medium">{l.actor}</span> <span className="text-navy/60">{LABELS[l.action] || l.action}</span></span>
+            <span className="text-xs text-muted shrink-0 ml-3">{new Date(l.at).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+          </div>
+        ))}
+      </div>
+      <p className="text-[11px] text-muted mt-3">Every employee action is logged automatically — this is your accountability trail.</p>
+    </div>
+  );
 }
