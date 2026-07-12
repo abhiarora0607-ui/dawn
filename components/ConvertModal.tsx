@@ -26,6 +26,22 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [noOrder, setNoOrder] = useState(false);
+  const [wonNote, setWonNote] = useState("");
+
+  async function markWonNoOrder() {
+    if (!wonNote.trim()) { toast("A reason is required.", "error"); return; }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/contacts", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: contact.id, stage: "Customer (Won)", wonNote: wonNote.trim(), logStage: true }),
+      });
+      if (res.ok) { toast(`${contact.name} marked as won`); onDone(); }
+      else { const d = await res.json(); toast(d.error || "Failed", "error"); }
+    } catch { toast("Network error", "error"); }
+    setSaving(false);
+  }
 
   useEffect(() => {
     Promise.all([
@@ -173,6 +189,20 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
               <button onClick={save} disabled={saving} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl hover:bg-navy-soft disabled:opacity-60">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingBag className="w-4 h-4" />} Record sale &amp; convert
               </button>
+
+              {/* Escape hatch: won without an order — reason required, logged. */}
+              {!noOrder ? (
+                <button onClick={() => setNoOrder(true)} className="w-full text-xs text-muted hover:text-navy underline underline-offset-2">Mark as won without recording an order</button>
+              ) : (
+                <div className="bg-amber/5 border border-amber/30 rounded-xl p-3 space-y-2">
+                  <p className="text-xs text-navy">Winning without an order is unusual — add the reason (e.g. "paid offline last month", "barter deal"). It's saved to the timeline.</p>
+                  <textarea autoFocus value={wonNote} onChange={(e) => setWonNote(e.target.value)} rows={2} placeholder="Reason (required)" className="inp resize-none" />
+                  <div className="flex gap-2">
+                    <button onClick={() => { setNoOrder(false); setWonNote(""); }} className="flex-1 border border-navy-line text-navy text-sm font-medium py-2 rounded-xl">Back</button>
+                    <button onClick={markWonNoOrder} disabled={saving} className="flex-1 bg-emerald-600 text-white text-sm font-medium py-2 rounded-xl disabled:opacity-60">Mark won</button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

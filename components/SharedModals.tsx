@@ -30,6 +30,29 @@ export function LostDialog({ name, onConfirm, onCancel }: { name: string; onConf
   );
 }
 
+export function WonDialog({ name, onConfirm, onCancel }: { name: string; onConfirm: (note: string) => void; onCancel: () => void }) {
+  const [note, setNote] = useState("");
+  const [err, setErr] = useState("");
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-6">
+      <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm p-5 animate-rise">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-navy">Mark {name} as won?</h3>
+          <button onClick={onCancel} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
+        </div>
+        <p className="text-sm text-muted mb-3">The normal way to win a customer is recording their first order — that moves them automatically. To mark won <span className="font-medium text-navy">without</span> an order, a reason is required.</p>
+        <textarea autoFocus value={note} onChange={(e) => { setNote(e.target.value); setErr(""); }} rows={3} placeholder="Why won without an order? (required)" className="w-full px-3 py-2.5 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber resize-none" />
+        {err && <p className="text-sm text-red-600 mt-1">{err}</p>}
+        <div className="flex gap-2 mt-4">
+          <button onClick={onCancel} className="flex-1 border border-navy-line text-navy font-medium py-2.5 rounded-xl hover:bg-surface">Cancel</button>
+          <button onClick={() => { if (!note.trim()) { setErr("Please add a reason."); return; } onConfirm(note.trim()); }} className="flex-1 bg-emerald-600 text-white font-medium py-2.5 rounded-xl hover:bg-emerald-700">Mark won</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const METHODS = ["cash", "upi", "card", "bank transfer", "other"];
 
 export function PaymentModal({ balance, currency = "₹", onSubmit, onClose }: { balance: number; currency?: string; onSubmit: (amount: number, method: string) => Promise<void>; onClose: () => void }) {
