@@ -34,6 +34,7 @@ function QuickAdd({ onClose, onAdded }: { onClose: () => void; onAdded: () => vo
   const [f, setF] = useState<any>({ name: "", phone: "", instagramHandle: "", source: "Instagram DM", notes: "", employeeId: "" });
   const [saving, setSaving] = useState(false);
   const [dup, setDup] = useState<any>(null);
+  const [dupOk, setDupOk] = useState(false);
   const [employees, setEmployees] = useState<{ id: string; name: string; status: string }[]>([]);
 
   useEffect(() => { fetch("/api/employees").then((r) => r.json()).then((d) => setEmployees((d.employees || []).filter((e: any) => e.status === "active"))).catch(() => {}); }, []);
@@ -43,14 +44,17 @@ function QuickAdd({ onClose, onAdded }: { onClose: () => void; onAdded: () => vo
     try { const d = await (await fetch(`/api/contacts?check=${encodeURIComponent(val)}`)).json(); setDup(d.duplicate); } catch {}
   }
 
+  const [err, setErr] = useState("");
+
   async function save() {
-    if (!f.name.trim()) { toast("Name is required.", "error"); return; }
+    setErr("");
+    if (!f.name.trim()) { setErr("Name is required."); return; }
     setSaving(true);
     try {
       const res = await fetch("/api/contacts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(f) });
       if (res.ok) { toast("Lead added"); onAdded(); onClose(); }
-      else { const d = await res.json(); toast(d.error || "Failed", "error"); }
-    } catch { toast("Network error", "error"); }
+      else { const d = await res.json().catch(() => ({})); setErr(d.error || "Couldn't save — try again."); }
+    } catch { setErr("Network error — check your connection."); }
     setSaving(false);
   }
 
@@ -63,10 +67,18 @@ function QuickAdd({ onClose, onAdded }: { onClose: () => void; onAdded: () => vo
           <button onClick={onClose} className="p-1.5 text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-3">
-          <input autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Name *" className="inp" />
-          <input value={f.phone} onChange={(e) => { setF({ ...f, phone: e.target.value }); }} onBlur={(e) => checkDup(e.target.value)} placeholder="Phone" className="inp" />
-          {dup && <p className="text-xs text-amber-deep">⚠ A contact &ldquo;{dup.name}&rdquo; already has this. Still add?</p>}
-          <input value={f.instagramHandle} onChange={(e) => setF({ ...f, instagramHandle: e.target.value })} onBlur={(e) => checkDup(e.target.value.replace("@", ""))} placeholder="Instagram handle" className="inp" />
+          <input autoFocus value={f.name} onChange={(e) => { setF({ ...f, name: e.target.value }); setErr(""); }} placeholder="Name *" className="inp" />
+          <input value={f.phone} onChange={(e) => { setF({ ...f, phone: e.target.value }); setErr(""); setDupOk(false); }} onBlur={(e) => checkDup(e.target.value)} placeholder="Phone" className="inp" />
+          {dup && (
+            <div className="bg-amber/10 border border-amber/40 rounded-xl p-3">
+              <p className="text-xs text-navy">⚠ <span className="font-semibold">{dup.name}</span> already has this phone or handle.</p>
+              <label className="flex items-center gap-2 mt-2 text-xs text-navy cursor-pointer">
+                <input type="checkbox" checked={dupOk} onChange={(e) => setDupOk(e.target.checked)} className="w-3.5 h-3.5 accent-amber-deep" />
+                Add anyway — this is a different person
+              </label>
+            </div>
+          )}
+          <input value={f.instagramHandle} onChange={(e) => { setF({ ...f, instagramHandle: e.target.value }); setDupOk(false); }} onBlur={(e) => checkDup(e.target.value.replace("@", ""))} placeholder="Instagram handle" className="inp" />
           <select value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} className="inp">{SOURCES.map((s) => <option key={s}>{s}</option>)}</select>
           {employees.length > 0 && (
             <select value={f.employeeId} onChange={(e) => setF({ ...f, employeeId: e.target.value })} className="inp">
@@ -75,7 +87,8 @@ function QuickAdd({ onClose, onAdded }: { onClose: () => void; onAdded: () => vo
             </select>
           )}
           <textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} rows={2} placeholder="Notes (optional)" className="inp resize-none" />
-          <button onClick={save} disabled={saving} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl hover:bg-navy-soft disabled:opacity-60">
+          {err && <p className="text-sm text-red-600">{err}</p>}
+          <button onClick={save} disabled={saving || (!!dup && !dupOk)} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl hover:bg-navy-soft disabled:opacity-60">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Add lead
           </button>
         </div>
@@ -192,7 +205,8 @@ function ContactsInner() {
             <button onClick={() => setQuickAdd(true)} className="inline-flex items-center gap-2 bg-navy text-white font-medium px-5 py-2.5 rounded-xl hover:bg-navy-soft"><Plus className="w-4 h-4" /> Add your first lead</button>
           </div>
         ) : view === "board" ? (
-          <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1">
+        <div className="relative">
+          <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 dawn-scroll">
             {STAGE_VALUES.map((stage, si) => {
               const inStage = filtered.filter((c) => c.stage === stage);
               const displayName = stageNames[si] || stage;
@@ -209,6 +223,9 @@ function ContactsInner() {
               );
             })}
           </div>
+          {/* Fade edge signals more columns off-screen */}
+          <div className="pointer-events-none absolute top-0 right-0 bottom-4 w-10 bg-gradient-to-l from-surface to-transparent sm:hidden" />
+        </div>
         ) : (
           <div className="grid gap-2">
             {filtered.map((c) => (

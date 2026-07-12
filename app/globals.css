@@ -101,3 +101,10 @@ input[type="checkbox"] { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* Visible, slim scrollbar for horizontal boards (Kanban) */
+.dawn-scroll { scrollbar-width: thin; scrollbar-color: #C9D0DE transparent; }
+.dawn-scroll::-webkit-scrollbar { height: 8px; }
+.dawn-scroll::-webkit-scrollbar-track { background: transparent; }
+.dawn-scroll::-webkit-scrollbar-thumb { background: #C9D0DE; border-radius: 999px; }
+.dawn-scroll::-webkit-scrollbar-thumb:hover { background: #A9B3C6; }

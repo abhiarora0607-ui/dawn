@@ -31,6 +31,7 @@ export default function TeamDashboard() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [editContact, setEditContact] = useState<any>(null);
   const [payOrder, setPayOrder] = useState<any>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [lostFor, setLostFor] = useState<any>(null);
   const [wonFor, setWonFor] = useState<any>(null);
   const [backFor, setBackFor] = useState<{ c: any; stage: string } | null>(null);
@@ -120,12 +121,18 @@ export default function TeamDashboard() {
               <div className="bg-amber/10 border border-amber/30 rounded-2xl p-4">
                 <p className="text-sm font-semibold text-navy mb-2 flex items-center gap-1.5"><Bell className="w-4 h-4 text-amber-deep" /> Follow-ups due</p>
                 <div className="space-y-1.5">
-                  {leads.filter((l: any) => l.follow_up_date && new Date(l.follow_up_date) <= new Date()).slice(0, 5).map((l: any) => (
-                    <div key={l.id} className="flex items-center justify-between text-sm">
-                      <span className="text-navy">{l.name}</span>
-                      {l.phone && <a href={`https://wa.me/${(l.phone || "").replace(/[^0-9]/g, "")}`} target="_blank" className="text-emerald-600 text-xs font-medium">Message →</a>}
-                    </div>
-                  ))}
+                  {leads.filter((l: any) => l.follow_up_date && new Date(l.follow_up_date) <= new Date()).slice(0, 5).map((l: any) => {
+                    const overdue = new Date(l.follow_up_date) < new Date(new Date().toDateString());
+                    return (
+                      <div key={l.id} className="flex items-center justify-between text-sm">
+                        <span className="min-w-0">
+                          <span className="text-navy">{l.name}</span>
+                          <span className={`ml-2 text-[10px] ${overdue ? "text-red-600 font-semibold" : "text-muted"}`}>{overdue ? "Overdue · " : "Today · "}{new Date(l.follow_up_date).toLocaleDateString()}</span>
+                        </span>
+                        {l.phone && <a href={`https://wa.me/${(l.phone || "").replace(/[^0-9]/g, "")}`} target="_blank" className="text-emerald-600 text-xs font-medium shrink-0 ml-2">Message →</a>}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -142,6 +149,7 @@ export default function TeamDashboard() {
             onAdd={tab === "leads" && can("leads") ? () => setModal("lead") : undefined}
             onEdit={setEditContact}
             onQuickStage={quickStage}
+            onOpen={(c) => setDetailId(c.id)}
           />
         )}
 
@@ -189,6 +197,7 @@ export default function TeamDashboard() {
       {modal === "lead" && <LeadModal onClose={() => setModal(null)} onSaved={loadAll} />}
       {modal === "order" && <OrderModal customers={customers} onClose={() => setModal(null)} onSaved={loadAll} />}
       {pwModal && <PasswordModal force={me.mustChangePassword} onClose={() => setPwModal(false)} />}
+      {detailId && <ContactDetail id={detailId} canEdit={can("edit_leads") || can("edit_customers")} onClose={() => setDetailId(null)} onEdit={(c) => { setDetailId(null); setEditContact(c); }} />}
       {editContact && <EditContactModal contact={editContact} onClose={() => setEditContact(null)} onSaved={() => { setEditContact(null); contactChanged(); }} />}
       {lostFor && <LostDialog name={lostFor.name} onCancel={() => setLostFor(null)} onConfirm={(note) => { const c = lostFor; setLostFor(null); quickStage(c, "Lost", { lostNote: note }); }} />}
       {wonFor && <WonDialog name={wonFor.name} onCancel={() => setWonFor(null)} onConfirm={(note) => { const c = wonFor; setWonFor(null); quickStage(c, "Customer (Won)", { wonNote: note }); }} />}
@@ -214,6 +223,10 @@ export default function TeamDashboard() {
       )}
     </div>
   );
+}
+
+function logOutreach(contactId: string, channel: "whatsapp" | "call") {
+  fetch("/api/team/log-outreach", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contactId, channel }) }).catch(() => {});
 }
 
 function Stat({ label, value, icon: Icon }: { label: string; value: number; icon: any }) {
@@ -249,7 +262,7 @@ function ActivityFeed() {
   );
 }
 
-function ContactList({ title, items, canEdit, isLeads, onAdd, onEdit, onQuickStage }: { title: string; items: any[]; canEdit: boolean; isLeads?: boolean; onAdd?: () => void; onEdit: (c: any) => void; onQuickStage: (c: any, stage: string) => void }) {
+function ContactList({ title, items, canEdit, isLeads, onAdd, onEdit, onQuickStage, onOpen }: { title: string; items: any[]; canEdit: boolean; isLeads?: boolean; onAdd?: () => void; onEdit: (c: any) => void; onQuickStage: (c: any, stage: string) => void; onOpen: (c: any) => void }) {
   const [q, setQ] = useState("");
   const [pill, setPill] = useState("All");
   const PILLS = ["All", "New Lead", "Contacted", "Negotiating", "Due today"];
@@ -281,15 +294,15 @@ function ContactList({ title, items, canEdit, isLeads, onAdd, onEdit, onQuickSta
             return (
               <div key={c.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card">
                 <div className="flex items-center justify-between">
-                  <div className="min-w-0">
+                  <button onClick={() => onOpen(c)} className="min-w-0 text-left flex-1">
                     <p className="font-semibold text-navy text-sm">{c.name}</p>
                     <p className="text-xs text-muted">{c.phone || (c.instagram_handle ? "@" + c.instagram_handle : c.source)}</p>
                     {c.follow_up_date && <p className={`text-[10px] mt-0.5 ${new Date(c.follow_up_date) <= today ? "text-red-600 font-semibold" : "text-amber-deep"}`}>Follow up: {new Date(c.follow_up_date).toLocaleDateString()}</p>}
-                  </div>
+                  </button>
                   <div className="flex items-center gap-1 shrink-0">
                     {canEdit && <button onClick={() => onEdit(c)} className="p-2 text-navy/40 hover:text-navy rounded-lg" title="Edit"><Pencil className="w-4 h-4" /></button>}
-                    {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><MessageCircle className="w-4 h-4" /></a>}
-                    {c.phone && <a href={`tel:${c.phone}`} className="p-2 text-navy/50 hover:bg-navy/5 rounded-lg"><Phone className="w-4 h-4" /></a>}
+                    {wa && <a href={`https://wa.me/${wa}`} target="_blank" onClick={() => logOutreach(c.id, "whatsapp")} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"><MessageCircle className="w-4 h-4" /></a>}
+                    {c.phone && <a href={`tel:${c.phone}`} onClick={() => logOutreach(c.id, "call")} className="p-2 text-navy/50 hover:bg-navy/5 rounded-lg"><Phone className="w-4 h-4" /></a>}
                   </div>
                 </div>
                 {canEdit && (
@@ -773,4 +786,81 @@ function ConfirmSheet({ title, body, onConfirm, onCancel }: { title: string; bod
       </div>
     </div>
   );
+}
+
+function ContactDetail({ id, canEdit, onClose, onEdit }: { id: string; canEdit: boolean; onClose: () => void; onEdit: (c: any) => void }) {
+  const [d, setD] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    fetch(`/api/team/contact-detail?id=${id}`).then((r) => r.json()).then((res) => { setD(res); setLoading(false); }).catch(() => setLoading(false));
+  }, [id]);
+
+  const c = d?.contact;
+  const wa = (c?.phone || "").replace(/[^0-9]/g, "");
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
+      <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-5 animate-rise max-h-[92vh] overflow-y-auto">
+        {loading ? <Spinner /> : !c ? <p className="text-sm text-muted py-8 text-center">Couldn&apos;t load this contact.</p> : (
+          <>
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="font-semibold text-navy text-lg">{c.name}</h3>
+                <p className="text-xs text-muted">{c.stage} · {c.source}</p>
+              </div>
+              <button onClick={onClose} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-4">
+              {wa && <a href={`https://wa.me/${wa}`} target="_blank" onClick={() => logOutreach(c.id, "whatsapp")} className="flex items-center gap-1.5 text-xs font-medium bg-emerald-500 text-white px-3 py-2 rounded-xl"><MessageCircle className="w-3.5 h-3.5" /> WhatsApp</a>}
+              {c.phone && <a href={`tel:${c.phone}`} onClick={() => logOutreach(c.id, "call")} className="flex items-center gap-1.5 text-xs font-medium border border-navy-line text-navy px-3 py-2 rounded-xl"><Phone className="w-3.5 h-3.5" /> Call</a>}
+              {canEdit && <button onClick={() => onEdit(c)} className="flex items-center gap-1.5 text-xs font-medium border border-navy-line text-navy px-3 py-2 rounded-xl ml-auto"><Pencil className="w-3.5 h-3.5" /> Edit</button>}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {c.phone && <Field label="Phone" value={c.phone} />}
+              {c.instagram_handle && <Field label="Instagram" value={"@" + c.instagram_handle} />}
+              {c.follow_up_date && <Field label="Follow up" value={new Date(c.follow_up_date).toLocaleDateString()} />}
+              {d.ltv != null && <Field label="Lifetime value" value={`₹${d.ltv}`} />}
+            </div>
+
+            {c.notes && <div className="bg-surface rounded-xl p-3 mb-4"><p className="text-[10px] uppercase tracking-wide text-muted mb-1">Notes</p><p className="text-sm text-navy whitespace-pre-wrap">{c.notes}</p></div>}
+            {c.lost_reason && <div className="bg-red-50 rounded-xl p-3 mb-4"><p className="text-[10px] uppercase tracking-wide text-red-500 mb-1">Lost reason</p><p className="text-sm text-navy">{c.lost_reason}</p></div>}
+
+            {d.orders?.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-navy mb-2">Orders ({d.orders.length})</p>
+                <div className="space-y-1.5">
+                  {d.orders.map((o: any) => (
+                    <div key={o.id} className="flex items-center justify-between bg-surface rounded-lg px-3 py-2">
+                      <span className="text-xs text-navy">{new Date(o.date).toLocaleDateString()} · {(o.items || []).length} item(s)</span>
+                      <span className="text-[10px] font-bold uppercase text-muted">{o.order_status || "Placed"}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <p className="text-xs font-semibold text-navy mb-2">History</p>
+              {d.activities?.length === 0 ? <p className="text-xs text-muted">Nothing logged yet.</p> : (
+                <div className="space-y-2">
+                  {d.activities.map((a: any) => (
+                    <div key={a.id} className="border-l-2 border-navy-line pl-3">
+                      <p className="text-sm text-navy">{a.content}</p>
+                      <p className="text-[10px] text-muted">{new Date(a.created_at).toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return <div className="bg-surface rounded-lg px-3 py-2"><p className="text-[10px] uppercase tracking-wide text-muted">{label}</p><p className="text-sm text-navy truncate">{value}</p></div>;
 }
