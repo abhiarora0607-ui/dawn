@@ -91,11 +91,11 @@ export async function POST(req: Request) {
 
     // 2) PRICE LIST (5)
     const items = await insert(url, key, "catalog_items", [
-      { uid, name: "Cold-pressed green juice", category: "Juices", price: 250, compare_at_price: null, unit: "per item", type: "product", is_active: true, is_demo: true },
-      { uid, name: "Detox sampler pack (6)", category: "Bundles", price: 1290, compare_at_price: 1500, unit: "per item", type: "product", is_active: true, is_demo: true },
-      { uid, name: "Monthly juice subscription", category: "Subscriptions", price: 4999, unit: "per month", type: "service", is_active: true, is_demo: true },
-      { uid, name: "1:1 nutrition consult", category: "Services", price: 799, unit: "per session", type: "service", is_active: true, is_demo: true },
-      { uid, name: "Reusable glass bottle", category: "Merch", price: 349, unit: "per item", type: "product", is_active: true, is_demo: true },
+      { uid, name: "Cold-pressed green juice", category: "Juices", price: 250, cost: 90, compare_at_price: null, unit: "per item", type: "product", is_active: true, is_demo: true },
+      { uid, name: "Detox sampler pack (6)", category: "Bundles", price: 1290, cost: 540, compare_at_price: 1500, unit: "per item", type: "product", is_active: true, is_demo: true },
+      { uid, name: "Monthly juice subscription", category: "Subscriptions", price: 4999, cost: 2100, unit: "per month", type: "service", is_active: true, is_demo: true },
+      { uid, name: "1:1 nutrition consult", category: "Services", price: 799, cost: 0, unit: "per session", type: "service", is_active: true, is_demo: true },
+      { uid, name: "Reusable glass bottle", category: "Merch", price: 349, cost: 140, unit: "per item", type: "product", is_active: true, is_demo: true },
     ], true);
     const it = (i: number) => items?.[i] || {};
 
@@ -120,25 +120,25 @@ export async function POST(req: Request) {
     // 4) ORDERS (4 — paid, partial, unpaid, across fulfilment stages)
     await insert(url, key, "sales", [
       {
-        uid, contact_id: meera.id, customer_name: meera.name, employee_id: priya, date: daysAgo(20),
+        uid, contact_id: meera.id, employee_id: priya, date: daysAgo(20),
         items: [{ itemId: it(2).id, name: it(2).name, qty: 1, unitPrice: 4999 }],
         total: 4999, amount_paid: 4999, balance: 0, status: "paid", payment_method: "upi", order_status: "Delivered",
         payments: [{ amount: 4999, date: iso(20), method: "upi" }], is_demo: true,
       },
       {
-        uid, contact_id: meera.id, customer_name: meera.name, employee_id: priya, date: daysAgo(4),
+        uid, contact_id: meera.id, employee_id: priya, date: daysAgo(4),
         items: [{ itemId: it(1).id, name: it(1).name, qty: 2, unitPrice: 1290 }],
         total: 2580, amount_paid: 1000, balance: 1580, status: "partial", payment_method: "cash", order_status: "Shipped",
         payments: [{ amount: 1000, date: iso(4), method: "cash" }], is_demo: true,
       },
       {
-        uid, contact_id: rohit.id, customer_name: rohit.name, employee_id: rahul, date: daysAgo(9),
+        uid, contact_id: rohit.id, employee_id: rahul, date: daysAgo(9),
         items: [{ itemId: it(0).id, name: it(0).name, qty: 10, unitPrice: 250 }, { itemId: it(4).id, name: it(4).name, qty: 1, unitPrice: 349 }],
         total: 2849, amount_paid: 2849, balance: 0, status: "paid", payment_method: "card", order_status: "Delivered",
         payments: [{ amount: 2849, date: iso(9), method: "card" }], is_demo: true,
       },
       {
-        uid, contact_id: farah.id, customer_name: farah.name, employee_id: neha, date: daysAgo(1),
+        uid, contact_id: farah.id, employee_id: neha, date: daysAgo(1),
         items: [{ itemId: it(3).id, name: it(3).name, qty: 1, unitPrice: 799 }],
         total: 799, amount_paid: 0, balance: 799, status: "pending", order_status: "Placed", payments: [], is_demo: true,
       },
