@@ -16,11 +16,21 @@ function H(key: string, extra: Record<string, string> = {}) {
 
 // Insert and FAIL LOUDLY. A seed that half-works silently is worse than one
 // that says exactly which table rejected which column.
+//
+// PostgREST rejects a bulk insert unless EVERY row has the same key set
+// (PGRST102), so we union all keys across the batch and fill the gaps with
+// null before sending.
 async function insert(url: string, key: string, table: string, rows: any[], want = false): Promise<any> {
+  const allKeys = Array.from(new Set(rows.flatMap((r) => Object.keys(r))));
+  const normalized = rows.map((r) => {
+    const out: any = {};
+    for (const k of allKeys) out[k] = r[k] === undefined ? null : r[k];
+    return out;
+  });
   const res = await fetch(`${url}/rest/v1/${table}`, {
     method: "POST",
     headers: H(key, { Prefer: want ? "return=representation" : "return=minimal" }),
-    body: JSON.stringify(rows),
+    body: JSON.stringify(normalized),
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
@@ -81,7 +91,7 @@ export async function POST(req: Request) {
 
     // 2) PRICE LIST (5)
     const items = await insert(url, key, "catalog_items", [
-      { uid, name: "Cold-pressed green juice", category: "Juices", price: 250, unit: "per item", type: "product", is_active: true, is_demo: true },
+      { uid, name: "Cold-pressed green juice", category: "Juices", price: 250, compare_at_price: null, unit: "per item", type: "product", is_active: true, is_demo: true },
       { uid, name: "Detox sampler pack (6)", category: "Bundles", price: 1290, compare_at_price: 1500, unit: "per item", type: "product", is_active: true, is_demo: true },
       { uid, name: "Monthly juice subscription", category: "Subscriptions", price: 4999, unit: "per month", type: "service", is_active: true, is_demo: true },
       { uid, name: "1:1 nutrition consult", category: "Services", price: 799, unit: "per session", type: "service", is_active: true, is_demo: true },
@@ -153,11 +163,11 @@ export async function POST(req: Request) {
 
     // 7) TASKS (5 — one overdue, one done)
     await insert(url, key, "tasks", [
-      { uid, employee_id: priya, title: "Call Divya about the bundle discount", due_date: daysAhead(0), contact_id: C("Divya Rao").id, is_demo: true },
-      { uid, employee_id: priya, title: "Collect the pending balance from Meera", due_date: daysAgo(1), is_demo: true },
-      { uid, employee_id: rahul, title: "Send the catalogue to Karan", due_date: daysAhead(2), is_demo: true },
-      { uid, employee_id: rahul, title: "Restock glass bottles", due_date: daysAhead(5), done: true, is_demo: true },
-      { uid, employee_id: neha, title: "Confirm Farah's delivery address", due_date: daysAhead(1), is_demo: true },
+      { uid, employee_id: priya, title: "Call Divya about the bundle discount", due_date: daysAhead(0), contact_id: C("Divya Rao").id, done: false, is_demo: true },
+      { uid, employee_id: priya, title: "Collect the pending balance from Meera", due_date: daysAgo(1), contact_id: null, done: false, is_demo: true },
+      { uid, employee_id: rahul, title: "Send the catalogue to Karan", due_date: daysAhead(2), contact_id: null, done: false, is_demo: true },
+      { uid, employee_id: rahul, title: "Restock glass bottles", due_date: daysAhead(5), contact_id: null, done: true, is_demo: true },
+      { uid, employee_id: neha, title: "Confirm Farah's delivery address", due_date: daysAhead(1), contact_id: null, done: false, is_demo: true },
     ]);
 
     // 8) NOTES (4)
