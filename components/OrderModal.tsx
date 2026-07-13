@@ -42,7 +42,9 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
     ]).then(([cat, cust, emp]) => {
       setCatalog(cat.items || []);
       setCustomers(cust.customers || []);
-      setEmployees((emp.employees || []).filter((e: any) => e.status === "active"));
+      const active = (emp.employees || []).filter((e: any) => e.status === "active");
+      setEmployees(active);
+      if (active[0]) setEmployeeId((prev: string) => prev || active[0].id);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -191,9 +193,8 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
                   <p className="text-[11px] text-muted">Auto-added to expenses</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-navy mb-1.5">Handled by</label>
+                  <label className="block text-sm font-semibold text-navy mb-1.5">Handled by *</label>
                   <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="inp">
-                    <option value="">— None —</option>
                     {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
                   </select>
                 </div>

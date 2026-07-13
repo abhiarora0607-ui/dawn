@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { DawnLogo } from "@/components/DawnLogo";
 import { TrialBanner } from "@/components/TrialBanner";
 import {
-  LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus, Menu, X, Bookmark, CalendarDays, CalendarClock, Tag, Contact, Wallet, Lightbulb, ShoppingBag, UserCog, BarChart3,
+  LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus, Menu, X, Bookmark, CalendarDays, CalendarClock, Tag, Contact, Wallet, Lightbulb, ShoppingBag, UserCog, BarChart3, CheckSquare, Database,
 } from "lucide-react";
 
 const CRM_NAV = [
@@ -16,6 +16,8 @@ const CRM_NAV = [
   { href: "/dashboard/sales", label: "Finance", icon: Wallet },
   { href: "/dashboard/employees", label: "Employees", icon: UserCog },
   { href: "/dashboard/performance", label: "Team Performance", icon: BarChart3 },
+  { href: "/dashboard/team-work", label: "Team Work", icon: CheckSquare },
+  { href: "/dashboard/records", label: "Records", icon: Database },
   { href: "/dashboard/price-list", label: "Price List", icon: Tag },
 ];
 
