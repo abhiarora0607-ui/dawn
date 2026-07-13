@@ -8,7 +8,7 @@ export const OBJECTS: Record<string, { table: string; label: string; order: stri
   contacts:   { table: "contacts",       label: "Contacts",    order: "created_at.desc", label_field: "name",  editable: ["name", "phone", "email", "instagram_handle", "source", "stage", "notes", "follow_up_date", "employee_id"] },
   orders:     { table: "sales",          label: "Orders",      order: "date.desc",       label_field: "id",    editable: ["order_status", "payment_method", "employee_id", "notes"] },
   items:      { table: "catalog_items",  label: "Price list",  order: "created_at.desc", label_field: "name",  editable: ["name", "category", "price", "compare_at_price", "cost", "unit", "type", "is_active", "description"] },
-  expenses:   { table: "expenses",       label: "Expenses",    order: "date.desc",       label_field: "title", editable: ["title", "category", "amount", "date", "notes"] },
+  expenses:   { table: "expenses",       label: "Expenses",    order: "date.desc",       label_field: "note",  editable: ["note", "category", "amount", "date"] },
   employees:  { table: "employees",      label: "Employees",   order: "created_at.desc", label_field: "name",  editable: ["name", "role", "phone", "email", "status", "monthly_salary", "joining_date"] },
   tasks:      { table: "tasks",          label: "Tasks",       order: "created_at.desc", label_field: "title", editable: ["title", "due_date", "done", "employee_id"] },
   notes:      { table: "emp_notes",      label: "Notes",       order: "updated_at.desc", label_field: "body",  editable: ["body", "employee_id"] },
