@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { getUid } from "@/lib/auth";
 import { audit } from "@/lib/audit";
+import { ensureOwnerEmployee } from "@/lib/owner-employee";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SECRET_KEY }; }
@@ -121,7 +122,7 @@ export async function POST(req: Request) {
       status, payments: amountPaid > 0 ? [{ amount: amountPaid, date: new Date().toISOString(), method: b.paymentMethod || "cash" }] : [],
       notes: b.notes || "",
       fixed_cost: Number(b.orderCost) || 0,
-      employee_id: b.employeeId || null,
+      employee_id: b.employeeId || (await ensureOwnerEmployee(url!, key!, uid)),
       order_status: "Placed",
     };
     const sRes = await fetch(`${url}/rest/v1/sales`, {

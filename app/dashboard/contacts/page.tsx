@@ -37,7 +37,14 @@ function QuickAdd({ onClose, onAdded }: { onClose: () => void; onAdded: () => vo
   const [dupOk, setDupOk] = useState(false);
   const [employees, setEmployees] = useState<{ id: string; name: string; status: string }[]>([]);
 
-  useEffect(() => { fetch("/api/employees").then((r) => r.json()).then((d) => setEmployees((d.employees || []).filter((e: any) => e.status === "active"))).catch(() => {}); }, []);
+  useEffect(() => {
+    fetch("/api/employees").then((r) => r.json()).then((d) => {
+      const active = (d.employees || []).filter((e: any) => e.status === "active");
+      setEmployees(active);
+      // Assignment is required — default to the first (the owner record).
+      if (active[0]) setF((prev: any) => ({ ...prev, employeeId: prev.employeeId || active[0].id }));
+    }).catch(() => {});
+  }, []);
 
   async function checkDup(val: string) {
     if (!val) { setDup(null); return; }
@@ -49,6 +56,7 @@ function QuickAdd({ onClose, onAdded }: { onClose: () => void; onAdded: () => vo
   async function save() {
     setErr("");
     if (!f.name.trim()) { setErr("Name is required."); return; }
+    if (employees.length > 0 && !f.employeeId) { setErr("Choose who this contact is assigned to."); return; }
     setSaving(true);
     try {
       const res = await fetch("/api/contacts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(f) });
@@ -81,10 +89,12 @@ function QuickAdd({ onClose, onAdded }: { onClose: () => void; onAdded: () => vo
           <input value={f.instagramHandle} onChange={(e) => { setF({ ...f, instagramHandle: e.target.value }); setDupOk(false); }} onBlur={(e) => checkDup(e.target.value.replace("@", ""))} placeholder="Instagram handle" className="inp" />
           <select value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} className="inp">{SOURCES.map((s) => <option key={s}>{s}</option>)}</select>
           {employees.length > 0 && (
-            <select value={f.employeeId} onChange={(e) => setF({ ...f, employeeId: e.target.value })} className="inp">
-              <option value="">Assign employee (optional)</option>
-              {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </select>
+            <div>
+              <label className="block text-xs font-semibold text-navy mb-1">Assigned to *</label>
+              <select value={f.employeeId} onChange={(e) => setF({ ...f, employeeId: e.target.value })} className="inp">
+                {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+              </select>
+            </div>
           )}
           <textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} rows={2} placeholder="Notes (optional)" className="inp resize-none" />
           {err && <p className="text-sm text-red-600">{err}</p>}

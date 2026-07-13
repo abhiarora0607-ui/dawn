@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { getUid } from "@/lib/auth";
 import { cleanName, cleanPhone, cleanEmail } from "@/lib/validate";
+import { ensureOwnerEmployee } from "@/lib/owner-employee";
 import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
@@ -49,11 +50,14 @@ export async function POST(req: Request) {
     if (!ph.ok) return NextResponse.json({ error: ph.error }, { status: 400 });
     const em = cleanEmail(b.email);
     if (!em.ok) return NextResponse.json({ error: em.error }, { status: 400 });
+    // Every contact has an owner. If none was chosen, it belongs to the admin.
+    const assignee = b.employeeId || (await ensureOwnerEmployee(url!, key!, uid));
+    if (!assignee) return NextResponse.json({ error: "Assign this contact to someone." }, { status: 400 });
     const row = {
       uid, name: nm.value, phone: ph.value, email: em.value,
       instagram_handle: (b.instagramHandle || "").replace("@", ""), source: b.source || "Other",
       stage: b.stage || "New Lead", tags: b.tags || [], interested_item_ids: b.interestedItemIds || [],
-      follow_up_date: b.followUpDate || null, notes: b.notes || "", employee_id: b.employeeId || null,
+      follow_up_date: b.followUpDate || null, notes: b.notes || "", employee_id: assignee,
     };
     const res = await fetch(`${url}/rest/v1/contacts`, {
       method: "POST", headers: H(key, { Prefer: "return=representation" }), body: JSON.stringify(row),
@@ -79,8 +83,19 @@ export async function PATCH(req: Request) {
     if (patch.email !== undefined) { const em = cleanEmail(patch.email); if (!em.ok) return NextResponse.json({ error: em.error }, { status: 400 }); patch.email = em.value; }
     // Stage rules apply only on actual transitions — fetch current stage once.
     let curStage: string | null = null;
-    if (b.stage === "Lost" || b.stage === "Customer (Won)") {
+    if (b.stage) {
       curStage = (await (await fetch(`${url}/rest/v1/contacts?id=eq.${b.id}&uid=eq.${uid}&select=stage&limit=1`, { headers: H(key), cache: "no-store" })).json())?.[0]?.stage || null;
+    }
+    // A customer with a real order is LOCKED in Customer (Won). The admin can
+    // override (mistaken order, refund, wrong contact) but must say why — it
+    // is logged. Employees can never do this at all.
+    if (b.stage && b.stage !== "Customer (Won)" && curStage === "Customer (Won)") {
+      const hasOrder = (await (await fetch(`${url}/rest/v1/sales?contact_id=eq.${b.id}&uid=eq.${uid}&select=id&limit=1`, { headers: H(key), cache: "no-store" })).json())?.length > 0;
+      if (hasOrder) {
+        const reason = (b.unwonReason || "").trim();
+        if (!reason) return NextResponse.json({ error: "This customer has orders — moving them out of Customer (Won) requires a reason.", needsUnwonReason: true }, { status: 400 });
+        patch.unwon_reason = reason.slice(0, 500);
+      }
     }
     // Marking Lost requires a reason — enforced here, not just in the UI.
     if (b.stage === "Lost" && curStage !== "Lost") {
@@ -101,7 +116,7 @@ export async function PATCH(req: Request) {
     if (b.instagramHandle !== undefined) patch.instagram_handle = (b.instagramHandle || "").replace("@", "");
     if (b.tags !== undefined) patch.tags = b.tags;
     if (b.interestedItemIds !== undefined) patch.interested_item_ids = b.interestedItemIds;
-    if (b.employeeId !== undefined) patch.employee_id = b.employeeId || null;
+    if (b.employeeId) patch.employee_id = b.employeeId; // never unassign
     if (b.followUpDate !== undefined) patch.follow_up_date = b.followUpDate || null;
     await fetch(`${url}/rest/v1/contacts?id=eq.${b.id}&uid=eq.${uid}`, {
       method: "PATCH", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify(patch),
@@ -109,6 +124,7 @@ export async function PATCH(req: Request) {
     if (b.stage !== undefined && b.logStage) {
       const msg = b.stage === "Lost" && b.lostNote ? `Marked Lost — ${String(b.lostNote).trim().slice(0, 300)}`
         : b.stage === "Customer (Won)" && b.wonNote ? `Marked won without an order — ${String(b.wonNote).trim().slice(0, 300)}`
+        : patch.unwon_reason ? `Moved out of Customer (Won) by admin — ${String(patch.unwon_reason).slice(0, 300)}`
         : `Moved to ${b.stage}`;
       await logActivity(url, key, uid, b.id, "stage_change", msg);
     }

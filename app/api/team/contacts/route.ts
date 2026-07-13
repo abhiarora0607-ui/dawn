@@ -96,6 +96,12 @@ export async function PATCH(req: Request) {
     if (patch.phone !== undefined) { const ph = cleanPhone(patch.phone); if (!ph.ok) return NextResponse.json({ error: ph.error }, { status: 400 }); patch.phone = ph.value; }
     if (patch.email !== undefined) { const em = cleanEmail(patch.email); if (!em.ok) return NextResponse.json({ error: em.error }, { status: 400 }); patch.email = em.value; }
 
+    // A customer with orders is locked in Customer (Won) for employees. No
+    // override exists here — only the admin can reverse a booked sale.
+    if (b.stage && b.stage !== "Customer (Won)" && owned.stage === "Customer (Won)") {
+      const hasOrder = (await (await fetch(`${url}/rest/v1/sales?contact_id=eq.${b.id}&uid=eq.${ctx.uid}&select=id&limit=1`, { headers: empHeaders(key), cache: "no-store" })).json())?.length > 0;
+      if (hasOrder) return NextResponse.json({ error: "This customer has orders and can't be moved out of Customer (Won). Ask your admin." }, { status: 403 });
+    }
     // Marking Lost requires a reason — enforced server-side (only when the
     // stage is actually changing, not when re-saving an already-Lost contact).
     if (b.stage === "Lost" && owned.stage !== "Lost") {

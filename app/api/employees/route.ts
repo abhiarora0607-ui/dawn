@@ -6,6 +6,7 @@
 
 import { NextResponse } from "next/server";
 import { getUid } from "@/lib/auth";
+import { ensureOwnerEmployee } from "@/lib/owner-employee";
 import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,9 @@ export async function GET() {
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ employees: [] });
   try {
-    const res = await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&order=created_at.desc`, { headers: H(key), cache: "no-store" });
+    // Guarantee the default owner-employee exists so assignment is always possible.
+    await ensureOwnerEmployee(url, key, uid);
+    const res = await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&order=is_owner.desc,created_at.desc`, { headers: H(key), cache: "no-store" });
     return NextResponse.json({ employees: await res.json() });
   } catch { return NextResponse.json({ employees: [] }); }
 }
@@ -108,6 +111,9 @@ export async function DELETE(req: Request) {
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
   try {
+    // The owner-employee is permanent — it's the fallback assignee.
+    const target = (await (await fetch(`${url}/rest/v1/employees?id=eq.${id}&uid=eq.${uid}&select=is_owner&limit=1`, { headers: H(key), cache: "no-store" })).json())?.[0];
+    if (target?.is_owner) return NextResponse.json({ error: "The owner record can't be deleted — it's the default assignee." }, { status: 400 });
     // Disable salary recurring (keep past expense rows intact)
     await fetch(`${url}/rest/v1/recurring_expenses?uid=eq.${uid}&employee_id=eq.${id}`, { method: "PATCH", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify({ enabled: false }) });
     await fetch(`${url}/rest/v1/employees?id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: H(key) });
