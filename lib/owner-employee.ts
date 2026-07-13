@@ -21,7 +21,7 @@ export async function ensureOwnerEmployee(url: string, key: string, uid: string,
     }
     const res = await fetch(`${url}/rest/v1/employees`, {
       method: "POST", headers: H(key, { Prefer: "return=representation" }),
-      body: JSON.stringify({ uid, name: `${label} (Owner)`, status: "active", is_owner: true, role: "Owner", salary: 0 }),
+      body: JSON.stringify({ uid, name: `${label} (Owner)`, status: "active", is_owner: true, role: "Owner", monthly_salary: 0 }),
     });
     const row = (await res.json())?.[0];
     return row?.id || null;
