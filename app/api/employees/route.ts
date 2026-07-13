@@ -100,6 +100,13 @@ export async function PATCH(req: Request) {
     });
     const emp = (await (await fetch(`${url}/rest/v1/employees?id=eq.${b.id}&uid=eq.${uid}&select=*&limit=1`, { headers: H(key), cache: "no-store" })).json())?.[0];
     if (emp) await syncSalaryRecurring(url, key, uid, emp);
+    // Going inactive stops FUTURE salary expenses. Salaries already posted stay
+    // (the money was really paid) but stop showing as an ongoing monthly item.
+    if (b.status === "inactive") {
+      await fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&source=eq.salary&source_id=eq.${b.id}`, {
+        method: "PATCH", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify({ recurring: false }),
+      });
+    }
     return NextResponse.json({ ok: true });
   } catch { return NextResponse.json({ error: "Update failed." }, { status: 500 }); }
 }
@@ -114,9 +121,19 @@ export async function DELETE(req: Request) {
     // The owner-employee is permanent — it's the fallback assignee.
     const target = (await (await fetch(`${url}/rest/v1/employees?id=eq.${id}&uid=eq.${uid}&select=is_owner&limit=1`, { headers: H(key), cache: "no-store" })).json())?.[0];
     if (target?.is_owner) return NextResponse.json({ error: "The owner record can't be deleted — it's the default assignee." }, { status: 400 });
-    // Disable salary recurring (keep past expense rows intact)
-    await fetch(`${url}/rest/v1/recurring_expenses?uid=eq.${uid}&employee_id=eq.${id}`, { method: "PATCH", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify({ enabled: false }) });
+
+    // Salary handling on delete:
+    //  - remove the recurring rule so NO future month posts a salary
+    //  - KEEP every salary expense already posted (the money really was paid)
+    //  - but strip the "recurring" flag from those past rows, so they read as
+    //    historical one-offs rather than an ongoing monthly commitment
+    await fetch(`${url}/rest/v1/recurring_expenses?uid=eq.${uid}&employee_id=eq.${id}`, { method: "DELETE", headers: H(key) });
+    await fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&source=eq.salary&source_id=eq.${id}`, {
+      method: "PATCH", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify({ recurring: false }),
+    });
+
     await fetch(`${url}/rest/v1/employees?id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: H(key) });
+    await audit({ uid, action: "employee.delete", entity: "employees", entityId: id });
     return NextResponse.json({ ok: true });
   } catch { return NextResponse.json({ error: "Delete failed." }, { status: 500 }); }
 }

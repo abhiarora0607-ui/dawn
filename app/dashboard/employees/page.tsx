@@ -9,7 +9,7 @@ import { Loader2, Plus, X, Trash2, Users, Pencil, KeyRound } from "lucide-react"
 import { TeamAccessModal } from "@/components/TeamAccessModal";
 import { useSettings } from "@/lib/use-settings";
 
-type Employee = { id: string; name: string; status: string; monthly_salary: number };
+type Employee = { id: string; name: string; status: string; monthly_salary: number; is_owner?: boolean };
 
 function EmpModal({ emp, onClose, onSaved }: { emp: Employee | null; onClose: () => void; onSaved: () => void }) {
   const { toast } = useToast();
@@ -106,7 +106,7 @@ function EmployeesInner() {
 
         {loading ? (
           <div className="p-12 flex items-center justify-center text-muted"><Loader2 className="w-6 h-6 animate-spin mr-3" /> Loading…</div>
-        ) : emps.length === 0 ? (
+        ) : false ? (
           <div className="bg-white rounded-2xl border border-navy-line p-12 text-center shadow-card">
             <div className="w-14 h-14 rounded-2xl bg-amber/15 flex items-center justify-center mx-auto mb-4"><Users className="w-7 h-7 text-amber-deep" /></div>
             <h2 className="text-lg font-semibold text-navy mb-2">No employees yet</h2>
@@ -116,19 +116,36 @@ function EmployeesInner() {
         ) : (
           <div className="grid gap-2">
             {emps.map((e) => (
-              <div key={e.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card flex items-center justify-between gap-3">
+              <div key={e.id} className={`bg-white rounded-xl border p-4 shadow-card flex items-center justify-between gap-3 ${e.is_owner ? "border-amber/40" : "border-navy-line"}`}>
                 <div className="min-w-0">
-                  <p className="font-semibold text-navy text-sm">{e.name}</p>
-                  <p className="text-xs text-muted">{currency}{e.monthly_salary}/mo</p>
+                  <p className="font-semibold text-navy text-sm flex items-center gap-1.5">
+                    {e.name}
+                    {e.is_owner && <span className="text-[9px] font-bold uppercase bg-amber/15 text-amber-deep px-1.5 py-0.5 rounded">You</span>}
+                  </p>
+                  <p className="text-xs text-muted">{e.is_owner ? "Default assignee — can't be removed" : `${currency}${e.monthly_salary}/mo`}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={() => setPendingToggle(e)} className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${e.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-navy/5 text-navy/50"}`}>{e.status}</button>
-                  <button onClick={() => setAccessEmp(e)} className="p-1.5 text-navy/40 hover:text-amber-deep" title="Login access"><KeyRound className="w-4 h-4" /></button>
-                  <button onClick={() => setModal({ open: true, emp: e })} className="p-1.5 text-navy/40 hover:text-navy"><Pencil className="w-4 h-4" /></button>
-                  <button onClick={() => setConfirmDel(e.id)} className="p-1.5 text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                  {e.is_owner ? (
+                    <span className="text-[10px] font-bold uppercase px-2 py-1 rounded bg-emerald-50 text-emerald-700">active</span>
+                  ) : (
+                    <>
+                      <button onClick={() => setPendingToggle(e)} className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${e.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-navy/5 text-navy/50"}`}>{e.status}</button>
+                      <button onClick={() => setAccessEmp(e)} className="p-1.5 text-navy/40 hover:text-amber-deep" title="Login access"><KeyRound className="w-4 h-4" /></button>
+                    </>
+                  )}
+                  <button onClick={() => setModal({ open: true, emp: e })} className="p-1.5 text-navy/40 hover:text-navy" title="Edit"><Pencil className="w-4 h-4" /></button>
+                  {!e.is_owner && <button onClick={() => setConfirmDel(e.id)} className="p-1.5 text-navy/40 hover:text-red-500" title="Delete"><Trash2 className="w-4 h-4" /></button>}
                 </div>
               </div>
             ))}
+            {emps.filter((e) => !e.is_owner).length === 0 && (
+              <div className="bg-white rounded-2xl border border-dashed border-navy-line p-8 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-amber/15 flex items-center justify-center mx-auto mb-3"><Users className="w-6 h-6 text-amber-deep" /></div>
+                <p className="font-semibold text-navy text-sm mb-1">Working solo?</p>
+                <p className="text-muted text-xs max-w-sm mx-auto mb-4">Everything is assigned to you by default. Add team members and their salaries become automatic monthly expenses while they&apos;re active.</p>
+                <button onClick={() => setModal({ open: true, emp: null })} className="inline-flex items-center gap-2 bg-navy text-white font-medium px-5 py-2.5 rounded-xl text-sm"><Plus className="w-4 h-4" /> Add an employee</button>
+              </div>
+            )}
           </div>
         )}
       </div>

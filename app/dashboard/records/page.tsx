@@ -155,7 +155,7 @@ function EditRow({ object, row, editable, employees, onClose, onSaved }: { objec
   }
 
   const isDate = (k: string) => k.includes("date");
-  const isNum = (k: string) => ["price", "cost", "amount", "salary", "compare_at_price"].includes(k);
+  const isNum = (k: string) => ["price", "cost", "amount", "monthly_salary", "compare_at_price"].includes(k);
   const isBool = (k: string) => ["done", "is_active"].includes(k);
   const isLong = (k: string) => ["notes", "body", "description"].includes(k);
 

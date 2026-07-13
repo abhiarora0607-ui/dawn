@@ -56,14 +56,23 @@ function SettingsInner() {
 
   async function seed() {
     setSeeding(true);
-    try { await fetch("/api/demo?action=seed", { method: "POST" }); toast("Demo data added"); }
-    catch { toast("Failed", "error"); }
+    try {
+      const res = await fetch("/api/demo?action=seed", { method: "POST" });
+      const d = await res.json().catch(() => ({}));
+      // Never claim success the server didn't confirm.
+      if (res.ok) toast("Demo data added — reload to see it");
+      else toast(d.error || "Couldn't add demo data.", "error");
+    } catch { toast("Network error — check your connection.", "error"); }
     setSeeding(false);
   }
   async function clearDemo() {
     setConfirmClear(false);
-    await fetch("/api/demo?action=clear", { method: "POST" });
-    toast("Demo data cleared");
+    try {
+      const res = await fetch("/api/demo?action=clear", { method: "POST" });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) toast("Demo data cleared");
+      else toast(d.error || "Couldn't clear demo data.", "error");
+    } catch { toast("Network error — check your connection.", "error"); }
   }
 
   if (loading) return <DashboardShell><DashTopbar account={data?.account} pageTitle="Settings" /><div className="p-12 flex justify-center text-muted"><Loader2 className="w-6 h-6 animate-spin" /></div></DashboardShell>;

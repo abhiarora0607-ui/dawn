@@ -68,7 +68,7 @@ export async function PATCH(req: Request) {
     if (patch.name !== undefined) { const v = cleanName(patch.name); if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 }); patch.name = v.value; }
     if (patch.phone !== undefined) { const v = cleanPhone(patch.phone); if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 }); patch.phone = v.value; }
     if (patch.email !== undefined) { const v = cleanEmail(patch.email); if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 }); patch.email = v.value; }
-    for (const money of ["price", "cost", "amount", "salary", "compare_at_price"]) {
+    for (const money of ["price", "cost", "amount", "monthly_salary", "compare_at_price"]) {
       if (patch[money] !== undefined && patch[money] !== null && patch[money] !== "") {
         const n = Number(patch[money]);
         if (isNaN(n) || n < 0) return NextResponse.json({ error: `${money.replace(/_/g, " ")} must be a number of 0 or more.` }, { status: 400 });
