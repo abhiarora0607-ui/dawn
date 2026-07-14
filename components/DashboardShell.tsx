@@ -6,10 +6,12 @@ import { usePathname } from "next/navigation";
 import { DawnLogo } from "@/components/DawnLogo";
 import { TrialBanner } from "@/components/TrialBanner";
 import {
-  LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus, Menu, X, Bookmark, CalendarDays, CalendarClock, Tag, Contact, Wallet, Lightbulb, ShoppingBag, UserCog, BarChart3, CheckSquare, Database,
+  LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus, Menu, X, Bookmark, CalendarDays, CalendarClock, Tag, Contact, Wallet, Lightbulb, ShoppingBag, UserCog, BarChart3, CheckSquare, Database, Flame,
 } from "lucide-react";
 
 const CRM_NAV = [
+  { href: "/dashboard/business", label: "Business", icon: LayoutDashboard },
+  { href: "/dashboard/attention", label: "Attention", icon: Flame, badge: true },
   { href: "/dashboard/contacts", label: "Contacts", icon: Contact },
   { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
   { href: "/dashboard/suggestions", label: "Suggestions", icon: Lightbulb, badge: true },
@@ -139,7 +141,9 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-navy-line flex items-center justify-around h-16 px-1">
         {[
           { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-          { href: "/dashboard/contacts", label: "Contacts", icon: Contact },
+          { href: "/dashboard/business", label: "Business", icon: LayoutDashboard },
+  { href: "/dashboard/attention", label: "Attention", icon: Flame, badge: true },
+  { href: "/dashboard/contacts", label: "Contacts", icon: Contact },
           { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
           { href: "/dashboard/price-list", label: "Prices", icon: Tag },
           { href: "/dashboard/settings", label: "More", icon: Menu },
