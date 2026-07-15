@@ -8,13 +8,16 @@ export const dynamic = "force-dynamic";
 import { ReceiptSend } from "@/components/ReceiptSend";
 import { PrintButton } from "@/components/PrintButton";
 
-async function getSale(id: string) {
+// The [id] segment is the SHARE TOKEN, not the internal order id. Tokens are
+// permanent — a customer's receipt link works forever, no login, no expiry.
+// Internal ids no longer resolve, so knowing one grants nothing.
+async function getSale(token: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY;
   if (!url || !key) return null;
   const h = { apikey: key, Authorization: `Bearer ${key}` };
   try {
-    const sRes = await fetch(`${url}/rest/v1/sales?id=eq.${id}&select=*&limit=1`, { headers: h, cache: "no-store" });
+    const sRes = await fetch(`${url}/rest/v1/sales?share_token=eq.${encodeURIComponent(token)}&select=*&limit=1`, { headers: h, cache: "no-store" });
     const sale = (await sRes.json())?.[0];
     if (!sale) return null;
     let contact = null, store = null;
@@ -93,7 +96,7 @@ export default async function Receipt({ params, searchParams }: { params: { id: 
 
           {isOwner && (
             <ReceiptSend
-              receiptUrl={`https://dawn-jet.vercel.app/receipt/${sale.id}`}
+              receiptUrl={`https://dawn-jet.vercel.app/receipt/${sale.share_token || sale.id}`}
               customerName={contact?.name || ""}
               customerPhone={contact?.phone || ""}
               total={Number(sale.total).toFixed(0)}

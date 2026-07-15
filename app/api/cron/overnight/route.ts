@@ -71,6 +71,51 @@ export async function GET(req: Request) {
     }
   } catch { /* non-fatal */ }
 
+  // Freeze LAST month's employee scores, once, for every business — the
+  // permanent monthly performance record. Idempotent: skips any uid that
+  // already has rows for that month.
+  try {
+    const prev = new Date(); prev.setMonth(prev.getMonth() - 1);
+    const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+    const { computeScores } = await import("@/lib/scoring");
+
+    const empRows = await (await fetch(`${url}/rest/v1/employees?select=uid`, { headers: sbHeaders(key), cache: "no-store" })).json();
+    const uids: string[] = Array.from(new Set((empRows || []).map((r: any) => r.uid)));
+
+    for (const uid of uids) {
+      const existing = await (await fetch(`${url}/rest/v1/employee_scores?uid=eq.${uid}&month=eq.${prevMonth}&select=id&limit=1`, { headers: sbHeaders(key), cache: "no-store" })).json();
+      if (Array.isArray(existing) && existing.length > 0) continue; // already frozen
+
+      const [employees, contacts, sales, tasks, activities] = await Promise.all([
+        fetch(`${url}/rest/v1/employees?uid=eq.${uid}&select=id,name,status,is_owner,joining_date`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
+        fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&select=id,stage,employee_id,follow_up_date,created_at`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
+        fetch(`${url}/rest/v1/sales?uid=eq.${uid}&select=employee_id,amount_paid,date,order_status`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
+        fetch(`${url}/rest/v1/tasks?uid=eq.${uid}&select=employee_id,done,done_at,due_date`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
+        fetch(`${url}/rest/v1/activities?uid=eq.${uid}&select=contact_id,type,content,created_at&limit=2000`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
+      ]);
+
+      const result = computeScores({
+        employees: Array.isArray(employees) ? employees : [],
+        contacts: Array.isArray(contacts) ? contacts : [],
+        sales: (Array.isArray(sales) ? sales : []).filter((s: any) => s.order_status !== "Cancelled"),
+        tasks: Array.isArray(tasks) ? tasks : [],
+        activities: Array.isArray(activities) ? activities : [],
+        month: prevMonth,
+      });
+      if (result.scores.length === 0) continue;
+
+      await fetch(`${url}/rest/v1/employee_scores`, {
+        method: "POST", headers: sbHeaders(key),
+        body: JSON.stringify(result.scores.map((s) => ({
+          uid, employee_id: s.employeeId, month: prevMonth, score: s.score, rank: s.rank,
+          is_top: result.top?.employeeId === s.employeeId,
+          is_bottom: result.bottom?.employeeId === s.employeeId,
+          breakdown: s.breakdown,
+        }))),
+      });
+    }
+  } catch { /* non-fatal */ }
+
   for (const conn of connections || []) {
     const igUserId = conn.ig_user_id;
     let token = conn.access_token;

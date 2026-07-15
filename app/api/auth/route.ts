@@ -6,6 +6,7 @@
 // GET ?token=... → verifies the token and sets the dawn_uid session cookie.
 
 import { NextResponse } from "next/server";
+import { isRateLimited, recordFailedAttempt, clientIp, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import { createMagicToken, consumeMagicToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,20 @@ export async function POST(req: Request) {
   email = email.trim().toLowerCase();
   const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   if (!valid) return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
+
+  // Throttle link generation — every request counts, so a bot can't spam
+  // magic links at an inbox or enumerate emails.
+  const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const sbKey = process.env.SUPABASE_SECRET_KEY;
+  if (sbUrl && sbKey) {
+    const ident = `owner:${email}`;
+    const ipIdent = `ip:${clientIp(req)}`;
+    if (await isRateLimited(sbUrl, sbKey, ident) || await isRateLimited(sbUrl, sbKey, ipIdent)) {
+      return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+    }
+    await recordFailedAttempt(sbUrl, sbKey, ident);
+    await recordFailedAttempt(sbUrl, sbKey, ipIdent);
+  }
 
   const token = await createMagicToken(email);
   if (!token) return NextResponse.json({ error: "Couldn't create sign-in link." }, { status: 500 });

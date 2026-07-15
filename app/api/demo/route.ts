@@ -104,7 +104,7 @@ export async function POST(req: Request) {
       { uid, name: "Ananya Iyer", phone: "9820011223", instagram_handle: "ananya.eats", source: "Instagram DM", stage: "New Lead", employee_id: priya, follow_up_date: daysAhead(1), is_demo: true },
       { uid, name: "Vikram Nair", phone: "9930022114", instagram_handle: "vik.fitness", source: "Instagram DM", stage: "New Lead", employee_id: rahul, is_demo: true },
       { uid, name: "Ishaan Kapoor", phone: "9977001122", source: "Website", stage: "New Lead", employee_id: neha, follow_up_date: daysAhead(2), is_demo: true },
-      { uid, name: "Sneha Kulkarni", phone: "9845566778", source: "Referral", stage: "Contacted", employee_id: priya, follow_up_date: daysAgo(1), is_demo: true },
+      { uid, name: "Sneha Kulkarni", phone: "9845566778", source: "Referral", stage: "Contacted", employee_id: priya, follow_up_date: daysAhead(1), is_demo: true },
       { uid, name: "Arjun Mehta", phone: "9700088990", instagram_handle: "arjun.lifts", source: "WhatsApp", stage: "Contacted", employee_id: rahul, follow_up_date: daysAhead(3), is_demo: true },
       { uid, name: "Divya Rao", phone: "9611223344", source: "Website", stage: "Negotiating", employee_id: priya, follow_up_date: daysAhead(0), is_demo: true },
       { uid, name: "Karan Malhotra", phone: "9555667788", instagram_handle: "karan.wellness", source: "Instagram DM", stage: "Negotiating", employee_id: rahul, is_demo: true },
@@ -164,7 +164,7 @@ export async function POST(req: Request) {
     // 7) TASKS (5 — one overdue, one done)
     await insert(url, key, "tasks", [
       { uid, employee_id: priya, title: "Call Divya about the bundle discount", due_date: daysAhead(0), contact_id: C("Divya Rao").id, done: false, is_demo: true },
-      { uid, employee_id: priya, title: "Collect the pending balance from Meera", due_date: daysAgo(1), contact_id: null, done: false, is_demo: true },
+      { uid, employee_id: priya, title: "Collect the pending balance from Meera", due_date: daysAhead(1), contact_id: null, done: false, is_demo: true },
       { uid, employee_id: rahul, title: "Send the catalogue to Karan", due_date: daysAhead(2), contact_id: null, done: false, is_demo: true },
       { uid, employee_id: rahul, title: "Restock glass bottles", due_date: daysAhead(5), contact_id: null, done: true, is_demo: true },
       { uid, employee_id: neha, title: "Confirm Farah's delivery address", due_date: daysAhead(1), contact_id: null, done: false, is_demo: true },

@@ -3,6 +3,7 @@
 // DELETE → logout. Records login history.
 
 import { NextResponse } from "next/server";
+import { isRateLimited, recordFailedAttempt, clearAttempts, clientIp, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import { verifyPassword } from "@/lib/password";
 import { newSessionToken } from "@/lib/employee-auth";
 
@@ -32,10 +33,20 @@ export async function POST(req: Request) {
     const password = b.password || "";
     if (!loginId || !password) return NextResponse.json({ error: "Enter your login ID and password." }, { status: 400 });
 
+    // Brute-force guard: too many recent failures for this login (or from
+    // this IP) puts the account in a cooling-off window.
+    const ident = `emp:${loginId}`;
+    const ipIdent = `ip:${clientIp(req)}`;
+    if (await isRateLimited(url, key, ident) || await isRateLimited(url, key, ipIdent)) {
+      return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+    }
+
     const acc = (await (await fetch(`${url}/rest/v1/employee_accounts?login_id=eq.${encodeURIComponent(loginId)}&select=*&limit=1`, { headers: H(key), cache: "no-store" })).json())?.[0];
 
     // Constant-ish failure path (avoid leaking whether the id exists)
     if (!acc || !acc.active || !verifyPassword(password, acc.password_hash, acc.password_salt)) {
+      await recordFailedAttempt(url, key, ident);
+      await recordFailedAttempt(url, key, ipIdent);
       if (acc) await recordLogin(url, key, acc.uid, acc.id, loginId, false, req);
       return NextResponse.json({ error: "Incorrect login ID or password." }, { status: 401 });
     }
@@ -51,6 +62,7 @@ export async function POST(req: Request) {
     });
     await recordLogin(url, key, acc.uid, acc.id, loginId, true, req);
 
+    await clearAttempts(url, key, ident);
     const res = NextResponse.json({ ok: true, mustChangePassword: acc.must_change_password });
     res.cookies.set("dawn_emp", token, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 12 });
     return res;

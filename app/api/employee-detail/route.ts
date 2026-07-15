@@ -20,12 +20,13 @@ export async function GET(req: Request) {
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
 
   try {
-    const [empRows, contacts, salesRaw, tasks, expenses] = await Promise.all([
+    const [empRows, contacts, salesRaw, tasks, expenses, scoreRows] = await Promise.all([
       fetch(`${url}/rest/v1/employees?id=eq.${id}&uid=eq.${uid}&select=*&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&employee_id=eq.${id}&select=id,name,phone,stage,follow_up_date&order=created_at.desc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/sales?uid=eq.${uid}&employee_id=eq.${id}&select=id,contact_id,total,amount_paid,balance,status,order_status,date,items&order=date.desc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/tasks?uid=eq.${uid}&employee_id=eq.${id}&select=id,title,due_date,done&order=done.asc,due_date.asc.nullslast`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&source=eq.salary&source_id=eq.${id}&select=amount,date,recurring&order=date.desc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/employee_scores?uid=eq.${uid}&employee_id=eq.${id}&order=month.desc&limit=24`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
     ]);
 
     const emp = empRows?.[0];
@@ -46,8 +47,20 @@ export async function GET(req: Request) {
     const pending = S.reduce((a: number, s: any) => a + (Number(s.balance) || 0), 0);
     const today = new Date().toISOString().slice(0, 10);
 
+    const history = Array.isArray(scoreRows) ? scoreRows : [];
+    const thisYear = String(new Date().getFullYear());
+    const yearRows = history.filter((r: any) => r.month.startsWith(thisYear));
+    const yearSummary = yearRows.length > 0 ? {
+      months: yearRows.length,
+      avgScore: Math.round(yearRows.reduce((a: number, r: any) => a + r.score, 0) / yearRows.length),
+      timesTop: yearRows.filter((r: any) => r.is_top).length,
+      bestMonth: yearRows.reduce((b: any, r: any) => (r.score > (b?.score ?? -1) ? r : b), null)?.month || null,
+    } : null;
+
     return NextResponse.json({
       employee: emp,
+      scoreHistory: history,
+      yearSummary,
       stats: {
         openLeads: C.filter((c: any) => OPEN.includes(c.stage)).length,
         customers: won,
