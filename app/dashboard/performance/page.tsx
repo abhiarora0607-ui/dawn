@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { DashboardShell } from "@/components/DashboardShell";
 import { useSettings, money as fmtMoney } from "@/lib/use-settings";
 import { Loader2, TrendingUp, Users, ShoppingBag, Trophy, Percent, Clock } from "lucide-react";
@@ -92,7 +93,7 @@ export default function PerformancePage() {
                       <td className="px-4 py-3 font-medium text-navy">
                         <span className="inline-flex items-center gap-2">
                           {i === 0 && r.revenue > 0 && <Trophy className="w-3.5 h-3.5 text-amber-deep" />}
-                          {r.name}
+                          <Link href={`/dashboard/employees/${r.id}`} className="hover:text-amber-deep hover:underline">{r.name}</Link>
                           {r.status !== "active" && <span className="text-[10px] text-muted">(inactive)</span>}
                         </span>
                       </td>
@@ -113,7 +114,7 @@ export default function PerformancePage() {
               {rows.map((r, i) => (
                 <div key={r.id} className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="inline-flex items-center gap-2 font-semibold text-navy">{i === 0 && r.revenue > 0 && <Trophy className="w-4 h-4 text-amber-deep" />}{r.name}</span>
+                    <span className="inline-flex items-center gap-2 font-semibold text-navy">{i === 0 && r.revenue > 0 && <Trophy className="w-4 h-4 text-amber-deep" />}<Link href={`/dashboard/employees/${r.id}`} className="hover:text-amber-deep hover:underline">{r.name}</Link></span>
                     <span className="font-bold text-navy">{money(r.revenue)}</span>
                   </div>
                   <div className="grid grid-cols-4 gap-2 text-center">

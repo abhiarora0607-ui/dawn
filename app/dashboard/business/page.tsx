@@ -150,7 +150,7 @@ export default function BusinessDashboard() {
                   <tbody>
                     {t.all.map((e: any) => (
                       <tr key={e.id} className="border-b border-navy-line/60 last:border-0">
-                        <td className="px-4 py-3 font-medium text-navy whitespace-nowrap">{e.name}</td>
+                        <td className="px-4 py-3 font-medium text-navy whitespace-nowrap"><Link href={`/dashboard/employees/${e.id}`} className="hover:text-amber-deep hover:underline">{e.name}</Link></td>
                         <td className="px-4 py-3 text-navy">{money(e.revenue, currency)}</td>
                         <td className="px-4 py-3 text-navy">{e.leads}</td>
                         <td className="px-4 py-3 text-navy">{e.won}</td>

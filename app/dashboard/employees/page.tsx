@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
@@ -119,7 +120,7 @@ function EmployeesInner() {
               <div key={e.id} className={`bg-white rounded-xl border p-4 shadow-card flex items-center justify-between gap-3 ${e.is_owner ? "border-amber/40" : "border-navy-line"}`}>
                 <div className="min-w-0">
                   <p className="font-semibold text-navy text-sm flex items-center gap-1.5">
-                    {e.name}
+                    <Link href={`/dashboard/employees/${e.id}`} className="hover:text-amber-deep hover:underline">{e.name}</Link>
                     {e.is_owner && <span className="text-[9px] font-bold uppercase bg-amber/15 text-amber-deep px-1.5 py-0.5 rounded">You</span>}
                   </p>
                   <p className="text-xs text-muted">{e.is_owner ? "Default assignee — can't be removed" : `${currency}${e.monthly_salary}/mo`}</p>
