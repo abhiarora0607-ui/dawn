@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getUid } from "@/lib/auth";
 import { cleanName, cleanPhone, cleanEmail } from "@/lib/validate";
 import { ensureOwnerEmployee } from "@/lib/owner-employee";
+import { touchActive } from "@/lib/touch";
 import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ export async function GET(req: Request) {
   if (!uid || !url || !key) return NextResponse.json({ contacts: [], authed: !!uid });
   const check = new URL(req.url).searchParams.get("check"); // duplicate check: phone or handle
   try {
+    if (!check) await touchActive(url, key, uid); // real page load = business is active
     if (check) {
       const safe = String(check).replace(/[*(),\\]/g, "").slice(0, 60);
       const enc = encodeURIComponent(safe);

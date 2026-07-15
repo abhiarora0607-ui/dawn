@@ -5,6 +5,7 @@
 
 import { NextResponse } from "next/server";
 import { getUid } from "@/lib/auth";
+import { touchActive } from "@/lib/touch";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SECRET_KEY }; }
@@ -57,6 +58,7 @@ export async function GET(req: Request) {
   const { from, to, prevFrom, prevTo, label } = resolveRange(range, p.get("from"), p.get("to"));
 
   try {
+    await touchActive(url, key, uid);
     const [salesRaw, expenses, contacts, items] = await Promise.all([
       fetch(`${url}/rest/v1/sales?uid=eq.${uid}&select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),

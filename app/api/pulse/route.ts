@@ -7,6 +7,7 @@
 
 import { NextResponse } from "next/server";
 import { getUid } from "@/lib/auth";
+import { touchActive } from "@/lib/touch";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL!, key: process.env.SUPABASE_SECRET_KEY! }; }
@@ -28,6 +29,7 @@ export async function GET() {
   if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
 
   try {
+    await touchActive(url, key, uid);
     const [contacts, sales, expenses, employees, tasks, activities] = await Promise.all([
       fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&select=id,name,phone,stage,employee_id,follow_up_date,created_at,instagram_handle,source`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/sales?uid=eq.${uid}&select=id,contact_id,employee_id,total,amount_paid,balance,status,order_status,date,items`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
