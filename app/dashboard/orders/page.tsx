@@ -9,7 +9,7 @@ import { OrderModal } from "@/components/OrderModal";
 import { PaymentModal } from "@/components/SharedModals";
 import { ConfirmDialog } from "@/components/Toast";
 import { useSettings, money } from "@/lib/use-settings";
-import { Loader2, Plus, Receipt, ShoppingBag, Search, Trash2, Truck } from "lucide-react";
+import { Loader2, Plus, Receipt, ShoppingBag, Search, Trash2, Truck, Ban, X } from "lucide-react";
 
 const ORDER_STATUSES = ["Placed", "Processing", "Shipped", "Delivered"];
 const statusStyle: Record<string, string> = {
@@ -28,6 +28,7 @@ function OrdersInner() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
   const [payFor, setPayFor] = useState<any>(null);
+  const [cancelFor, setCancelFor] = useState<any>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
@@ -99,11 +100,13 @@ function OrdersInner() {
           </div>
         ) : (
           <div className="grid gap-2">
-            {filtered.map((o) => (
-              <div key={o.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card">
+            {filtered.map((o) => {
+              const cancelled = o.order_status === "Cancelled";
+              return (
+              <div key={o.id} className={`bg-white rounded-xl border p-4 shadow-card ${cancelled ? "border-navy-line/60 opacity-70" : "border-navy-line"}`}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-semibold text-navy text-sm">
+                    <p className={`font-semibold text-navy text-sm ${cancelled ? "line-through" : ""}`}>
                       {o.contact_id ? (
                         <Link href={`/dashboard/contacts/${o.contact_id}`} className="hover:text-amber-deep hover:underline">{customers[o.contact_id] || "Customer"}</Link>
                       ) : "Walk-in"}
@@ -111,13 +114,16 @@ function OrdersInner() {
                     </p>
                     <p className="text-xs text-muted truncate">{(o.items || []).map((it: any) => `${it.qty}× ${it.name}`).join(", ")}</p>
                     <p className="text-xs text-muted mt-0.5">{new Date(o.date).toLocaleDateString()} · {o.payment_method}{o.fixed_cost > 0 ? ` · cost ${money(Number(o.fixed_cost), currency)}` : ""}</p>
+                    {cancelled && o.cancel_reason && <p className="text-xs text-red-500 mt-1">Cancelled — {o.cancel_reason}{o.payment_disposition && o.payment_disposition !== "none" ? ` (payment ${o.payment_disposition})` : ""}</p>}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${o.status === "paid" ? "bg-emerald-50 text-emerald-700" : o.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{o.status}</span>
+                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${cancelled ? "bg-navy/10 text-navy/50" : o.status === "paid" ? "bg-emerald-50 text-emerald-700" : o.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{cancelled ? "Cancelled" : o.status}</span>
                     <a href={`/receipt/${o.id}?owner=1`} target="_blank" className="p-1.5 text-navy/40 hover:text-navy" title="Receipt"><Receipt className="w-4 h-4" /></a>
-                    <button onClick={() => setConfirmDel(o.id)} className="p-1.5 text-navy/40 hover:text-red-500" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                    {!cancelled && <button onClick={() => setCancelFor(o)} className="p-1.5 text-navy/40 hover:text-amber-deep" title="Cancel order"><Ban className="w-4 h-4" /></button>}
+                    <button onClick={() => setConfirmDel(o.id)} className="p-1.5 text-navy/40 hover:text-red-500" title="Delete permanently"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
+                {!cancelled && <>
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t border-navy-line">
                   <Truck className="w-3.5 h-3.5 text-navy/40" />
                   <div className="flex gap-1 flex-wrap">
@@ -132,8 +138,10 @@ function OrdersInner() {
                     <button onClick={() => setPayFor(o)} className="text-[11px] font-semibold text-white bg-amber-deep px-2.5 py-1 rounded-lg hover:opacity-90">Record payment</button>
                   </div>
                 )}
+                </>}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -151,7 +159,8 @@ function OrdersInner() {
           }}
         />
       )}
-      <ConfirmDialog open={!!confirmDel} title="Delete this order?" body="This also removes its linked cost expense. Can't be undone." onConfirm={doDelete} onCancel={() => setConfirmDel(null)} />
+      {cancelFor && <CancelOrderModal order={cancelFor} currency={currency} onClose={() => setCancelFor(null)} onDone={() => { setCancelFor(null); toast("Order cancelled"); load(); }} />}
+      <ConfirmDialog open={!!confirmDel} title="Delete this order permanently?" body="Delete erases the order and its cost expense with no record. To keep a record, use Cancel instead. Can't be undone." confirmLabel="Delete" onConfirm={doDelete} onCancel={() => setConfirmDel(null)} />
       <ConfirmDialog open={!!pendingStatus} title="Update order status?" body={pendingStatus ? `Mark this order as "${pendingStatus.status}"?` : ""} confirmLabel="Update" onConfirm={() => pendingStatus && setOrderStatus(pendingStatus.id, pendingStatus.status)} onCancel={() => setPendingStatus(null)} />
     </DashboardShell>
   );
@@ -159,4 +168,59 @@ function OrdersInner() {
 
 export default function Orders() {
   return <ToastProvider><OrdersInner /></ToastProvider>;
+}
+
+function CancelOrderModal({ order, currency, onClose, onDone }: { order: any; currency: string; onClose: () => void; onDone: () => void }) {
+  const paid = Number(order.amount_paid) || 0;
+  const [reason, setReason] = useState("");
+  const [disposition, setDisposition] = useState<"refunded" | "retained" | "">("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function submit() {
+    setErr("");
+    if (!reason.trim()) { setErr("A reason is required."); return; }
+    if (paid > 0 && !disposition) { setErr("Choose what happened to the payment."); return; }
+    setBusy(true);
+    const res = await fetch("/api/sales", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: order.id, cancel: true, cancelReason: reason.trim(), disposition: disposition || undefined }),
+    });
+    if (res.ok) onDone();
+    else { const d = await res.json().catch(() => ({})); setErr(d.error || "Couldn't cancel."); setBusy(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-6">
+      <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm p-5 animate-rise max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-navy flex items-center gap-1.5"><Ban className="w-4 h-4 text-amber-deep" /> Cancel order</h3>
+          <button onClick={onClose} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
+        </div>
+        <p className="text-sm text-muted mb-3">The order stays on record, marked cancelled. Its cost is reversed and it leaves your revenue and reports.</p>
+
+        <textarea autoFocus value={reason} onChange={(e) => { setReason(e.target.value); setErr(""); }} rows={2} placeholder="Why is this being cancelled? (required)" className="w-full px-3 py-2.5 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber resize-none" />
+
+        {paid > 0 && (
+          <div className="mt-3">
+            <p className="text-xs font-semibold text-navy mb-2">{currency}{paid} was already paid. What happened to it?</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => { setDisposition("refunded"); setErr(""); }} className={`text-xs font-medium py-2.5 rounded-xl border ${disposition === "refunded" ? "border-amber bg-amber/5 text-navy" : "border-navy-line text-navy/60"}`}>Refunded<br /><span className="text-[10px] font-normal">money returned</span></button>
+              <button onClick={() => { setDisposition("retained"); setErr(""); }} className={`text-xs font-medium py-2.5 rounded-xl border ${disposition === "retained" ? "border-amber bg-amber/5 text-navy" : "border-navy-line text-navy/60"}`}>Retained<br /><span className="text-[10px] font-normal">kept as credit</span></button>
+            </div>
+            <p className="text-[11px] text-muted mt-1.5">{disposition === "refunded" ? "A refund expense will be logged and revenue reduced." : disposition === "retained" ? "The payment stays counted as revenue." : ""}</p>
+          </div>
+        )}
+
+        {err && <p className="text-sm text-red-600 mt-2">{err}</p>}
+        <div className="flex gap-2 mt-4">
+          <button onClick={onClose} className="flex-1 border border-navy-line text-navy font-medium py-2.5 rounded-xl hover:bg-surface">Keep order</button>
+          <button onClick={submit} disabled={busy} className="flex-1 flex items-center justify-center gap-2 bg-red-600 text-white font-medium py-2.5 rounded-xl hover:bg-red-700 disabled:opacity-60">
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Cancel order
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

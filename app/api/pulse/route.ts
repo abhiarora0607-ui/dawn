@@ -38,7 +38,7 @@ export async function GET() {
     ]);
 
     const C = Array.isArray(contacts) ? contacts : [];
-    const S = Array.isArray(sales) ? sales : [];
+    const S = (Array.isArray(sales) ? sales : []).filter((s: any) => s.order_status !== "Cancelled");
     const E = Array.isArray(expenses) ? expenses : [];
     const EMP = Array.isArray(employees) ? employees : [];
     const T = Array.isArray(tasks) ? tasks : [];

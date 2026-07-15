@@ -88,6 +88,8 @@ export async function PATCH(req: Request) {
     if (!owned) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
     if (b.orderStatus) {
+      // Cancelling reverses money and cost — admin-only. Employees can't.
+      if (b.orderStatus === "Cancelled") return NextResponse.json({ error: "Only an admin can cancel an order." }, { status: 403 });
       await fetch(`${url}/rest/v1/sales?id=eq.${b.id}&uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}`, { method: "PATCH", headers: empHeaders(key, { Prefer: "return=minimal" }), body: JSON.stringify({ order_status: b.orderStatus }) });
       await audit({ uid: ctx.uid, actor: ctx.employeeId, actorType: "employee", action: "order.status", entity: "sales", entityId: b.id, meta: { status: b.orderStatus } });
       return NextResponse.json({ ok: true });

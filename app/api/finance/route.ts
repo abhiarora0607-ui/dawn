@@ -22,7 +22,7 @@ export async function GET() {
       fetch(`${url}/rest/v1/catalog_items?uid=eq.${uid}&select=id,name,price,cost,type,is_active`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
     ]);
 
-    const S = Array.isArray(sales) ? sales : [];
+    const S = (Array.isArray(sales) ? sales : []).filter((s: any) => s.order_status !== "Cancelled");
     const E = Array.isArray(expenses) ? expenses : [];
     const C = Array.isArray(contacts) ? contacts : [];
 

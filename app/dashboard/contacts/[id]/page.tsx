@@ -89,12 +89,12 @@ function ProfileInner() {
   if (!contact) return <DashboardShell><DashTopbar account={data?.account} pageTitle="Contact" /><div className="p-12 text-center text-muted">Contact not found.</div></DashboardShell>;
 
   const wa = (contact.phone || "").replace(/[^0-9]/g, "");
-  // Real lifetime value is money COLLECTED, not money invoiced. Splitting it
-  // out keeps the customer's true worth honest and surfaces what they still owe.
-  const collected = sales.reduce((s, x) => s + (Number(x.amount_paid) || 0), 0);
-  const ordered = sales.reduce((s, x) => s + (Number(x.total) || 0), 0);
-  const outstanding = sales.reduce((s, x) => s + (Number(x.balance) || 0), 0);
-  const orderDates = sales.map((x) => new Date(x.date).getTime()).filter((n) => !isNaN(n));
+  // Cancelled orders don't count toward what the customer is worth.
+  const liveSales = sales.filter((x: any) => x.order_status !== "Cancelled");
+  const collected = liveSales.reduce((s, x) => s + (Number(x.amount_paid) || 0), 0);
+  const ordered = liveSales.reduce((s, x) => s + (Number(x.total) || 0), 0);
+  const outstanding = liveSales.reduce((s, x) => s + (Number(x.balance) || 0), 0);
+  const orderDates = liveSales.map((x) => new Date(x.date).getTime()).filter((n) => !isNaN(n));
   const firstOrder = orderDates.length ? new Date(Math.min(...orderDates)) : null;
   const lastOrder = orderDates.length ? new Date(Math.max(...orderDates)) : null;
 
@@ -173,17 +173,18 @@ function ProfileInner() {
                   const items = Array.isArray(o.items) ? o.items : [];
                   const itemLabel = items.length === 0 ? "—" : items.length === 1 ? (items[0].name || "1 item") : `${items.length} items`;
                   const bal = Number(o.balance) || 0;
+                  const cancelled = o.order_status === "Cancelled";
                   return (
                     <Link key={o.id} href={`/dashboard/orders?highlight=${o.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-surface">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-navy truncate">{itemLabel}</p>
-                        <p className="text-[11px] text-muted">{new Date(o.date).toLocaleDateString()} · {o.order_status || "Placed"}</p>
+                        <p className={`text-sm font-medium text-navy truncate ${cancelled ? "line-through opacity-60" : ""}`}>{itemLabel}</p>
+                        <p className="text-[11px] text-muted">{new Date(o.date).toLocaleDateString()} · {cancelled ? "Cancelled" : (o.order_status || "Placed")}</p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-sm font-semibold text-navy">{currency}{o.total}</p>
-                        <p className={`text-[10px] font-bold uppercase ${o.status === "paid" ? "text-emerald-600" : o.status === "partial" ? "text-amber-deep" : "text-red-500"}`}>
+                        <p className={`text-sm font-semibold text-navy ${cancelled ? "line-through opacity-60" : ""}`}>{currency}{o.total}</p>
+                        {!cancelled && <p className={`text-[10px] font-bold uppercase ${o.status === "paid" ? "text-emerald-600" : o.status === "partial" ? "text-amber-deep" : "text-red-500"}`}>
                           {o.status === "paid" ? "Paid" : `${currency}${bal} due`}
-                        </p>
+                        </p>}
                       </div>
                     </Link>
                   );

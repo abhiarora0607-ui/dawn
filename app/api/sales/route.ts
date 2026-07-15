@@ -38,12 +38,58 @@ export async function PATCH(req: Request) {
     const b = await req.json();
     if (!b.id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
 
-    // Order status update
-    if (b.orderStatus) {
+    // Order status update — but "Cancelled" is a special, guarded transition.
+    if (b.orderStatus && b.orderStatus !== "Cancelled") {
       await fetch(`${url}/rest/v1/sales?id=eq.${b.id}&uid=eq.${uid}`, {
         method: "PATCH", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify({ order_status: b.orderStatus }),
       });
       return NextResponse.json({ ok: true });
+    }
+
+    // ------------------------------------------------------------- CANCEL
+    // Admin-only (this route is the owner API), reason required, and any money
+    // already paid must be explicitly reconciled — refunded or retained.
+    if (b.cancel) {
+      const reason = (b.cancelReason || "").trim();
+      if (!reason) return NextResponse.json({ error: "A reason is required to cancel an order." }, { status: 400 });
+      const s = (await (await fetch(`${url}/rest/v1/sales?id=eq.${b.id}&uid=eq.${uid}&select=*&limit=1`, { headers: H(key), cache: "no-store" })).json())?.[0];
+      if (!s) return NextResponse.json({ error: "Not found." }, { status: 404 });
+      if (s.order_status === "Cancelled") return NextResponse.json({ error: "This order is already cancelled." }, { status: 400 });
+
+      const paid = Number(s.amount_paid) || 0;
+      let disposition = "none";
+      const patch: any = { order_status: "Cancelled", cancel_reason: reason.slice(0, 500), cancelled_at: new Date().toISOString(), balance: 0 };
+
+      if (paid > 0) {
+        // Money changed hands — the admin must say what happened to it.
+        if (b.disposition !== "refunded" && b.disposition !== "retained") {
+          return NextResponse.json({ error: "This order has payments. Choose whether they were refunded or retained.", needsDisposition: true, paid }, { status: 400 });
+        }
+        disposition = b.disposition;
+        if (disposition === "refunded") {
+          // Revenue reverses: log a refund expense and zero the collected amount.
+          await fetch(`${url}/rest/v1/expenses`, {
+            method: "POST", headers: H(key, { Prefer: "return=minimal" }),
+            body: JSON.stringify({ uid, date: new Date().toISOString().slice(0, 10), category: "Refund", amount: paid, note: `Refund for cancelled order #${String(s.id).slice(0, 8)}`, source: "refund", source_id: s.id }),
+          });
+        }
+        // "retained" keeps amount_paid as-is (kept as credit/deposit).
+      }
+      patch.payment_disposition = disposition;
+
+      // Reverse the cost of goods — you didn't incur the cost of a cancelled sale.
+      await fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&source=eq.order&source_id=eq.${s.id}`, { method: "DELETE", headers: H(key) });
+
+      await fetch(`${url}/rest/v1/sales?id=eq.${b.id}&uid=eq.${uid}`, { method: "PATCH", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify(patch) });
+
+      if (s.contact_id) {
+        await fetch(`${url}/rest/v1/activities`, {
+          method: "POST", headers: H(key, { Prefer: "return=minimal" }),
+          body: JSON.stringify({ uid, contact_id: s.contact_id, type: "note", content: `Order cancelled — ${reason.slice(0, 300)}${paid > 0 ? ` (payment ${disposition})` : ""}` }),
+        });
+      }
+      await audit({ uid, action: "order.cancel", entity: "sales", entityId: s.id, meta: { reason, disposition, paid } });
+      return NextResponse.json({ ok: true, disposition });
     }
 
     // Add payment

@@ -36,7 +36,7 @@ export async function GET(req: Request) {
 
     const E = Array.isArray(employees) ? employees : [];
     const C = Array.isArray(contacts) ? contacts : [];
-    const S = Array.isArray(sales) ? sales : [];
+    const S = (Array.isArray(sales) ? sales : []).filter((s: any) => s.order_status !== "Cancelled");
 
     const rows = E.map((emp: any) => {
       const myContacts = C.filter((c: any) => c.employee_id === emp.id && inWindow(c.created_at, win));
