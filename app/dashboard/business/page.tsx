@@ -18,8 +18,12 @@ export default function BusinessDashboard() {
   const [loading, setLoading] = useState(true);
   const { currency } = useSettings();
 
+  const [sc, setSc] = useState<any>(null);
   useEffect(() => {
-    fetch("/api/pulse").then((r) => r.json()).then((res) => { setD(res); setLoading(false); }).catch(() => setLoading(false));
+    Promise.all([
+      fetch("/api/pulse").then((r) => r.json()),
+      fetch("/api/scores").then((r) => r.json()),
+    ]).then(([res, scores]) => { setD(res); setSc(scores); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
   if (loading) return <DashboardShell><DashTopbar pageTitle="Business" /><div className="p-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div></DashboardShell>;
@@ -119,21 +123,21 @@ export default function BusinessDashboard() {
             </div>
 
             <div className="grid sm:grid-cols-2 gap-3 mb-3">
-              {t.topPerformer && (
-                <div className="bg-navy rounded-2xl p-5 text-white">
-                  <p className="text-[10px] uppercase tracking-wide text-white/50 flex items-center gap-1.5 mb-1"><Trophy className="w-3.5 h-3.5 text-amber" /> Top performer</p>
-                  <p className="text-lg font-semibold">{t.topPerformer.name}</p>
-                  <p className="text-sm text-amber font-bold">{money(t.topPerformer.revenue, currency)} collected</p>
-                  <p className="text-xs text-white/50 mt-1">{t.topPerformer.won} won · {t.topPerformer.conversion != null ? `${t.topPerformer.conversion}% close rate` : "no closed deals yet"}</p>
-                </div>
+              {sc?.top && (
+                <Link href={`/dashboard/employees/${sc.top.employeeId}`} className="block bg-navy rounded-2xl p-5 text-white hover:opacity-95">
+                  <p className="text-[10px] uppercase tracking-wide text-white/50 flex items-center gap-1.5 mb-1"><Trophy className="w-3.5 h-3.5 text-amber" /> Top performer · {sc.month}</p>
+                  <p className="text-lg font-semibold">{sc.top.name}</p>
+                  <p className="text-sm text-amber font-bold">Score {sc.top.score}/100</p>
+                  <p className="text-xs text-white/50 mt-1">{money(sc.top.breakdown?.revenue || 0, currency)} collected · {sc.top.breakdown?.won || 0} won this month</p>
+                </Link>
               )}
-              {t.needsAttention && (t.needsAttention.stale + t.needsAttention.overdue) > 0 && (
-                <div className="bg-white rounded-2xl border border-red-200 p-5">
-                  <p className="text-[10px] uppercase tracking-wide text-red-500 flex items-center gap-1.5 mb-1"><AlertTriangle className="w-3.5 h-3.5" /> Falling behind</p>
-                  <p className="text-lg font-semibold text-navy">{t.needsAttention.name}</p>
-                  <p className="text-sm text-red-600 font-medium">{t.needsAttention.stale + t.needsAttention.overdue} items neglected</p>
-                  <p className="text-xs text-muted mt-1">{t.needsAttention.stale} cold lead(s) · {t.needsAttention.overdue} overdue</p>
-                </div>
+              {sc?.bottom && (
+                <Link href={`/dashboard/employees/${sc.bottom.employeeId}`} className="block bg-white rounded-2xl border border-red-200 p-5 hover:bg-red-50/30">
+                  <p className="text-[10px] uppercase tracking-wide text-red-500 flex items-center gap-1.5 mb-1"><AlertTriangle className="w-3.5 h-3.5" /> Needs support</p>
+                  <p className="text-lg font-semibold text-navy">{sc.bottom.name}</p>
+                  <p className="text-sm text-red-600 font-medium">Score {sc.bottom.score}/100</p>
+                  <p className="text-xs text-muted mt-1">{sc.bottom.breakdown?.coldLeads || 0} cold lead(s) · {(sc.bottom.breakdown?.overdueFollowUps || 0) + (sc.bottom.breakdown?.overdueTasks || 0)} overdue</p>
+                </Link>
               )}
             </div>
 
@@ -142,7 +146,7 @@ export default function BusinessDashboard() {
                 <table className="w-full text-sm">
                   <thead className="bg-surface border-b border-navy-line">
                     <tr>
-                      {["Person", "Collected", "Open leads", "Won", "Close rate", "Cold", "Overdue"].map((h) => (
+                      {["Person", "Score", "Collected", "Open leads", "Won", "Close rate", "Cold", "Overdue"].map((h) => (
                         <th key={h} className="text-left font-semibold text-navy/70 text-[11px] uppercase tracking-wide px-4 py-2.5 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -151,6 +155,7 @@ export default function BusinessDashboard() {
                     {t.all.map((e: any) => (
                       <tr key={e.id} className="border-b border-navy-line/60 last:border-0">
                         <td className="px-4 py-3 font-medium text-navy whitespace-nowrap"><Link href={`/dashboard/employees/${e.id}`} className="hover:text-amber-deep hover:underline">{e.name}</Link></td>
+                        <td className="px-4 py-3">{(() => { const row = sc?.scores?.find((x: any) => x.employeeId === e.id); if (!row) return <span className="text-navy/30">—</span>; if (row.tooNew) return <span className="text-[10px] text-muted">too new</span>; if (!row.eligible) return <span className="text-navy/30">—</span>; return <span className={`font-bold ${row.score >= 70 ? "text-emerald-600" : row.score >= 40 ? "text-navy" : "text-red-600"}`}>{row.score}</span>; })()}</td>
                         <td className="px-4 py-3 text-navy">{money(e.revenue, currency)}</td>
                         <td className="px-4 py-3 text-navy">{e.leads}</td>
                         <td className="px-4 py-3 text-navy">{e.won}</td>

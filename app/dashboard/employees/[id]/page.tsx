@@ -22,8 +22,16 @@ export default function EmployeeHub() {
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const [live, setLive] = useState<any>(null);
   useEffect(() => {
-    fetch(`/api/employee-detail?id=${id}`).then((r) => r.json()).then((res) => { setD(res); setLoading(false); }).catch(() => setLoading(false));
+    Promise.all([
+      fetch(`/api/employee-detail?id=${id}`).then((r) => r.json()),
+      fetch("/api/scores").then((r) => r.json()).catch(() => null),
+    ]).then(([res, sc]) => {
+      setD(res);
+      setLive(sc?.scores?.find((x: any) => x.employeeId === id) || null);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, [id]);
 
   if (loading) return <DashboardShell><DashTopbar pageTitle="Employee" /><div className="p-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div></DashboardShell>;
@@ -63,6 +71,28 @@ export default function EmployeeHub() {
           <Stat label="Customers" value={String(s.customers)} icon={Users} />
           <Stat label="Close rate" value={s.conversion != null ? `${s.conversion}%` : "—"} icon={TrendingUp} />
         </div>
+        {live && (live.eligible || live.tooNew) && (
+          <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold text-navy">This month&apos;s score</p>
+              {live.tooNew ? <span className="text-xs text-muted">too new to score</span>
+                : <span className={`text-2xl font-bold ${live.score >= 70 ? "text-emerald-600" : live.score >= 40 ? "text-navy" : "text-red-600"}`}>{live.score}<span className="text-sm font-normal text-muted">/100</span></span>}
+            </div>
+            {!live.tooNew && live.breakdown && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
+                <span>Revenue +{live.breakdown.revenuePts}</span>
+                <span>Close rate +{live.breakdown.closeRatePts}</span>
+                <span>Won +{live.breakdown.wonPts}</span>
+                <span>Delivered +{live.breakdown.deliveredPts}</span>
+                <span>Tasks +{live.breakdown.tasksPts}</span>
+                {live.breakdown.coldPenalty > 0 && <span className="text-red-500">Cold leads −{live.breakdown.coldPenalty}</span>}
+                {live.breakdown.overdueFollowUpPenalty > 0 && <span className="text-red-500">Overdue follow-ups −{live.breakdown.overdueFollowUpPenalty}</span>}
+                {live.breakdown.overdueTaskPenalty > 0 && <span className="text-red-500">Overdue tasks −{live.breakdown.overdueTaskPenalty}</span>}
+              </div>
+            )}
+          </div>
+        )}
+
         {(s.overdueFollowUps > 0 || s.pending > 0) && (
           <div className="flex flex-wrap gap-3">
             {s.overdueFollowUps > 0 && <span className="text-xs font-medium text-red-600 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> {s.overdueFollowUps} overdue follow-up(s)</span>}
@@ -115,6 +145,29 @@ export default function EmployeeHub() {
             );
           })}
         </Section>
+
+        {/* Related: score history (the permanent monthly record) */}
+        {d.scoreHistory?.length > 0 && (
+          <Section title="Score history" count={d.scoreHistory.length} icon={TrendingUp}>
+            {d.yearSummary && (
+              <p className="px-4 pb-2 text-[11px] text-muted">
+                This year: avg <span className="font-semibold text-navy">{d.yearSummary.avgScore}</span> over {d.yearSummary.months} month(s)
+                {d.yearSummary.timesTop > 0 ? <> · top performer <span className="font-semibold text-navy">{d.yearSummary.timesTop}×</span></> : null}
+                {d.yearSummary.bestMonth ? <> · best month {d.yearSummary.bestMonth}</> : null}
+              </p>
+            )}
+            {d.scoreHistory.map((r: any) => (
+              <div key={r.month} className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-navy-line/40 last:border-0">
+                <p className="text-sm text-navy flex items-center gap-2">
+                  {r.month}
+                  {r.is_top && <span className="text-[9px] font-bold uppercase bg-amber/15 text-amber-deep px-1.5 py-0.5 rounded">top</span>}
+                  {r.is_bottom && <span className="text-[9px] font-bold uppercase bg-red-50 text-red-600 px-1.5 py-0.5 rounded">needs support</span>}
+                </p>
+                <span className="text-sm font-semibold text-navy">{r.score}/100{r.rank ? <span className="text-[10px] font-normal text-muted"> · #{r.rank}</span> : null}</span>
+              </div>
+            ))}
+          </Section>
+        )}
 
         {/* Related: salary history */}
         {!e.is_owner && (

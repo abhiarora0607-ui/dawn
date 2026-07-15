@@ -20,11 +20,17 @@ export default function PerformancePage() {
   const [win, setWin] = useState("month");
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sc, setSc] = useState<any>(null);
+  const [scoreMonth, setScoreMonth] = useState<string>("");  // "" = live current month
 
   useEffect(() => {
     setLoading(true);
     fetch(`/api/employee-performance?window=${win}`).then((r) => r.json()).then((d) => { setRows(d.employees || []); setLoading(false); }).catch(() => setLoading(false));
   }, [win]);
+  useEffect(() => {
+    fetch(`/api/scores${scoreMonth ? `?month=${scoreMonth}` : ""}`).then((r) => r.json()).then(setSc).catch(() => {});
+  }, [scoreMonth]);
+  const scoreFor = (id: string) => sc?.scores?.find((x: any) => x.employeeId === id);
 
   const totals = rows.reduce((a, r) => ({
     revenue: a.revenue + r.revenue, orders: a.orders + r.orders,
@@ -65,6 +71,33 @@ export default function PerformancePage() {
               <TotalCard label="Leads" value={String(totals.leads)} icon={Users} />
               <TotalCard label="Customers" value={String(totals.customers)} icon={Users} />
             </div>
+
+            {/* Monthly score ranking — the official record */}
+            {sc?.scores?.length > 0 && (
+              <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+                <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                  <p className="text-sm font-semibold text-navy">Monthly score {sc.live ? "(live)" : "(final)"} · {sc.month}</p>
+                  <select value={scoreMonth} onChange={(e) => setScoreMonth(e.target.value)} className="text-xs px-2 py-1.5 rounded-lg border border-navy-line text-navy bg-white">
+                    <option value="">This month (live)</option>
+                    {(sc.frozenMonths || []).map((m: string) => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  {sc.scores.map((row: any) => (
+                    <Link key={row.employeeId} href={`/dashboard/employees/${row.employeeId}`} className="flex items-center justify-between gap-2 py-1.5 border-b border-navy-line/40 last:border-0 hover:bg-surface px-1 rounded">
+                      <span className="text-sm text-navy flex items-center gap-2 min-w-0">
+                        <span className="text-[10px] font-bold text-muted w-4 shrink-0">{row.rank ?? "—"}</span>
+                        <span className="truncate">{row.name}</span>
+                        {(row.isTop || sc.top?.employeeId === row.employeeId) && <Trophy className="w-3.5 h-3.5 text-amber-deep shrink-0" />}
+                        {(row.isBottom || sc.bottom?.employeeId === row.employeeId) && <span className="text-[9px] font-bold uppercase bg-red-50 text-red-600 px-1.5 py-0.5 rounded shrink-0">needs support</span>}
+                        {row.tooNew && <span className="text-[9px] text-muted shrink-0">too new to score</span>}
+                      </span>
+                      <span className={`text-sm font-bold shrink-0 ${row.score >= 70 ? "text-emerald-600" : row.score >= 40 ? "text-navy" : "text-red-600"}`}>{row.eligible || row.rank != null ? `${row.score}/100` : "—"}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {topRevenue && topRevenue.revenue > 0 && (
               <div className="bg-gradient-to-r from-amber/15 to-transparent border border-amber/30 rounded-2xl p-4 flex items-center gap-3">

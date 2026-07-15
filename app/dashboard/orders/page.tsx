@@ -118,7 +118,7 @@ function OrdersInner() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${cancelled ? "bg-navy/10 text-navy/50" : o.status === "paid" ? "bg-emerald-50 text-emerald-700" : o.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{cancelled ? "Cancelled" : o.status}</span>
-                    <a href={`/receipt/${o.id}?owner=1`} target="_blank" className="p-1.5 text-navy/40 hover:text-navy" title="Receipt"><Receipt className="w-4 h-4" /></a>
+                    <a href={`/receipt/${o.share_token || o.id}?owner=1`} target="_blank" className="p-1.5 text-navy/40 hover:text-navy" title="Receipt"><Receipt className="w-4 h-4" /></a>
                     {!cancelled && <button onClick={() => setCancelFor(o)} className="p-1.5 text-navy/40 hover:text-amber-deep" title="Cancel order"><Ban className="w-4 h-4" /></button>}
                     <button onClick={() => setConfirmDel(o.id)} className="p-1.5 text-navy/40 hover:text-red-500" title="Delete permanently"><Trash2 className="w-4 h-4" /></button>
                   </div>
