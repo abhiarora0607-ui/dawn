@@ -15,18 +15,26 @@ export async function GET() {
   if (!uid || !url || !key) return NextResponse.json({ available: false });
 
   try {
-    const [sales, expenses, contacts] = await Promise.all([
+    const [sales, expenses, contacts, items] = await Promise.all([
       fetch(`${url}/rest/v1/sales?uid=eq.${uid}&select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&select=stage,source,created_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/catalog_items?uid=eq.${uid}&select=id,name,price,cost,type,is_active`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
     ]);
 
     const S = Array.isArray(sales) ? sales : [];
     const E = Array.isArray(expenses) ? expenses : [];
     const C = Array.isArray(contacts) ? contacts : [];
 
+    const I = Array.isArray(items) ? items : [];
+
     const now = new Date();
     const thisMonth = (d: string) => { const x = new Date(d); return x.getMonth() === now.getMonth() && x.getFullYear() === now.getFullYear(); };
+
+    // Products with no cost set silently produce ₹0 COGS and a fake 100% margin.
+    // Surface them so the owner knows their profit numbers are incomplete.
+    const missingCost = I.filter((it: any) => it.is_active && it.type === "product" && (it.cost == null || Number(it.cost) === 0))
+      .map((it: any) => ({ id: it.id, name: it.name }));
 
     // Revenue counts only money actually RECEIVED (amount_paid), never
     // the full order value. Pending/unpaid stays out of revenue & profit.
@@ -35,6 +43,23 @@ export async function GET() {
     const expensesMonth = E.filter((e) => thisMonth(e.date)).reduce((a, e) => a + (Number(e.amount) || 0), 0);
     const pendingTotal = S.reduce((a, s) => a + (Number(s.balance) || 0), 0);
     const profitMonth = revenueMonth - expensesMonth;
+
+    // Cost of goods vs operating expenses — a seller needs to see these apart.
+    // COGS is auto-posted when an order is created (source = "order").
+    const cogsMonth = E.filter((e) => thisMonth(e.date) && e.source === "order").reduce((a, e) => a + (Number(e.amount) || 0), 0);
+    const opexMonth = expensesMonth - cogsMonth;
+    // Gross margin = revenue minus what those goods cost. Margin % is the number
+    // that actually tells a seller whether the business works.
+    const grossMargin = revenueMonth - cogsMonth;
+    const marginPct = revenueMonth > 0 ? Math.round((grossMargin / revenueMonth) * 100) : null;
+
+    // Expense breakdown by category (operating expenses only — COGS shown apart).
+    const catTotals: Record<string, number> = {};
+    for (const e of E.filter((x) => thisMonth(x.date) && x.source !== "order")) {
+      const cat = e.category || "Other";
+      catTotals[cat] = (catTotals[cat] || 0) + (Number(e.amount) || 0);
+    }
+    const expenseByCategory = Object.entries(catTotals).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
 
     const activeLeads = C.filter((c) => c.stage && !["Customer (Won)", "Lost"].includes(c.stage)).length;
     const customers = C.filter((c) => c.stage === "Customer (Won)").length;
@@ -62,7 +87,9 @@ export async function GET() {
     return NextResponse.json({
       available: true,
       cards: { revenueMonth, revenueAll, expensesMonth, profitMonth, pendingTotal, activeLeads, customers, conversionRate },
-      charts: { revByMonth, topItems, leadsBySource },
+      margin: { cogsMonth, opexMonth, grossMargin, marginPct },
+      charts: { revByMonth, topItems, leadsBySource, expenseByCategory },
+      missingCost,
     });
   } catch {
     return NextResponse.json({ available: false });

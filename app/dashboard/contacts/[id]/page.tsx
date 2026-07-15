@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
@@ -88,7 +89,14 @@ function ProfileInner() {
   if (!contact) return <DashboardShell><DashTopbar account={data?.account} pageTitle="Contact" /><div className="p-12 text-center text-muted">Contact not found.</div></DashboardShell>;
 
   const wa = (contact.phone || "").replace(/[^0-9]/g, "");
-  const ltv = sales.reduce((s, x) => s + (Number(x.total) || 0), 0);
+  // Real lifetime value is money COLLECTED, not money invoiced. Splitting it
+  // out keeps the customer's true worth honest and surfaces what they still owe.
+  const collected = sales.reduce((s, x) => s + (Number(x.amount_paid) || 0), 0);
+  const ordered = sales.reduce((s, x) => s + (Number(x.total) || 0), 0);
+  const outstanding = sales.reduce((s, x) => s + (Number(x.balance) || 0), 0);
+  const orderDates = sales.map((x) => new Date(x.date).getTime()).filter((n) => !isNaN(n));
+  const firstOrder = orderDates.length ? new Date(Math.min(...orderDates)) : null;
+  const lastOrder = orderDates.length ? new Date(Math.max(...orderDates)) : null;
 
   return (
     <DashboardShell>
@@ -141,11 +149,47 @@ function ProfileInner() {
           </div>
         </div>
 
-        {/* Customer stats */}
+        {/* Customer stats + orders */}
         {sales.length > 0 && (
-          <div className="bg-navy rounded-2xl p-5 text-white flex items-center justify-between">
-            <div><p className="text-xs text-white/50 uppercase tracking-wide">Lifetime value</p><p className="text-2xl font-bold text-amber">{currency}{ltv}</p></div>
-            <div className="text-right"><p className="text-xs text-white/50 uppercase tracking-wide">Orders</p><p className="text-2xl font-bold">{sales.length}</p></div>
+          <div className="space-y-3">
+            <div className="bg-navy rounded-2xl p-5 text-white">
+              <div className="grid grid-cols-3 gap-3">
+                <div><p className="text-[10px] text-white/50 uppercase tracking-wide">Collected</p><p className="text-xl font-bold text-amber">{currency}{collected}</p></div>
+                <div><p className="text-[10px] text-white/50 uppercase tracking-wide">Ordered</p><p className="text-xl font-bold">{currency}{ordered}</p></div>
+                <div><p className="text-[10px] text-white/50 uppercase tracking-wide">Outstanding</p><p className={`text-xl font-bold ${outstanding > 0 ? "text-red-300" : "text-white/60"}`}>{currency}{outstanding}</p></div>
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3 border-t border-white/10 text-[11px] text-white/50">
+                <span>{sales.length} order(s)</span>
+                <span>avg {currency}{Math.round(ordered / sales.length)}</span>
+                {firstOrder && <span>since {firstOrder.toLocaleDateString()}</span>}
+                {lastOrder && <span>last {lastOrder.toLocaleDateString()}</span>}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-navy-line shadow-card overflow-hidden">
+              <p className="text-xs font-semibold text-navy/70 uppercase tracking-wide px-4 pt-4 pb-2">Order history</p>
+              <div className="divide-y divide-navy-line/60">
+                {sales.map((o: any) => {
+                  const items = Array.isArray(o.items) ? o.items : [];
+                  const itemLabel = items.length === 0 ? "—" : items.length === 1 ? (items[0].name || "1 item") : `${items.length} items`;
+                  const bal = Number(o.balance) || 0;
+                  return (
+                    <Link key={o.id} href={`/dashboard/orders?highlight=${o.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-surface">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-navy truncate">{itemLabel}</p>
+                        <p className="text-[11px] text-muted">{new Date(o.date).toLocaleDateString()} · {o.order_status || "Placed"}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold text-navy">{currency}{o.total}</p>
+                        <p className={`text-[10px] font-bold uppercase ${o.status === "paid" ? "text-emerald-600" : o.status === "partial" ? "text-amber-deep" : "text-red-500"}`}>
+                          {o.status === "paid" ? "Paid" : `${currency}${bal} due`}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 

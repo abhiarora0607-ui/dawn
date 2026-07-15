@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
@@ -126,25 +127,49 @@ function SalesInner() {
           <div className="p-12 flex items-center justify-center text-muted"><Loader2 className="w-6 h-6 animate-spin mr-3" /> Loading…</div>
         ) : tab === "overview" ? (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <Card label="Revenue (month)" value={money(c?.revenueMonth || 0, currency)} icon={TrendingUp} tone="green" />
-              <Card label="Expenses (month)" value={money(c?.expensesMonth || 0, currency)} icon={Wallet} tone="red" />
-              <Card label="Profit (month)" value={money(c?.profitMonth || 0, currency)} icon={TrendingUp} tone={c?.profitMonth >= 0 ? "green" : "red"} />
-              <Card label="Pending" value={money(c?.pendingTotal || 0, currency)} icon={Clock} />
-              <Card label="Active leads" value={String(c?.activeLeads || 0)} icon={Users} />
-              <Card label="Conversion" value={`${c?.conversionRate || 0}%`} icon={TrendingUp} />
-            </div>
-            {fin?.charts?.revByMonth && <RevenueChart data={fin.charts.revByMonth} />}
-            {fin?.charts?.topItems?.length > 0 && (
-              <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
-                <p className="text-sm font-semibold text-navy mb-3">Top-selling items</p>
-                <div className="space-y-2">
-                  {fin.charts.topItems.map((it: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between text-sm"><span className="text-navy/75">{it.name}</span><span className="font-semibold text-navy">{money(it.value, currency)}</span></div>
+            {fin?.missingCost?.length > 0 && (
+              <div className="bg-amber/10 border border-amber/40 rounded-2xl p-4">
+                <p className="text-sm font-semibold text-navy flex items-center gap-1.5"><Wallet className="w-4 h-4 text-amber-deep" /> {fin.missingCost.length} item(s) have no cost set</p>
+                <p className="text-xs text-muted mt-1">Your margin and profit figures are incomplete until these have a cost. Without it, these items look like 100% profit.</p>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {fin.missingCost.slice(0, 6).map((it: any) => (
+                    <Link key={it.id} href="/dashboard/price-list" className="text-[11px] font-medium bg-white border border-amber/40 text-navy px-2 py-1 rounded-lg hover:border-amber">{it.name}</Link>
                   ))}
+                  {fin.missingCost.length > 6 && <span className="text-[11px] text-muted self-center">+{fin.missingCost.length - 6} more</span>}
                 </div>
               </div>
             )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <Card label="Revenue (month)" value={money(c?.revenueMonth || 0, currency)} icon={TrendingUp} tone="green" />
+              <Card label="Gross margin" value={fin?.margin?.marginPct != null ? `${fin.margin.marginPct}%` : "—"} icon={TrendingUp} tone={(fin?.margin?.marginPct ?? 0) >= 0 ? "green" : "red"} />
+              <Card label="Profit (month)" value={money(c?.profitMonth || 0, currency)} icon={TrendingUp} tone={c?.profitMonth >= 0 ? "green" : "red"} />
+              <Card label="Cost of goods" value={money(fin?.margin?.cogsMonth || 0, currency)} icon={Wallet} />
+              <Card label="Other expenses" value={money(fin?.margin?.opexMonth || 0, currency)} icon={Wallet} tone="red" />
+              <Card label="Pending" value={money(c?.pendingTotal || 0, currency)} icon={Clock} />
+            </div>
+            {fin?.charts?.revByMonth && <RevenueChart data={fin.charts.revByMonth} />}
+            <div className="grid md:grid-cols-2 gap-3">
+              {fin?.charts?.topItems?.length > 0 && (
+                <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+                  <p className="text-sm font-semibold text-navy mb-3">Top-selling items</p>
+                  <div className="space-y-2">
+                    {fin.charts.topItems.map((it: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between text-sm"><span className="text-navy/75">{it.name}</span><span className="font-semibold text-navy">{money(it.value, currency)}</span></div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {fin?.charts?.expenseByCategory?.length > 0 && (
+                <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+                  <p className="text-sm font-semibold text-navy mb-3">Where the money goes (this month)</p>
+                  <div className="space-y-2">
+                    {fin.charts.expenseByCategory.map((cat: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between text-sm"><span className="text-navy/75">{cat.name}</span><span className="font-semibold text-navy">{money(cat.value, currency)}</span></div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         ) : tab === "sales" ? (
           sales.length === 0 ? <Empty label="No sales yet" sub="Record a sale by converting a lead to a customer." /> : (

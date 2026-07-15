@@ -821,7 +821,8 @@ function ContactDetail({ id, canEdit, onClose, onEdit }: { id: string; canEdit: 
               {c.phone && <Field label="Phone" value={c.phone} />}
               {c.instagram_handle && <Field label="Instagram" value={"@" + c.instagram_handle} />}
               {c.follow_up_date && <Field label="Follow up" value={new Date(c.follow_up_date).toLocaleDateString()} />}
-              {d.ltv != null && <Field label="Lifetime value" value={`₹${d.ltv}`} />}
+              {d.ltv != null && <Field label="Collected" value={`₹${d.ltv}`} />}
+              {d.outstanding != null && d.outstanding > 0 && <Field label="Outstanding" value={`₹${d.outstanding}`} />}
             </div>
 
             {c.notes && <div className="bg-surface rounded-xl p-3 mb-4"><p className="text-[10px] uppercase tracking-wide text-muted mb-1">Notes</p><p className="text-sm text-navy whitespace-pre-wrap">{c.notes}</p></div>}

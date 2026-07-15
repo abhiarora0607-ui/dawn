@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
@@ -102,7 +103,12 @@ function OrdersInner() {
               <div key={o.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-semibold text-navy text-sm">{customers[o.contact_id] || "Walk-in"} <span className="text-muted font-normal">· {money(Number(o.total), currency)}</span></p>
+                    <p className="font-semibold text-navy text-sm">
+                      {o.contact_id ? (
+                        <Link href={`/dashboard/contacts/${o.contact_id}`} className="hover:text-amber-deep hover:underline">{customers[o.contact_id] || "Customer"}</Link>
+                      ) : "Walk-in"}
+                      <span className="text-muted font-normal"> · {money(Number(o.total), currency)}</span>
+                    </p>
                     <p className="text-xs text-muted truncate">{(o.items || []).map((it: any) => `${it.qty}× ${it.name}`).join(", ")}</p>
                     <p className="text-xs text-muted mt-0.5">{new Date(o.date).toLocaleDateString()} · {o.payment_method}{o.fixed_cost > 0 ? ` · cost ${money(Number(o.fixed_cost), currency)}` : ""}</p>
                   </div>

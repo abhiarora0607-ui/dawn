@@ -30,8 +30,9 @@ export async function GET(req: Request) {
         id: o.id, date: o.date, order_status: o.order_status, status: o.status,
         items: o.items, total: o.total, balance: o.balance,
       })),
-      // Lifetime value is a money figure — gated like every other one.
+      // Money figures are gated behind the financials permission.
       ltv: showMoney ? (Array.isArray(orders) ? orders : []).reduce((s: number, o: any) => s + (Number(o.amount_paid) || 0), 0) : null,
+      outstanding: showMoney ? (Array.isArray(orders) ? orders : []).reduce((s: number, o: any) => s + (Number(o.balance) || 0), 0) : null,
     });
   } catch { return NextResponse.json({ error: "Failed to load." }, { status: 500 }); }
 }
