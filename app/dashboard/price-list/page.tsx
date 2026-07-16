@@ -169,7 +169,7 @@ function PriceListInner() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Price List" />
-      <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-5">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="font-display font-semibold text-2xl text-navy">Price List</h1>
@@ -209,7 +209,7 @@ function PriceListInner() {
             </button>
           </div>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-3 lg:grid-cols-2">
             {filtered.map((item) => (
               <div key={item.id} className={`bg-white rounded-2xl border border-navy-line p-4 shadow-card ${!item.is_active ? "opacity-60" : ""}`}>
                 <div className="flex items-start justify-between gap-3">

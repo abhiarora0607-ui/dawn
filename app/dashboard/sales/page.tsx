@@ -145,7 +145,7 @@ function SalesInner() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Finance" />
-      <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-5">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
         <div className="flex items-center justify-between gap-3">
           <div><h1 className="font-display font-semibold text-2xl text-navy">Finance</h1><p className="text-muted text-sm mt-1">{fin?.range?.label || "Your money"}, at a glance.</p></div>
           <button onClick={() => setExpModal(true)} className="flex items-center gap-2 border border-navy-line text-navy font-medium px-4 py-2 rounded-xl hover:bg-surface shrink-0 text-sm"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Expense</span></button>

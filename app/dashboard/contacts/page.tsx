@@ -9,8 +9,9 @@ import { ToastProvider, useToast, ConfirmDialog } from "@/components/Toast";
 import { ConvertModal } from "@/components/ConvertModal";
 import { LostDialog } from "@/components/SharedModals";
 import { useSettings } from "@/lib/use-settings";
-import { Loader2, Plus, LayoutGrid, List, Phone, MessageCircle, X, Search } from "lucide-react";
+import { Loader2, Plus, LayoutGrid, List, Phone, MessageCircle, X, Search, Upload } from "lucide-react";
 
+import { ImportModal } from "@/components/ImportModal";
 type Contact = {
   id: string; name: string; phone: string; email: string; instagram_handle: string;
   source: string; stage: string; tags: string[]; interested_item_ids: string[];
@@ -144,6 +145,7 @@ function ContactsInner() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"board" | "list">("board");
+  const [showImport, setShowImport] = useState(false);
   const [quickAdd, setQuickAdd] = useState(false);
   const [query, setQuery] = useState("");
   const [convert, setConvert] = useState<Contact | null>(null);
@@ -183,13 +185,14 @@ function ContactsInner() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Contacts" />
-      <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-4">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="font-display font-semibold text-2xl text-navy">Contacts</h1>
             <p className="text-muted text-sm mt-1">Your leads and customers, from first message to sale.</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 text-sm font-medium border border-navy-line text-navy px-3 py-2 rounded-xl hover:bg-surface"><Upload className="w-4 h-4" /> <span className="hidden sm:inline">Import</span></button>
             <div className="flex bg-white border border-navy-line rounded-xl p-0.5">
               <button onClick={() => setView("board")} className={`p-2 rounded-lg ${view === "board" ? "bg-navy text-white" : "text-muted"}`}><LayoutGrid className="w-4 h-4" /></button>
               <button onClick={() => setView("list")} className={`p-2 rounded-lg ${view === "list" ? "bg-navy text-white" : "text-muted"}`}><List className="w-4 h-4" /></button>
@@ -264,6 +267,7 @@ function ContactsInner() {
 
       {quickAdd && <QuickAdd onClose={() => setQuickAdd(false)} onAdded={load} />}
       {convert && <ConvertModal contact={convert} onClose={() => setConvert(null)} onDone={() => { setConvert(null); load(); }} />}
+      {showImport && <ImportModal onClose={() => setShowImport(false)} onDone={load} />}
       {lostFor && <LostDialog name={lostFor.name} onCancel={() => setLostFor(null)} onConfirm={(note) => { const lid = lostFor.id; setLostFor(null); moveStage(lid, "Lost", note); toast("Marked Lost"); }} />}
       <ConfirmDialog
         open={!!backFor}

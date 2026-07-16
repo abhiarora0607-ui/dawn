@@ -99,7 +99,7 @@ function EmployeesInner() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Employees" />
-      <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-5">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
         <div className="flex items-center justify-between gap-3">
           <div><h1 className="font-display font-semibold text-2xl text-navy">Employees</h1><p className="text-muted text-sm mt-1">Your team. Active salaries auto-post as monthly expenses.</p></div>
           <button onClick={() => setModal({ open: true, emp: null })} className="flex items-center gap-2 bg-navy text-white font-medium px-4 py-2 rounded-xl hover:bg-navy-soft shrink-0"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span></button>
@@ -115,7 +115,7 @@ function EmployeesInner() {
             <button onClick={() => setModal({ open: true, emp: null })} className="inline-flex items-center gap-2 bg-navy text-white font-medium px-5 py-2.5 rounded-xl"><Plus className="w-4 h-4" /> Add your first employee</button>
           </div>
         ) : (
-          <div className="grid gap-2">
+          <div className="grid gap-2 lg:grid-cols-2">
             {emps.map((e) => (
               <div key={e.id} className={`bg-white rounded-xl border p-4 shadow-card flex items-center justify-between gap-3 ${e.is_owner ? "border-amber/40" : "border-navy-line"}`}>
                 <div className="min-w-0">

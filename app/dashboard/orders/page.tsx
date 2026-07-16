@@ -69,7 +69,7 @@ function OrdersInner() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Orders" />
-      <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-5">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
         <div className="flex items-center justify-between gap-3">
           <div><h1 className="font-display font-semibold text-2xl text-navy">Orders</h1><p className="text-muted text-sm mt-1">Every purchase, and a tap to create a new one.</p></div>
           <button onClick={() => setModal(true)} className="flex items-center gap-2 bg-navy text-white font-medium px-4 py-2 rounded-xl hover:bg-navy-soft transition-colors shrink-0"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">New order</span></button>
@@ -99,7 +99,7 @@ function OrdersInner() {
             <button onClick={() => setModal(true)} className="inline-flex items-center gap-2 bg-navy text-white font-medium px-5 py-2.5 rounded-xl hover:bg-navy-soft"><Plus className="w-4 h-4" /> Create your first order</button>
           </div>
         ) : (
-          <div className="grid gap-2">
+          <div className="grid gap-2 lg:grid-cols-2">
             {filtered.map((o) => {
               const cancelled = o.order_status === "Cancelled";
               return (

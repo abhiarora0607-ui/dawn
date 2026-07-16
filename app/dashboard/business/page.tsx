@@ -8,6 +8,7 @@ import Link from "next/link";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useSettings, money } from "@/lib/use-settings";
+import { OnboardingCard } from "@/components/OnboardingCard";
 import {
   Loader2, TrendingUp, TrendingDown, Wallet, AlertTriangle, Clock, Snowflake,
   Truck, Trophy, Users, Target, Phone, MessageCircle, ArrowRight, CheckSquare, Flame,
@@ -35,7 +36,9 @@ export default function BusinessDashboard() {
   return (
     <DashboardShell>
       <DashTopbar pageTitle="Business" />
-      <div className="p-4 sm:p-6 space-y-6 max-w-6xl">
+      <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
+
+        <OnboardingCard />
 
         {/* ---------------------------------------------------------- MONEY */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
