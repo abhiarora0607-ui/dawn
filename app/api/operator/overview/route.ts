@@ -2,10 +2,14 @@
 // The operator's view of every business using Dawn.
 //
 // PRIVACY WALL (hard rule, not a setting): this endpoint may return COUNTS,
-// DATES and the business's own name/email — never customer content. No
-// contact names, no phone numbers, no order details, no revenue. Every fetch
-// below selects only `uid` (+ flags needed to count honestly). If you edit
-// this file, keep it that way.
+// DATES, usage shape, and the business's OWN name/email/phone (vendor contact
+// info they gave Dawn) — never their customers' content. No contact names, no
+// order details, no revenue. Every count source below selects only `uid` plus
+// the flags needed to count honestly. Keep it that way.
+//
+// V16: businesses are derived from DATA THAT EXISTS (registry ∪ settings ∪
+// contacts ∪ sales ∪ ig ownership) — the console can never show zero while a
+// business breathes.
 
 import { NextResponse } from "next/server";
 import { isOperator } from "@/lib/operator-auth";
@@ -15,9 +19,8 @@ function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL!, key: proces
 function H(key: string) { return { apikey: key, Authorization: `Bearer ${key}` }; }
 
 const DAY = 86400000;
+const WEEK = 7 * DAY;
 
-// Engagement score 0–100: how alive is this business on Dawn?
-//   Recency 50 · setup depth 30 · usage volume 20. Counts only — never content.
 function engagementScore(b: { lastActive: number | null; contacts: number; orders: number; employees: number; ig: boolean }): number {
   const now = Date.now();
   let recency = 0;
@@ -33,7 +36,7 @@ function engagementScore(b: { lastActive: number | null; contacts: number; order
 function statusOf(b: { lastActive: number | null; contacts: number; orders: number }): string {
   const hasData = b.contacts > 0 || b.orders > 0;
   if (!hasData) return "never_started";
-  if (!b.lastActive) return "no_signal"; // tracking started after their last visit
+  if (!b.lastActive) return "no_signal";
   const days = (Date.now() - b.lastActive) / DAY;
   if (days <= 7) return "active";
   if (days <= 21) return "cooling";
@@ -46,46 +49,95 @@ export async function GET() {
   if (!url || !key) return NextResponse.json({ error: "Not configured." }, { status: 500 });
 
   try {
-    const [users, settings, ig, contacts, sales, employees] = await Promise.all([
+    const [users, settings, ig, contacts, sales, employees, activities] = await Promise.all([
       fetch(`${url}/rest/v1/dawn_users?select=uid,email,created_at,last_active_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/settings?select=uid,business_name`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/ig_connections?select=uid`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
-      // COUNT SOURCES — uid + the flags needed to count honestly, nothing else.
-      fetch(`${url}/rest/v1/contacts?select=uid,is_demo`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/sales?select=uid,is_demo`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/business_settings?select=uid,business_name,phone,whatsapp,updated_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/ig_connections?select=ig_user_id,owner_uid,connected_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+      fetch(`${url}/rest/v1/contacts?select=uid,is_demo,created_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/sales?select=uid,is_demo,date`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/employees?select=uid,is_demo,is_owner`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      // Usage SHAPE: uid + timestamp only — how much is happening, never what.
+      fetch(`${url}/rest/v1/activities?select=uid,created_at&order=created_at.desc&limit=4000`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
     ]);
 
-    const nameByUid: Record<string, string> = {};
-    for (const s of Array.isArray(settings) ? settings : []) if (s.business_name) nameByUid[s.uid] = s.business_name;
-    const igSet = new Set((Array.isArray(ig) ? ig : []).map((r: any) => r.uid));
+    const U = Array.isArray(users) ? users : [];
+    const SET = Array.isArray(settings) ? settings : [];
+    const IG = Array.isArray(ig) ? ig : [];
+    const C = Array.isArray(contacts) ? contacts : [];
+    const S = Array.isArray(sales) ? sales : [];
+    const E = Array.isArray(employees) ? employees : [];
+    const A = Array.isArray(activities) ? activities : [];
 
-    // Real usage only: demo rows and the auto-created owner record don't count.
+    // ------ the business universe: every uid that exists anywhere ------
+    const uidSet = new Set<string>();
+    for (const u of U) uidSet.add(u.uid);
+    for (const s of SET) uidSet.add(s.uid);
+    for (const c of C) if (c.is_demo !== true) uidSet.add(c.uid);
+    for (const s of S) if (s.is_demo !== true) uidSet.add(s.uid);
+    for (const g of IG) if (g.owner_uid) uidSet.add(g.owner_uid);
+
+    const userByUid: Record<string, any> = {};
+    for (const u of U) userByUid[u.uid] = u;
+    const setByUid: Record<string, any> = {};
+    for (const s of SET) setByUid[s.uid] = s;
+    const igByUid: Record<string, any[]> = {};
+    for (const g of IG) if (g.owner_uid) (igByUid[g.owner_uid] ||= []).push(g);
+
     const count = (rows: any[], uid: string, extra?: (r: any) => boolean) =>
-      (Array.isArray(rows) ? rows : []).filter((r) => r.uid === uid && r.is_demo !== true && (!extra || extra(r))).length;
+      rows.filter((r) => r.uid === uid && r.is_demo !== true && (!extra || extra(r))).length;
 
+    // Weekly activity buckets (last 8 weeks) per uid — the usage sparkline.
     const now = Date.now();
-    const businesses = (Array.isArray(users) ? users : []).map((u: any) => {
-      const lastActive = u.last_active_at ? new Date(u.last_active_at).getTime() : null;
-      const b = {
-        uid: u.uid,
-        name: nameByUid[u.uid] || null,
-        email: u.email,
-        signedUp: u.created_at,
-        daysSinceSignup: Math.floor((now - new Date(u.created_at).getTime()) / DAY),
-        lastActive: u.last_active_at || null,
+    const weeksByUid: Record<string, number[]> = {};
+    for (const a of A) {
+      const age = now - new Date(a.created_at).getTime();
+      const w = Math.floor(age / WEEK);
+      if (w < 0 || w > 7) continue;
+      const arr = (weeksByUid[a.uid] ||= [0, 0, 0, 0, 0, 0, 0, 0]);
+      arr[7 - w]++; // oldest → newest
+    }
+
+    const businesses = Array.from(uidSet).map((uid) => {
+      const u = userByUid[uid];
+      const st = setByUid[uid];
+      const igs = igByUid[uid] || [];
+      const signedUp = u?.created_at || st?.updated_at || new Date().toISOString();
+      const lastActive = u?.last_active_at ? new Date(u.last_active_at).getTime() : null;
+      const weeks = weeksByUid[uid] || [0, 0, 0, 0, 0, 0, 0, 0];
+      const recent = weeks[6] + weeks[7];
+      const prior = weeks[4] + weeks[5];
+
+      const b: any = {
+        uid,
+        name: st?.business_name || null,
+        email: u?.email || null,
+        phone: st?.phone || null,
+        whatsapp: st?.whatsapp || st?.phone || null,
+        signedUp,
+        daysSinceSignup: Math.max(0, Math.floor((now - new Date(signedUp).getTime()) / DAY)),
+        lastActive: u?.last_active_at || null,
         daysQuiet: lastActive ? Math.floor((now - lastActive) / DAY) : null,
-        ig: igSet.has(u.uid),
-        contacts: count(contacts, u.uid),
-        orders: count(sales, u.uid),
-        employees: count(employees, u.uid, (r) => r.is_owner !== true),
+        ig: igs.length > 0,
+        igCount: igs.length,
+        contacts: count(C, uid),
+        orders: count(S, uid),
+        employees: count(E, uid, (r) => r.is_owner !== true),
+        weeks,
+        growingFast: prior >= 3 && recent >= prior * 1.5,
       };
-      const status = statusOf({ lastActive, contacts: b.contacts, orders: b.orders });
-      const score = engagementScore({ lastActive, contacts: b.contacts, orders: b.orders, employees: b.employees, ig: b.ig });
-      return { ...b, status, score };
+      b.status = statusOf({ lastActive, contacts: b.contacts, orders: b.orders });
+      b.score = engagementScore({ lastActive, contacts: b.contacts, orders: b.orders, employees: b.employees, ig: b.ig });
+      // A business with data that no Instagram (and no email) can reopen.
+      b.unclaimedLegacy = (b.contacts > 0 || b.orders > 0 || !!st) && !b.ig && !b.email;
+      return b;
     }).sort((a: any, b: any) => b.score - a.score);
 
-    // Health strip
+    // ------ attention lists: who to talk to today ------
+    const churnRisk = businesses.filter((b: any) => (b.status === "cooling" || b.status === "churning") && b.daysQuiet != null && b.daysQuiet >= 14 && (b.contacts > 0 || b.orders > 0)).slice(0, 8);
+    const neverStarted = businesses.filter((b: any) => b.status === "never_started" && b.daysSinceSignup >= 3).slice(0, 8);
+    const powerUsers = businesses.filter((b: any) => b.score >= 60).slice(0, 5);
+    const growing = businesses.filter((b: any) => b.growingFast).slice(0, 5);
+
     const inLast = (d: string, days: number) => now - new Date(d).getTime() <= days * DAY;
     const total = businesses.length;
     const activated = businesses.filter((b: any) => b.contacts > 0 || b.orders > 0).length;
@@ -107,8 +159,10 @@ export async function GET() {
         churning: businesses.filter((b: any) => b.status === "churning").length,
         neverStarted: businesses.filter((b: any) => b.status === "never_started").length,
         igConnected: businesses.filter((b: any) => b.ig).length,
+        unclaimed: businesses.filter((b: any) => b.unclaimedLegacy).length,
         growth: Object.entries(signupsByMonth).sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([month, n]) => ({ month, n })),
       },
+      attention: { churnRisk, neverStarted, powerUsers, growing },
       businesses,
     });
   } catch {

@@ -16,9 +16,13 @@ export async function POST(req: Request) {
       const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const sbKey = process.env.SUPABASE_SECRET_KEY;
       if (sbUrl && sbKey) {
+        // Destroy the token (satisfies data-deletion) but KEEP the row and its
+        // owner_uid — the Instagram↔business link is the user's key back into
+        // their data. Deleting it would orphan the business.
         await fetch(`${sbUrl}/rest/v1/ig_connections?ig_user_id=eq.${igUserId}`, {
-          method: "DELETE",
-          headers: { apikey: sbKey, Authorization: `Bearer ${sbKey}` },
+          method: "PATCH",
+          headers: { apikey: sbKey, Authorization: `Bearer ${sbKey}`, "Content-Type": "application/json", Prefer: "return=minimal" },
+          body: JSON.stringify({ access_token: "" }),
         });
       }
     }

@@ -18,6 +18,9 @@ export async function GET(req: Request) {
   const uid = ctx.uid;
   const empId = ctx.employeeId;
 
+  // An employee working is the business being active — stamp it.
+  try { const { touchActive } = await import("@/lib/touch"); await touchActive(url, key, uid); } catch {}
+
   // Include must-change-password flag for first-login prompt.
   let mustChange = false;
   try {

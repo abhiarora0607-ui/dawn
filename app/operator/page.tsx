@@ -5,8 +5,10 @@
 // each business's own name — never anything inside their CRM.
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Loader2, LogOut, Search, Users, TrendingUp, Instagram, Zap,
+  AlertTriangle, Sprout, Star, Flame, MessageCircle,
 } from "lucide-react";
 
 const STATUS: Record<string, { label: string; dot: string; badge: string }> = {
@@ -85,6 +87,7 @@ function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
 
   if (!d || d.error) return <p className="text-center text-muted py-20">Couldn&apos;t load.</p>;
   const h = d.health;
+  const a = d.attention;
 
   let rows = (d.businesses || []).filter((b: any) =>
     (filter === "all" || b.status === filter) &&
@@ -133,6 +136,32 @@ function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
         </div>
       )}
 
+      {/* Who needs you today */}
+      {a && (a.churnRisk?.length || a.neverStarted?.length || a.powerUsers?.length || a.growing?.length) ? (
+        <div className="grid md:grid-cols-2 gap-3">
+          {a.churnRisk?.length > 0 && (
+            <AttnCard title="About to churn" icon={AlertTriangle} tone="bad" hint="Was active, now quiet. Reach out before they're gone.">
+              {a.churnRisk.map((b: any) => <AttnRow key={b.uid} b={b} meta={`quiet ${b.daysQuiet}d`} />)}
+            </AttnCard>
+          )}
+          {a.neverStarted?.length > 0 && (
+            <AttnCard title="Signed up, never started" icon={Sprout} tone="warn" hint="Stuck at the empty state. A nudge converts them.">
+              {a.neverStarted.map((b: any) => <AttnRow key={b.uid} b={b} meta={`${b.daysSinceSignup}d ago`} />)}
+            </AttnCard>
+          )}
+          {a.powerUsers?.length > 0 && (
+            <AttnCard title="Power users" icon={Star} tone="good" hint="Your happiest. Ask them what to build next.">
+              {a.powerUsers.map((b: any) => <AttnRow key={b.uid} b={b} meta={`score ${b.score}`} />)}
+            </AttnCard>
+          )}
+          {a.growing?.length > 0 && (
+            <AttnCard title="Growing fast" icon={Flame} tone="good" hint="Usage climbing. Your success stories.">
+              {a.growing.map((b: any) => <AttnRow key={b.uid} b={b} meta="rising" />)}
+            </AttnCard>
+          )}
+        </div>
+      ) : null}
+
       {/* Controls */}
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
@@ -162,15 +191,16 @@ function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
           {rows.map((b: any) => {
             const st = STATUS[b.status] || STATUS.no_signal;
             return (
-              <div key={b.uid} className="bg-white rounded-xl border border-navy-line p-4 shadow-card">
+              <Link href={`/operator/b/${encodeURIComponent(b.uid)}`} key={b.uid} className="block bg-white rounded-xl border border-navy-line p-4 shadow-card hover:border-amber/40">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold text-navy text-sm flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full shrink-0 ${st.dot}`} />
                       <span className="truncate">{b.name || "Unnamed business"}</span>
                       {b.ig && <Instagram className="w-3.5 h-3.5 text-navy/30 shrink-0" />}
+                      {b.unclaimedLegacy && <span className="text-[9px] font-bold uppercase bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded shrink-0">unclaimed</span>}
                     </p>
-                    <p className="text-xs text-muted truncate">{b.email} · joined {new Date(b.signedUp).toLocaleDateString()} ({b.daysSinceSignup}d ago)</p>
+                    <p className="text-xs text-muted truncate">{b.email || "no email on file"} · joined {new Date(b.signedUp).toLocaleDateString()} ({b.daysSinceSignup}d ago)</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className={`text-lg font-bold ${b.score >= 60 ? "text-emerald-600" : b.score >= 30 ? "text-navy" : "text-red-500"}`}>{b.score}</p>
@@ -183,7 +213,7 @@ function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
                   <span>{b.employees} employee(s)</span>
                   <span>{b.daysQuiet != null ? `last seen ${b.daysQuiet === 0 ? "today" : `${b.daysQuiet}d ago`}` : "no activity signal yet"}</span>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
@@ -200,6 +230,29 @@ function Stat({ label, value, sub, icon: Icon }: { label: string; value: string;
       <div className="flex items-center gap-1.5 mb-1"><Icon className="w-4 h-4 text-amber-deep" /><span className="text-xs text-muted">{label}</span></div>
       <p className="text-xl font-bold text-navy">{value}</p>
       <p className="text-[11px] text-muted">{sub}</p>
+    </div>
+  );
+}
+
+function AttnCard({ title, icon: Icon, tone, hint, children }: any) {
+  const border = tone === "bad" ? "border-red-200" : tone === "warn" ? "border-amber/40" : "border-emerald-200";
+  return (
+    <div className={`bg-white rounded-2xl border ${border} p-4 shadow-card`}>
+      <p className="text-sm font-semibold text-navy flex items-center gap-1.5 mb-0.5"><Icon className="w-4 h-4 text-navy/40" /> {title}</p>
+      <p className="text-[11px] text-muted mb-3">{hint}</p>
+      <div className="space-y-1.5">{children}</div>
+    </div>
+  );
+}
+
+function AttnRow({ b, meta }: { b: any; meta: string }) {
+  const wa = (b.whatsapp || "").replace(/[^0-9]/g, "");
+  return (
+    <div className="flex items-center justify-between gap-2 py-1 border-b border-navy-line/40 last:border-0">
+      <Link href={`/operator/b/${encodeURIComponent(b.uid)}`} className="min-w-0 flex-1 hover:opacity-70">
+        <span className="text-sm text-navy truncate block">{b.name || "Unnamed"} <span className="text-[11px] text-muted">· {meta}</span></span>
+      </Link>
+      {wa && <a href={`https://wa.me/${wa}`} target="_blank" onClick={(e) => e.stopPropagation()} className="p-1 text-emerald-600 shrink-0"><MessageCircle className="w-4 h-4" /></a>}
     </div>
   );
 }
