@@ -7,7 +7,7 @@ const config: Config = {
         // Refined Dawn palette — deeper navy, richer sunrise, warm off-white
         navy: "#16233F",
         "navy-soft": "#243356",
-        "navy-line": "#E4E8F0",
+        "navy-line": "#E9EDF4",
         amber: "#FF9E43",
         "amber-deep": "#F97316",
         "amber-glow": "#FFB865",
