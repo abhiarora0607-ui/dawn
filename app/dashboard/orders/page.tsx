@@ -103,7 +103,7 @@ function OrdersInner() {
             {filtered.map((o) => {
               const cancelled = o.order_status === "Cancelled";
               return (
-              <div key={o.id} className={`bg-white rounded-xl border p-4 shadow-card ${cancelled ? "border-navy-line/60 opacity-70" : "border-navy-line"}`}>
+              <div key={o.id} className={`dawn-card ${cancelled ? "opacity-60" : "dawn-card-hover"} p-4`}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className={`font-semibold text-navy text-sm ${cancelled ? "line-through" : ""}`}>

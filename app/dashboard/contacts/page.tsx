@@ -111,15 +111,14 @@ function QuickAdd({ onClose, onAdded }: { onClose: () => void; onAdded: () => vo
 function ContactCard({ c, stageNames, onDragStart, onConvert, onMove }: { c: Contact; stageNames: string[]; onDragStart?: (e: any) => void; onConvert: (c: Contact) => void; onMove: (id: string, stage: string) => void }) {
   const wa = (c.phone || "").replace(/[^0-9]/g, "");
   return (
-    <div draggable onDragStart={onDragStart} className="bg-white rounded-xl border border-navy-line p-3 shadow-card cursor-grab active:cursor-grabbing">
+    <div draggable onDragStart={onDragStart} className="dawn-card dawn-card-hover p-3 cursor-grab active:cursor-grabbing">
       <Link href={`/dashboard/contacts/${c.id}`} className="block">
         <p className="font-semibold text-navy text-sm">{c.name}</p>
         {c.phone && <p className="text-xs text-muted">{c.phone}</p>}
         {c.instagram_handle && <p className="text-xs text-muted">@{c.instagram_handle}</p>}
         <span className="inline-block text-[10px] text-muted mt-1">{c.source}</span>
       </Link>
-      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-navy-line">
-        {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"><MessageCircle className="w-3.5 h-3.5" /></a>}
+      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-navy-line/60">        {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"><MessageCircle className="w-3.5 h-3.5" /></a>}
         {c.phone && <a href={`tel:${c.phone}`} className="p-1.5 text-navy/50 hover:bg-navy/5 rounded-lg"><Phone className="w-3.5 h-3.5" /></a>}
         {c.stage !== "Customer (Won)" && (
           <button onClick={() => onConvert(c)} className="ml-auto text-[11px] font-semibold text-amber-deep bg-amber/10 px-2 py-1 rounded-lg hover:bg-amber/20">Convert →</button>
@@ -221,10 +220,10 @@ function ContactsInner() {
               const inStage = filtered.filter((c) => c.stage === stage);
               const displayName = stageNames[si] || stage;
               return (
-                <div key={stage} className="shrink-0 w-64" onDragOver={(e) => e.preventDefault()} onDrop={() => { if (dragId) moveStage(dragId, stage); setDragId(null); }}>
-                  <div className="flex items-center justify-between mb-2 px-1">
+                <div key={stage} className="shrink-0 w-64 dawn-col" onDragOver={(e) => e.preventDefault()} onDrop={() => { if (dragId) moveStage(dragId, stage); setDragId(null); }}>
+                  <div className="flex items-center justify-between mb-2 px-0.5">
                     <span className={`text-xs font-semibold px-2 py-1 rounded-lg border ${stageColor[stage]}`}>{displayName}</span>
-                    <span className="text-xs text-muted">{inStage.length}</span>
+                    <span className="text-xs text-muted font-medium">{inStage.length}</span>
                   </div>
                   <div className="space-y-2 min-h-[60px]">
                     {inStage.map((c) => <ContactCard key={c.id} c={c} stageNames={stageNames} onDragStart={() => setDragId(c.id)} onConvert={setConvert} onMove={moveStage} />)}
