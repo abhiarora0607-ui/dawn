@@ -16,7 +16,7 @@ export async function ensureOwnerEmployee(url: string, key: string, uid: string,
     // Name it after the business if we know it, otherwise a sensible default.
     let label = name;
     if (!label) {
-      const s = await (await fetch(`${url}/rest/v1/settings?uid=eq.${uid}&select=business_name&limit=1`, { headers: H(key), cache: "no-store" })).json();
+      const s = await (await fetch(`${url}/rest/v1/business_settings?uid=eq.${uid}&select=business_name&limit=1`, { headers: H(key), cache: "no-store" })).json();
       label = s?.[0]?.business_name || "Owner";
     }
     const res = await fetch(`${url}/rest/v1/employees`, {
