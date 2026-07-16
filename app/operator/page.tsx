@@ -39,7 +39,7 @@ export default function OperatorPage() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen dawn-app-bg">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">{children}</div>
     </div>
   );
@@ -64,7 +64,7 @@ function Login({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="max-w-sm mx-auto mt-16">
-      <div className="bg-white rounded-2xl border border-navy-line p-6 shadow-card">
+      <div className="dawn-card p-6">
         <h1 className="font-display font-semibold text-xl text-navy mb-1">Operator</h1>
         <p className="text-sm text-muted mb-5">Dawn&apos;s owner console. This door is yours alone.</p>
         <div className="space-y-3">
@@ -137,6 +137,23 @@ function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
         <Stat label="Active now" value={String(h.active)} sub={`${h.cooling} cooling · ${h.churning} churning`} icon={TrendingUp} />
         <Stat label="Instagram" value={String(h.igConnected)} sub={`${h.total > 0 ? Math.round((h.igConnected / h.total) * 100) : 0}% connected`} icon={Instagram} />
       </div>
+
+      {/* One-line read on the whole product */}
+      {(() => {
+        const biz = d.businesses || [];
+        const avgScore = biz.length ? Math.round(biz.reduce((a: number, b: any) => a + b.score, 0) / biz.length) : 0;
+        const reachOut = (a?.churnRisk?.length || 0) + (a?.neverStarted?.length || 0);
+        const healthy = biz.filter((b: any) => b.score >= 60).length;
+        return (
+          <div className="dawn-card p-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+            <span className="text-navy"><span className="font-bold">{avgScore}</span><span className="text-muted"> avg engagement</span></span>
+            <span className="text-navy"><span className="font-bold">{healthy}</span><span className="text-muted"> thriving (60+)</span></span>
+            {reachOut > 0
+              ? <span className="text-amber-deep font-medium ml-auto flex items-center gap-1.5"><Flame className="w-4 h-4" /> {reachOut} business(es) worth reaching out to today</span>
+              : <span className="text-emerald-600 font-medium ml-auto">Nobody needs urgent attention right now</span>}
+          </div>
+        );
+      })()}
 
       {/* Growth + status mix */}
       <div className="grid md:grid-cols-2 gap-3">
@@ -233,7 +250,7 @@ function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
 
       {/* Business list */}
       {rows.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-navy-line p-12 text-center text-sm text-muted">No businesses match.</div>
+        <div className="dawn-card p-12 text-center text-sm text-muted">No businesses match.</div>
       ) : (
         <div className="grid gap-2">
           {rows.map((b: any) => {
@@ -275,10 +292,11 @@ function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
 
 function Stat({ label, value, sub, icon: Icon }: { label: string; value: string; sub: string; icon: any }) {
   return (
-    <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
-      <div className="flex items-center gap-1.5 mb-1"><Icon className="w-4 h-4 text-amber-deep" /><span className="text-xs text-muted">{label}</span></div>
-      <p className="text-xl font-bold text-navy">{value}</p>
-      <p className="text-[11px] text-muted">{sub}</p>
+    <div className="dawn-stat">
+      <span className="absolute top-0 left-0 h-0.5 w-full bg-gradient-to-r from-amber-deep/60 to-amber/30" />
+      <div className="flex items-center gap-1.5 mb-1.5"><Icon className="w-4 h-4 text-amber-deep" /><span className="text-xs text-muted font-medium">{label}</span></div>
+      <p className="text-2xl font-bold text-navy leading-none">{value}</p>
+      <p className="text-[11px] text-muted mt-1.5">{sub}</p>
     </div>
   );
 }
@@ -286,7 +304,7 @@ function Stat({ label, value, sub, icon: Icon }: { label: string; value: string;
 function AttnCard({ title, icon: Icon, tone, hint, children }: any) {
   const border = tone === "bad" ? "border-red-200" : tone === "warn" ? "border-amber/40" : "border-emerald-200";
   return (
-    <div className={`bg-white rounded-2xl border ${border} p-4 shadow-card`}>
+    <div className={`dawn-card ${border} p-4`}>
       <p className="text-sm font-semibold text-navy flex items-center gap-1.5 mb-0.5"><Icon className="w-4 h-4 text-navy/40" /> {title}</p>
       <p className="text-[11px] text-muted mb-3">{hint}</p>
       <div className="space-y-1.5">{children}</div>

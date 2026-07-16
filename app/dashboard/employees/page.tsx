@@ -99,7 +99,7 @@ function EmployeesInner() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Employees" />
-      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
+      <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div><h1 className="font-display font-semibold text-2xl text-navy">Employees</h1><p className="text-muted text-sm mt-1">Your team. Active salaries auto-post as monthly expenses.</p></div>
           <button onClick={() => setModal({ open: true, emp: null })} className="flex items-center gap-2 bg-navy text-white font-medium px-4 py-2 rounded-xl hover:bg-navy-soft shrink-0"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span></button>
@@ -117,7 +117,7 @@ function EmployeesInner() {
         ) : (
           <div className="grid gap-2 lg:grid-cols-2">
             {emps.map((e) => (
-              <div key={e.id} className={`bg-white rounded-xl border p-4 shadow-card flex items-center justify-between gap-3 ${e.is_owner ? "border-amber/40" : "border-navy-line"}`}>
+              <div key={e.id} className={`dawn-card dawn-card-hover p-4 flex items-center justify-between gap-3 ${e.is_owner ? "border-amber/40" : ""}`}>
                 <div className="min-w-0">
                   <p className="font-semibold text-navy text-sm flex items-center gap-1.5">
                     <Link href={`/dashboard/employees/${e.id}`} className="hover:text-amber-deep hover:underline">{e.name}</Link>

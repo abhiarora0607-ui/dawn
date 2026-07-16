@@ -12,11 +12,11 @@ import { useSettings, money } from "@/lib/use-settings";
 
 function Card({ label, value, icon: Icon, tone = "navy", trend }: { label: string; value: string; icon: any; tone?: string; trend?: number | null }) {
   return (
-    <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
-      <div className="flex items-center gap-1.5 mb-1"><Icon className="w-4 h-4 text-amber-deep" /><span className="text-xs text-muted">{label}</span></div>
-      <p className={`text-xl font-bold ${tone === "red" ? "text-red-600" : tone === "green" ? "text-emerald-600" : "text-navy"}`}>{value}</p>
+    <div className="dawn-stat">
+      <div className="flex items-center gap-1.5 mb-1.5"><Icon className="w-4 h-4 text-amber-deep" /><span className="text-xs text-muted font-medium">{label}</span></div>
+      <p className={`text-2xl font-bold leading-none ${tone === "red" ? "text-red-600" : tone === "green" ? "text-emerald-600" : "text-navy"}`}>{value}</p>
       {trend != null && (
-        <p className={`text-[11px] font-medium ${trend >= 0 ? "text-emerald-600" : "text-red-600"}`}>{trend >= 0 ? "▲" : "▼"} {Math.abs(trend)}% vs prev</p>
+        <p className={`text-[11px] font-medium mt-1.5 ${trend >= 0 ? "text-emerald-600" : "text-red-600"}`}>{trend >= 0 ? "▲" : "▼"} {Math.abs(trend)}% vs prev</p>
       )}
     </div>
   );
@@ -145,7 +145,7 @@ function SalesInner() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Finance" />
-      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
+      <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div><h1 className="font-display font-semibold text-2xl text-navy">Finance</h1><p className="text-muted text-sm mt-1">{fin?.range?.label || "Your money"}, at a glance.</p></div>
           <button onClick={() => setExpModal(true)} className="flex items-center gap-2 border border-navy-line text-navy font-medium px-4 py-2 rounded-xl hover:bg-surface shrink-0 text-sm"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Expense</span></button>

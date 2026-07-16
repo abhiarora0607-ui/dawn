@@ -169,7 +169,7 @@ function PriceListInner() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Price List" />
-      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
+      <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="font-display font-semibold text-2xl text-navy">Price List</h1>

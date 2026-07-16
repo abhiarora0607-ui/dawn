@@ -36,7 +36,7 @@ export default function BusinessDashboard() {
   return (
     <DashboardShell>
       <DashTopbar pageTitle="Business" />
-      <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
+      <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
 
         <OnboardingCard />
 
@@ -144,7 +144,7 @@ export default function BusinessDashboard() {
               )}
             </div>
 
-            <div className="bg-white rounded-2xl border border-navy-line shadow-card overflow-hidden">
+            <div className="dawn-card overflow-hidden">
               <div className="overflow-x-auto dawn-scroll">
                 <table className="w-full text-sm">
                   <thead className="bg-surface border-b border-navy-line">
@@ -176,7 +176,7 @@ export default function BusinessDashboard() {
 
         {/* ------------------------------------------------------ CUSTOMERS */}
         <section className="grid md:grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+          <div className="dawn-card p-5">
             <h3 className="font-semibold text-navy mb-3 flex items-center gap-2"><Users className="w-4 h-4 text-amber-deep" /> Best customers</h3>
             {c.best.length === 0 ? <p className="text-sm text-muted">No customers yet.</p> : (
               <div className="space-y-2">
@@ -198,7 +198,7 @@ export default function BusinessDashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+          <div className="dawn-card p-5">
             <h3 className="font-semibold text-navy mb-1 flex items-center gap-2"><Clock className="w-4 h-4 text-amber-deep" /> Customers going quiet</h3>
             <p className="text-xs text-muted mb-3">Bought before, nothing in 45+ days. The cheapest sale you can make.</p>
             {c.atRisk.length === 0 ? <p className="text-sm text-muted">Everyone&apos;s been active recently.</p> : (
@@ -218,7 +218,7 @@ export default function BusinessDashboard() {
         </section>
 
         {/* ------------------------------------------------------- PIPELINE */}
-        <section className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+        <section className="dawn-card p-5">
           <h3 className="font-semibold text-navy mb-4 flex items-center gap-2"><Target className="w-4 h-4 text-amber-deep" /> Pipeline</h3>
           <div className="grid grid-cols-3 gap-3 mb-4">
             {p.stages.map((s: any) => (
@@ -243,18 +243,19 @@ export default function BusinessDashboard() {
 function Money({ label, value, trend, sub, accent, icon: Icon }: any) {
   const color = accent === "bad" ? "text-red-600" : accent === "warn" ? "text-amber-deep" : accent === "good" ? "text-emerald-600" : "text-navy";
   return (
-    <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card h-full">
+    <div className="dawn-stat h-full">
+      <span className="absolute top-0 left-0 h-0.5 w-full bg-gradient-to-r from-amber-deep/50 to-amber/25" />
       <div className="flex items-start justify-between">
-        <p className="text-[10px] uppercase tracking-wide text-muted">{label}</p>
+        <p className="text-[10px] uppercase tracking-wide text-muted font-semibold">{label}</p>
         <Icon className="w-4 h-4 text-navy/20" />
       </div>
-      <p className={`text-xl font-bold mt-1 ${color}`}>{value}</p>
+      <p className={`text-2xl font-bold mt-1.5 leading-none ${color}`}>{value}</p>
       {trend != null && (
-        <p className={`text-[11px] font-medium ${trend >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+        <p className={`text-[11px] font-medium mt-1.5 ${trend >= 0 ? "text-emerald-600" : "text-red-600"}`}>
           {trend >= 0 ? "▲" : "▼"} {Math.abs(trend)}% vs last month
         </p>
       )}
-      {sub && <p className="text-[11px] text-muted">{sub}</p>}
+      {sub && <p className="text-[11px] text-muted mt-1">{sub}</p>}
     </div>
   );
 }
@@ -263,7 +264,7 @@ function Panel({ title, count, icon: Icon, tone, href, children }: any) {
   const border = tone === "bad" ? "border-red-200" : tone === "warn" ? "border-amber/40" : "border-navy-line";
   const badge = tone === "bad" ? "bg-red-50 text-red-600" : tone === "warn" ? "bg-amber/15 text-amber-deep" : "bg-navy/5 text-navy/60";
   return (
-    <div className={`bg-white rounded-2xl border ${border} p-4 shadow-card`}>
+    <div className={`dawn-card ${border} p-5`}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-navy text-sm flex items-center gap-1.5"><Icon className="w-4 h-4 text-navy/40" /> {title}</h3>
         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${badge}`}>{count}</span>

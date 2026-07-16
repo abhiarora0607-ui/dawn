@@ -123,5 +123,5 @@ export default function BusinessDetail() {
 }
 
 function Wrap({ children }: { children: React.ReactNode }) {
-  return <div className="min-h-screen bg-surface"><div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">{children}</div></div>;
+  return <div className="min-h-screen dawn-app-bg"><div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">{children}</div></div>;
 }
