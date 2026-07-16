@@ -80,6 +80,21 @@ function Login({ onDone }: { onDone: () => void }) {
   );
 }
 
+function exportCsv(businesses: any[]) {
+  // Privacy wall holds in exports too: names/counts/dates only, no customer data.
+  const head = ["Business", "Email", "Status", "Score", "Contacts", "Orders", "Employees", "Signed up", "Days quiet", "Instagram"];
+  const rows = (businesses || []).map((b) => [
+    b.name || "Unnamed", b.email || "", b.status, b.score, b.contacts, b.orders, b.employees,
+    new Date(b.signedUp).toLocaleDateString(), b.daysQuiet ?? "", b.ig ? "yes" : "no",
+  ]);
+  const csv = [head, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `dawn-businesses-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
 function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("all");
@@ -109,32 +124,65 @@ function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
           <h1 className="font-display font-semibold text-2xl text-navy">Dawn Operator</h1>
           <p className="text-sm text-muted">Your product, from above. Usage shape only — never their data.</p>
         </div>
-        <button onClick={onLogout} className="flex items-center gap-1.5 text-sm text-muted hover:text-navy"><LogOut className="w-4 h-4" /> Sign out</button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => exportCsv(d.businesses)} className="text-sm text-navy/60 hover:text-navy">Export CSV</button>
+          <button onClick={onLogout} className="flex items-center gap-1.5 text-sm text-muted hover:text-navy"><LogOut className="w-4 h-4" /> Sign out</button>
+        </div>
       </div>
 
       {/* Health strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Businesses" value={String(h.total)} sub={`+${h.newWeek} this week`} icon={Users} />
-        <Stat label="Activation" value={`${h.activationRate}%`} sub={`${h.activated} set up their shop`} icon={Zap} />
+        <Stat label="Businesses" value={String(h.total)} sub={`+${h.newWeek} this week · +${h.newMonth} this month`} icon={Users} />
+        <Stat label="Activation" value={`${h.activationRate}%`} sub={`${h.activated} set up · ${h.neverStarted} never started`} icon={Zap} />
         <Stat label="Active now" value={String(h.active)} sub={`${h.cooling} cooling · ${h.churning} churning`} icon={TrendingUp} />
-        <Stat label="Instagram" value={String(h.igConnected)} sub="connected" icon={Instagram} />
+        <Stat label="Instagram" value={String(h.igConnected)} sub={`${h.total > 0 ? Math.round((h.igConnected / h.total) * 100) : 0}% connected`} icon={Instagram} />
       </div>
 
-      {/* Growth */}
-      {h.growth?.length > 0 && (
-        <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
-          <p className="text-sm font-semibold text-navy mb-3">Signups by month</p>
-          <div className="flex items-end gap-2 h-24">
-            {h.growth.map((g: any) => (
-              <div key={g.month} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-[10px] font-semibold text-navy">{g.n}</span>
-                <div className="w-full bg-amber rounded-t" style={{ height: `${(g.n / maxGrowth) * 100}%`, minHeight: 4 }} />
-                <span className="text-[9px] text-muted">{g.month.slice(5)}</span>
-              </div>
-            ))}
+      {/* Growth + status mix */}
+      <div className="grid md:grid-cols-2 gap-3">
+        {h.growth?.length > 0 && (
+          <div className="dawn-card p-5">
+            <p className="text-sm font-semibold text-navy mb-3">Signups by month</p>
+            <div className="flex items-end gap-2 h-28">
+              {h.growth.map((g: any) => (
+                <div key={g.month} className="flex-1 flex flex-col items-center gap-1 justify-end">
+                  <span className="text-[10px] font-semibold text-navy">{g.n}</span>
+                  <div className="w-full bg-gradient-to-t from-amber-deep to-amber rounded-t" style={{ height: `${Math.max(6, (g.n / maxGrowth) * 100)}%` }} />
+                  <span className="text-[9px] text-muted">{g.month.slice(5)}/{g.month.slice(2, 4)}</span>
+                </div>
+              ))}
+            </div>
           </div>
+        )}
+        <div className="dawn-card p-5">
+          <p className="text-sm font-semibold text-navy mb-3">Where your businesses stand</p>
+          {(() => {
+            const segs = [
+              { label: "Active", n: h.active, c: "bg-emerald-500" },
+              { label: "Cooling", n: h.cooling, c: "bg-amber-400" },
+              { label: "Churning", n: h.churning, c: "bg-red-500" },
+              { label: "Never started", n: h.neverStarted, c: "bg-slate-300" },
+            ];
+            const tot = Math.max(1, segs.reduce((a, s) => a + s.n, 0));
+            return (
+              <>
+                <div className="flex h-3 rounded-full overflow-hidden mb-3">
+                  {segs.map((s) => s.n > 0 && <div key={s.label} className={s.c} style={{ width: `${(s.n / tot) * 100}%` }} title={`${s.label}: ${s.n}`} />)}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {segs.map((s) => (
+                    <div key={s.label} className="flex items-center gap-1.5 text-xs">
+                      <span className={`w-2.5 h-2.5 rounded-sm ${s.c}`} />
+                      <span className="text-navy/70">{s.label}</span>
+                      <span className="font-semibold text-navy ml-auto">{s.n}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
         </div>
-      )}
+      </div>
 
       {/* Who needs you today */}
       {a && (a.churnRisk?.length || a.neverStarted?.length || a.powerUsers?.length || a.growing?.length) ? (
@@ -198,6 +246,7 @@ function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
                       <span className={`w-2 h-2 rounded-full shrink-0 ${st.dot}`} />
                       <span className="truncate">{b.name || "Unnamed business"}</span>
                       {b.ig && <Instagram className="w-3.5 h-3.5 text-navy/30 shrink-0" />}
+                      {b.demoOnly && <span className="text-[9px] font-bold uppercase bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded shrink-0">demo</span>}
                       {b.unclaimedLegacy && <span className="text-[9px] font-bold uppercase bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded shrink-0">unclaimed</span>}
                     </p>
                     <p className="text-xs text-muted truncate">{b.email || "no email on file"} · joined {new Date(b.signedUp).toLocaleDateString()} ({b.daysSinceSignup}d ago)</p>
@@ -208,7 +257,7 @@ function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 pt-2 border-t border-navy-line/50 text-[11px] text-muted">
-                  <span>{b.contacts} contact(s)</span>
+                  <span>{b.demoOnly ? `${b.contacts} demo contact(s)` : `${b.contacts} contact(s)`}</span>
                   <span>{b.orders} order(s)</span>
                   <span>{b.employees} employee(s)</span>
                   <span>{b.daysQuiet != null ? `last seen ${b.daysQuiet === 0 ? "today" : `${b.daysQuiet}d ago`}` : "no activity signal yet"}</span>

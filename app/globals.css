@@ -95,6 +95,26 @@ button, a, select, input, textarea {
 }
 button:active:not(:disabled) { transform: scale(.98); }
 .shadow-card { transition: box-shadow .2s ease, border-color .2s ease; }
+
+/* ---- V17: unified surface system ----
+   One card style and one column style everywhere, so borders/spacing can't
+   drift page to page. */
+.dawn-card {
+  background: #fff;
+  border: 1px solid #E9EDF4;
+  border-radius: 0.85rem;
+  box-shadow: 0 1px 2px rgba(22, 35, 63, 0.04);
+  transition: box-shadow .2s ease, border-color .2s ease, transform .12s ease;
+}
+.dawn-card-hover:hover { border-color: #D3DBEA; box-shadow: 0 4px 14px rgba(22, 35, 63, 0.07); }
+/* Kanban columns get a faint surface so cards are anchored, not floating on
+   the page gradient (the "invisible border" bug). */
+.dawn-col {
+  background: #FBFCFE;
+  border: 1px solid #EEF1F7;
+  border-radius: 1rem;
+  padding: 0.6rem;
+}
 :focus-visible { outline: 2px solid #FF9E43; outline-offset: 2px; border-radius: 4px; }
 ::selection { background: #FF9E43; color: #16233F; }
 input[type="checkbox"] { cursor: pointer; }

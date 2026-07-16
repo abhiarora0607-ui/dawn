@@ -84,6 +84,8 @@ export async function GET() {
     for (const g of IG) if (g.owner_uid) (igByUid[g.owner_uid] ||= []).push(g);
 
     const count = (rows: any[], uid: string, extra?: (r: any) => boolean) =>
+      rows.filter((r) => r.uid === uid && (!extra || extra(r))).length;
+    const countReal = (rows: any[], uid: string, extra?: (r: any) => boolean) =>
       rows.filter((r) => r.uid === uid && r.is_demo !== true && (!extra || extra(r))).length;
 
     // Weekly activity buckets (last 8 weeks) per uid — the usage sparkline.
@@ -122,11 +124,15 @@ export async function GET() {
         contacts: count(C, uid),
         orders: count(S, uid),
         employees: count(E, uid, (r) => r.is_owner !== true),
+        realContacts: countReal(C, uid),
+        realOrders: countReal(S, uid),
         weeks,
         growingFast: prior >= 3 && recent >= prior * 1.5,
       };
-      b.status = statusOf({ lastActive, contacts: b.contacts, orders: b.orders });
-      b.score = engagementScore({ lastActive, contacts: b.contacts, orders: b.orders, employees: b.employees, ig: b.ig });
+      // A business whose data is entirely seeded demo content — real usage is zero.
+      b.demoOnly = (b.contacts > 0 || b.orders > 0) && b.realContacts === 0 && b.realOrders === 0;
+      b.status = statusOf({ lastActive, contacts: b.realContacts, orders: b.realOrders });
+      b.score = engagementScore({ lastActive, contacts: b.realContacts, orders: b.realOrders, employees: b.employees, ig: b.ig });
       // A business with data that no Instagram (and no email) can reopen.
       b.unclaimedLegacy = (b.contacts > 0 || b.orders > 0 || !!st) && !b.ig && !b.email;
       return b;
@@ -140,7 +146,7 @@ export async function GET() {
 
     const inLast = (d: string, days: number) => now - new Date(d).getTime() <= days * DAY;
     const total = businesses.length;
-    const activated = businesses.filter((b: any) => b.contacts > 0 || b.orders > 0).length;
+    const activated = businesses.filter((b: any) => b.realContacts > 0 || b.realOrders > 0).length;
     const signupsByMonth: Record<string, number> = {};
     for (const b of businesses) {
       const k = String(b.signedUp).slice(0, 7);
