@@ -119,6 +119,7 @@ function SettingsInner() {
             </button>
             <button onClick={() => setConfirmClear(true)} className="flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface text-red-600"><Trash2 className="w-4 h-4" /> Clear demo data</button>
             <a href="/api/catalog/export" className="flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface"><Download className="w-4 h-4" /> Export catalog CSV</a>
+            <a href="/api/export-data" className="flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface"><Download className="w-4 h-4" /> Export all my data</a>
           </div>
         </section>
 

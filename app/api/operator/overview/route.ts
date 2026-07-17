@@ -53,8 +53,8 @@ export async function GET() {
       fetch(`${url}/rest/v1/dawn_users?select=uid,email,created_at,last_active_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/business_settings?select=uid,business_name,phone,whatsapp,updated_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/ig_connections?select=ig_user_id,owner_uid,connected_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
-      fetch(`${url}/rest/v1/contacts?select=uid,is_demo,created_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/sales?select=uid,is_demo,date`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/contacts?deleted_at=is.null&select=uid,is_demo,created_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/sales?deleted_at=is.null&select=uid,is_demo,date`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/employees?select=uid,is_demo,is_owner`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       // Usage SHAPE: uid + timestamp only — how much is happening, never what.
       fetch(`${url}/rest/v1/activities?select=uid,created_at&order=created_at.desc&limit=4000`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),

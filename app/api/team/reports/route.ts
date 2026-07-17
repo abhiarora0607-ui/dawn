@@ -25,8 +25,8 @@ export async function GET(req: Request) {
   const win = new URL(req.url).searchParams.get("window") || "month";
   try {
     const [contacts, sales] = await Promise.all([
-      fetch(`${url}/rest/v1/contacts?uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&select=stage,created_at`, { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/sales?uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&select=total,amount_paid,balance,date,order_status`, { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/contacts?uid=eq.${ctx.uid}&deleted_at=is.null&employee_id=eq.${ctx.employeeId}&select=stage,created_at`, { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/sales?uid=eq.${ctx.uid}&deleted_at=is.null&employee_id=eq.${ctx.employeeId}&select=total,amount_paid,balance,date,order_status`, { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()),
     ]);
     const C = (Array.isArray(contacts) ? contacts : []).filter((c: any) => inWindow(c.created_at, win));
     const S = (Array.isArray(sales) ? sales : []).filter((s: any) => inWindow(s.date, win));

@@ -116,6 +116,14 @@ export async function GET(req: Request) {
     }
   } catch { /* non-fatal */ }
 
+  // Permanently remove anything soft-deleted more than 30 days ago.
+  try {
+    const { purgeExpired } = await import("@/lib/soft-delete");
+    for (const t of ["contacts", "sales", "catalog_items", "expenses"]) {
+      await purgeExpired(url, key, t);
+    }
+  } catch { /* non-fatal */ }
+
   for (const conn of connections || []) {
     const igUserId = conn.ig_user_id;
     let token = conn.access_token;

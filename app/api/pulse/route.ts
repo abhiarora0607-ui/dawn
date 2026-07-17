@@ -31,9 +31,9 @@ export async function GET() {
   try {
     await touchActive(url, key, uid);
     const [contacts, sales, expenses, employees, tasks, activities] = await Promise.all([
-      fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&select=id,name,phone,stage,employee_id,follow_up_date,created_at,instagram_handle,source`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/sales?uid=eq.${uid}&select=id,contact_id,employee_id,total,amount_paid,balance,status,order_status,date,items`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&select=amount,date,category`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&select=id,name,phone,stage,employee_id,follow_up_date,created_at,instagram_handle,source`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/sales?uid=eq.${uid}&deleted_at=is.null&select=id,contact_id,employee_id,total,amount_paid,balance,status,order_status,date,items`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&deleted_at=is.null&select=amount,date,category`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/employees?uid=eq.${uid}&select=id,name,status,is_owner`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/tasks?uid=eq.${uid}&select=id,title,due_date,done,employee_id`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/activities?uid=eq.${uid}&select=contact_id,created_at&order=created_at.desc&limit=1000`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),

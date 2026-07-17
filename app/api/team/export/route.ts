@@ -16,8 +16,8 @@ export async function GET() {
   const { ctx, url, key } = g;
   try {
     const [contacts, sales] = await Promise.all([
-      fetch(`${url}/rest/v1/contacts?uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&order=created_at.desc`, { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/sales?uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&order=date.desc`, { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/contacts?uid=eq.${ctx.uid}&deleted_at=is.null&employee_id=eq.${ctx.employeeId}&order=created_at.desc`, { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/sales?uid=eq.${ctx.uid}&deleted_at=is.null&employee_id=eq.${ctx.employeeId}&order=date.desc`, { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()),
     ]);
     const lines: string[] = [];
     lines.push("MY CONTACTS");

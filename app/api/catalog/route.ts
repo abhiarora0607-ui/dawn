@@ -1,5 +1,6 @@
 // app/api/catalog/route.ts
 import { NextResponse } from "next/server";
+import { softDelete } from "@/lib/soft-delete";
 import { getUid } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export async function GET() {
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ items: [], authed: !!uid });
   try {
-    const res = await fetch(`${url}/rest/v1/catalog_items?uid=eq.${uid}&order=sort_order.asc,created_at.desc`, {
+    const res = await fetch(`${url}/rest/v1/catalog_items?uid=eq.${uid}&deleted_at=is.null&order=sort_order.asc,created_at.desc`, {
       headers: headers(key), cache: "no-store",
     });
     return NextResponse.json({ items: await res.json(), authed: true });
@@ -73,7 +74,7 @@ export async function DELETE(req: Request) {
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
   try {
-    await fetch(`${url}/rest/v1/catalog_items?id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: headers(key) });
+    await softDelete(url, key, "catalog_items", id, uid);
     return NextResponse.json({ ok: true });
   } catch { return NextResponse.json({ error: "Delete failed." }, { status: 500 }); }
 }

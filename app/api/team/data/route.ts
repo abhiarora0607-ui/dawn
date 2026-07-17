@@ -34,14 +34,14 @@ export async function GET(req: Request) {
     // Contacts / leads / customers assigned to this employee
     // Leads and customers gate independently.
     if (hasPermission(ctx, "leads") || hasPermission(ctx, "customers")) {
-      const rows = await (await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&employee_id=eq.${empId}&order=created_at.desc`, { headers: H(key), cache: "no-store" })).json();
+      const rows = await (await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&employee_id=eq.${empId}&order=created_at.desc`, { headers: H(key), cache: "no-store" })).json();
       const all = Array.isArray(rows) ? rows : [];
       out.leads = hasPermission(ctx, "leads") ? all.filter((c: any) => !["Customer (Won)", "Lost"].includes(c.stage)) : [];
       out.customers = hasPermission(ctx, "customers") ? all.filter((c: any) => c.stage === "Customer (Won)") : [];
     }
     // Orders handled by this employee
     if (hasPermission(ctx, "orders")) {
-      const rows = await (await fetch(`${url}/rest/v1/sales?uid=eq.${uid}&employee_id=eq.${empId}&order=date.desc`, { headers: H(key), cache: "no-store" })).json();
+      const rows = await (await fetch(`${url}/rest/v1/sales?uid=eq.${uid}&deleted_at=is.null&employee_id=eq.${empId}&order=date.desc`, { headers: H(key), cache: "no-store" })).json();
       out.orders = Array.isArray(rows) ? rows : [];
     }
     // Limited reports: counts only, no full financials unless permitted

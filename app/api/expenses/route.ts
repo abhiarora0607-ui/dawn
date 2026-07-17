@@ -1,5 +1,6 @@
 // app/api/expenses/route.ts
 import { NextResponse } from "next/server";
+import { softDelete } from "@/lib/soft-delete";
 import { getUid } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ export async function GET() {
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ expenses: [] });
   try {
-    const res = await fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&order=date.desc`, { headers: H(key), cache: "no-store" });
+    const res = await fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&deleted_at=is.null&order=date.desc`, { headers: H(key), cache: "no-store" });
     return NextResponse.json({ expenses: await res.json() });
   } catch { return NextResponse.json({ expenses: [] }); }
 }
@@ -50,7 +51,7 @@ export async function DELETE(req: Request) {
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
   try {
-    await fetch(`${url}/rest/v1/expenses?id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: H(key) });
+    await softDelete(url, key, "expenses", id, uid);
     return NextResponse.json({ ok: true });
   } catch { return NextResponse.json({ error: "Delete failed." }, { status: 500 }); }
 }

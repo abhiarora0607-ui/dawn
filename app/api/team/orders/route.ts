@@ -14,7 +14,7 @@ export async function GET() {
   if (!g.ok) return NextResponse.json({ error: g.error }, { status: g.status });
   const { ctx, url, key } = g;
   try {
-    const rows = await (await fetch(`${url}/rest/v1/sales?uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&order=date.desc`, { headers: empHeaders(key), cache: "no-store" })).json();
+    const rows = await (await fetch(`${url}/rest/v1/sales?uid=eq.${ctx.uid}&deleted_at=is.null&employee_id=eq.${ctx.employeeId}&order=date.desc`, { headers: empHeaders(key), cache: "no-store" })).json();
     return NextResponse.json({ orders: Array.isArray(rows) ? rows : [] });
   } catch { return NextResponse.json({ orders: [] }); }
 }

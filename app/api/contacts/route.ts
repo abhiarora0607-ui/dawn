@@ -5,6 +5,7 @@ import { cleanName, cleanPhone, cleanEmail } from "@/lib/validate";
 import { ensureOwnerEmployee } from "@/lib/owner-employee";
 import { touchActive } from "@/lib/touch";
 import { audit } from "@/lib/audit";
+import { softDelete } from "@/lib/soft-delete";
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +31,11 @@ export async function GET(req: Request) {
     if (check) {
       const safe = String(check).replace(/[*(),\\]/g, "").slice(0, 60);
       const enc = encodeURIComponent(safe);
-      const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&or=(phone.eq.${enc},instagram_handle.eq.${enc})&select=id,name&limit=1`, { headers: H(key), cache: "no-store" });
+      const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&or=(phone.eq.${enc},instagram_handle.eq.${enc})&select=id,name&limit=1`, { headers: H(key), cache: "no-store" });
       const rows = await res.json();
       return NextResponse.json({ duplicate: rows?.[0] || null });
     }
-    const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&order=created_at.desc`, { headers: H(key), cache: "no-store" });
+    const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&order=created_at.desc`, { headers: H(key), cache: "no-store" });
     return NextResponse.json({ contacts: await res.json(), authed: true });
   } catch { return NextResponse.json({ contacts: [], authed: true }); }
 }
@@ -141,9 +142,10 @@ export async function DELETE(req: Request) {
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
   try {
-    await fetch(`${url}/rest/v1/contacts?id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: H(key) });
-    await fetch(`${url}/rest/v1/activities?contact_id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: H(key) });
-    await audit({ uid, action: "contact.delete", entity: "contacts", entityId: id });
+    // Soft-delete: the contact vanishes from every view but is recoverable for
+    // 30 days. Activities stay attached so a restore brings back full history.
+    await softDelete(url, key, "contacts", id, uid);
+    await audit({ uid, action: "contact.delete", entity: "contacts", entityId: id, meta: { soft: true } });
     return NextResponse.json({ ok: true });
   } catch { return NextResponse.json({ error: "Delete failed." }, { status: 500 }); }
 }

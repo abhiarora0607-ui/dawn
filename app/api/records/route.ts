@@ -4,6 +4,7 @@
 // this is a faster door into the product, not a back door around it.
 
 import { NextResponse } from "next/server";
+import { softDelete } from "@/lib/soft-delete";
 import { getUid } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { cleanName, cleanPhone, cleanEmail } from "@/lib/validate";
@@ -25,7 +26,7 @@ export async function GET(req: Request) {
   if (!spec) return NextResponse.json({ error: "Unknown object." }, { status: 400 });
   try {
     const [rows, employees] = await Promise.all([
-      fetch(`${url}/rest/v1/${spec.table}?uid=eq.${uid}&order=${spec.order}&limit=300`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/${spec.table}?uid=eq.${uid}${["contacts","sales","catalog_items","expenses"].includes(spec.table) ? "&deleted_at=is.null" : ""}&order=${spec.order}&limit=300`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/employees?uid=eq.${uid}&select=id,name,is_owner&order=is_owner.desc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
     ]);
     return NextResponse.json({
@@ -105,13 +106,21 @@ export async function DELETE(req: Request) {
       const t = (await (await fetch(`${url}/rest/v1/employees?id=eq.${id}&uid=eq.${uid}&select=is_owner&limit=1`, { headers: H(key), cache: "no-store" })).json())?.[0];
       if (t?.is_owner) return NextResponse.json({ error: "The owner record can't be deleted — it's the default assignee." }, { status: 400 });
     }
-    // Deleting a contact takes its orders and activity with it.
-    if (obj === "contacts") {
-      await fetch(`${url}/rest/v1/activities?contact_id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: H(key) });
-      await fetch(`${url}/rest/v1/sales?contact_id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: H(key) });
+    // The value tables soft-delete (recoverable 30 days); a deleted contact
+    // also soft-deletes its orders so finance stays correct.
+    const SOFT = new Set(["contacts", "sales", "catalog_items", "expenses"]);
+    if (SOFT.has(spec.table)) {
+      if (obj === "contacts") {
+        await fetch(`${url}/rest/v1/sales?contact_id=eq.${id}&uid=eq.${uid}`, {
+          method: "PATCH", headers: { ...H(key), "Content-Type": "application/json", Prefer: "return=minimal" },
+          body: JSON.stringify({ deleted_at: new Date().toISOString() }),
+        });
+      }
+      await softDelete(url, key, spec.table, id, uid);
+    } else {
+      await fetch(`${url}/rest/v1/${spec.table}?id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: H(key) });
     }
-    await fetch(`${url}/rest/v1/${spec.table}?id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: H(key) });
-    await audit({ uid, action: `${obj}.delete`, entity: spec.table, entityId: id, meta: { via: "records console" } });
+    await audit({ uid, action: `${obj}.delete`, entity: spec.table, entityId: id, meta: { via: "records console", soft: SOFT.has(spec.table) } });
     return NextResponse.json({ ok: true });
   } catch { return NextResponse.json({ error: "Delete failed." }, { status: 500 }); }
 }

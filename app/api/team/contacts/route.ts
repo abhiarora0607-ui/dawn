@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const { ctx, url, key } = g;
   const filter = new URL(req.url).searchParams.get("filter"); // leads | customers | all
   try {
-    const rows = await (await fetch(`${url}/rest/v1/contacts?uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&order=created_at.desc`, { headers: empHeaders(key), cache: "no-store" })).json();
+    const rows = await (await fetch(`${url}/rest/v1/contacts?uid=eq.${ctx.uid}&deleted_at=is.null&employee_id=eq.${ctx.employeeId}&order=created_at.desc`, { headers: empHeaders(key), cache: "no-store" })).json();
     let all = Array.isArray(rows) ? rows : [];
     if (filter === "leads") all = all.filter((c: any) => !["Customer (Won)", "Lost"].includes(c.stage));
     if (filter === "customers") all = all.filter((c: any) => c.stage === "Customer (Won)");
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       const ors: string[] = [];
       if (ph.value) ors.push(`phone.eq.${encodeURIComponent(ph.value)}`);
       if (handle) ors.push(`instagram_handle.eq.${encodeURIComponent(handle)}`);
-      const dup = await (await fetch(`${url}/rest/v1/contacts?uid=eq.${ctx.uid}&or=(${ors.join(",")})&select=id,employee_id&limit=1`, { headers: empHeaders(key), cache: "no-store" })).json();
+      const dup = await (await fetch(`${url}/rest/v1/contacts?uid=eq.${ctx.uid}&deleted_at=is.null&or=(${ors.join(",")})&select=id,employee_id&limit=1`, { headers: empHeaders(key), cache: "no-store" })).json();
       if (Array.isArray(dup) && dup.length > 0) {
         const mine = dup[0].employee_id === ctx.employeeId;
         return NextResponse.json({ error: mine ? "You already have a contact with this phone or handle." : "This contact already exists in the business — ask your admin about the assignment." }, { status: 409 });

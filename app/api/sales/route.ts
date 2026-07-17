@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { getUid } from "@/lib/auth";
 import { audit } from "@/lib/audit";
+import { softDelete } from "@/lib/soft-delete";
 import { ensureOwnerEmployee } from "@/lib/owner-employee";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export async function GET(req: Request) {
       const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&select=id,name,phone,stage,employee_id&order=name.asc`, { headers: H(key), cache: "no-store" });
       return NextResponse.json({ customers: await res.json() });
     }
-    const res = await fetch(`${url}/rest/v1/sales?uid=eq.${uid}&order=date.desc`, { headers: H(key), cache: "no-store" });
+    const res = await fetch(`${url}/rest/v1/sales?uid=eq.${uid}&deleted_at=is.null&order=date.desc`, { headers: H(key), cache: "no-store" });
     return NextResponse.json({ sales: await res.json() });
   } catch { return NextResponse.json({ sales: [] }); }
 }
@@ -128,10 +129,14 @@ export async function DELETE(req: Request) {
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
   try {
-    // Cascade: remove the linked fixed-cost expense
-    await fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&source=eq.order&source_id=eq.${id}`, { method: "DELETE", headers: H(key) });
-    await fetch(`${url}/rest/v1/sales?id=eq.${id}&uid=eq.${uid}`, { method: "DELETE", headers: H(key) });
-    await audit({ uid, action: "order.delete", entity: "sales", entityId: id });
+    // Soft-delete the order and its linked cost expense together, so finance
+    // stays correct and both come back on restore.
+    await fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&source=eq.order&source_id=eq.${id}`, {
+      method: "PATCH", headers: { ...H(key), "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({ deleted_at: new Date().toISOString() }),
+    });
+    await softDelete(url, key, "sales", id, uid);
+    await audit({ uid, action: "order.delete", entity: "sales", entityId: id, meta: { soft: true } });
     return NextResponse.json({ ok: true });
   } catch { return NextResponse.json({ error: "Delete failed." }, { status: 500 }); }
 }

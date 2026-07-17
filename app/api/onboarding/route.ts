@@ -23,9 +23,9 @@ export async function GET() {
 
   try {
     const [items, contacts, orders, employees, settings] = await Promise.all([
-      countRows(url, key, "catalog_items", `uid=eq.${uid}&is_demo=eq.false`),
-      countRows(url, key, "contacts", `uid=eq.${uid}&is_demo=eq.false`),
-      countRows(url, key, "sales", `uid=eq.${uid}&is_demo=eq.false`),
+      countRows(url, key, "catalog_items", `uid=eq.${uid}&is_demo=eq.false&deleted_at=is.null`),
+      countRows(url, key, "contacts", `uid=eq.${uid}&is_demo=eq.false&deleted_at=is.null`),
+      countRows(url, key, "sales", `uid=eq.${uid}&is_demo=eq.false&deleted_at=is.null`),
       countRows(url, key, "employees", `uid=eq.${uid}&is_demo=eq.false&is_owner=eq.false`),
       fetch(`${url}/rest/v1/business_settings?uid=eq.${uid}&select=business_name&limit=1`, { headers: { apikey: key, Authorization: `Bearer ${key}` }, cache: "no-store" }).then((r) => r.json()).catch(() => []),
     ]);
