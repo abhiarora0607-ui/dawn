@@ -1,5 +1,7 @@
 // app/api/brief/route.ts
 import { NextResponse } from "next/server";
+import { getEntitlements } from "@/lib/entitlements";
+import { getUid } from "@/lib/auth";
 import { getProviderAsync, getProvider } from "@/lib/data-provider";
 import { generateBrief } from "@/lib/briefing-engine";
 import { getBrandVoice, brandVoicePrompt } from "@/lib/brand-voice";
@@ -47,6 +49,16 @@ async function setCached(id: string, payload: any) {
 
 export async function GET(req: Request) {
   const force = new URL(req.url).searchParams.get("refresh") === "1";
+  // Billing: AI briefing is a plan feature.
+  {
+    const _uid = await getUid();
+    const _url = process.env.NEXT_PUBLIC_SUPABASE_URL, _key = process.env.SUPABASE_SECRET_KEY;
+    if (_uid && _url && _key) {
+      const _ent = await getEntitlements(_url, _key, _uid);
+      if (!_ent.features.ai) return NextResponse.json({ locked: true, error: "AI briefing is on the Pro plan — upgrade in Settings → Billing." }, { status: 403 });
+    }
+  }
+
   const id = await igUserId();
 
   // Serve cached briefing for connected users (stable through the day)

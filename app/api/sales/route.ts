@@ -4,6 +4,7 @@
 // customer). This is the core lead→customer conversion loop.
 
 import { NextResponse } from "next/server";
+import { writeBlocked } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { softDelete } from "@/lib/soft-delete";
@@ -146,11 +147,21 @@ export async function POST(req: Request) {
   const { url, key } = sb();
   if (!uid) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   if (!url || !key) return NextResponse.json({ error: "Not configured." }, { status: 500 });
+  // Billing: expired accounts are read-only (data safe, no new writes).
+  const _blocked = await writeBlocked(url, key, uid);
+  if (_blocked) return NextResponse.json(_blocked, { status: 403 });
+
   try {
     const b = await req.json();
-    const items = b.items || [];
-    const subtotal = items.reduce((s: number, it: any) => s + (Number(it.unitPrice) || 0) * (Number(it.qty) || 1), 0);
-    const discount = Number(b.discount) || 0;
+    const rawItems = b.items || [];
+    // Bound each line so a typo can't create an absurd order.
+    const items = (Array.isArray(rawItems) ? rawItems : []).map((it: any) => ({
+      ...it,
+      qty: Math.min(100000, Math.max(1, Math.floor(Number(it.qty) || 1))),
+      unitPrice: Math.min(100000000, Math.max(0, Number(it.unitPrice) || 0)),
+    }));
+    const subtotal = items.reduce((s: number, it: any) => s + it.unitPrice * it.qty, 0);
+    const discount = Math.max(0, Number(b.discount) || 0);
     const total = Math.max(0, subtotal - discount);
     const amountPaid = Number(b.amountPaid) || 0;
     const balance = Math.max(0, total - amountPaid);

@@ -5,6 +5,7 @@
 // uid-scoped — an import can only ever write into the importer's own business.
 
 import { NextResponse } from "next/server";
+import { writeBlocked, getEntitlements } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { cleanName, cleanPhone, cleanEmail } from "@/lib/validate";
 import { ensureOwnerEmployee } from "@/lib/owner-employee";
@@ -23,6 +24,12 @@ export async function POST(req: Request) {
   const { url, key } = sb();
   if (!uid) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   if (!url || !key) return NextResponse.json({ error: "Not configured." }, { status: 500 });
+  // Billing: expired accounts are read-only (data safe, no new writes).
+  const _blocked = await writeBlocked(url, key, uid);
+  if (_blocked) return NextResponse.json(_blocked, { status: 403 });
+  const _ent = await getEntitlements(url, key, uid);
+  if (!_ent.features.csv_import) return NextResponse.json({ error: "CSV import is included from the Growth plan — upgrade in Settings → Billing." }, { status: 403 });
+
 
   try {
     const b = await req.json();

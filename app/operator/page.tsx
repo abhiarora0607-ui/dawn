@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Loader2, LogOut, Search, Users, TrendingUp, Instagram, Zap,
-  AlertTriangle, Sprout, Star, Flame, MessageCircle,
+  AlertTriangle, Sprout, Star, Flame, MessageCircle, IndianRupee,
 } from "lucide-react";
 
 const STATUS: Record<string, { label: string; dot: string; badge: string }> = {
@@ -125,6 +125,7 @@ function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
           <p className="text-sm text-muted">Your product, from above. Usage shape only — never their data.</p>
         </div>
         <div className="flex items-center gap-3">
+          <Link href="/operator/revenue" className="flex items-center gap-1.5 text-sm font-semibold text-amber-deep hover:text-amber-deep/80"><IndianRupee className="w-4 h-4" /> Revenue</Link>
           <button onClick={() => exportCsv(d.businesses)} className="text-sm text-navy/60 hover:text-navy">Export CSV</button>
           <button onClick={onLogout} className="flex items-center gap-1.5 text-sm text-muted hover:text-navy"><LogOut className="w-4 h-4" /> Sign out</button>
         </div>

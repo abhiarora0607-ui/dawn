@@ -1,5 +1,6 @@
 // app/api/contacts/route.ts
 import { NextResponse } from "next/server";
+import { writeBlocked } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { cleanName, cleanPhone, cleanEmail } from "@/lib/validate";
 import { ensureOwnerEmployee } from "@/lib/owner-employee";
@@ -45,6 +46,10 @@ export async function POST(req: Request) {
   const { url, key } = sb();
   if (!uid) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   if (!url || !key) return NextResponse.json({ error: "Not configured." }, { status: 500 });
+  // Billing: expired accounts are read-only (data safe, no new writes).
+  const _blocked = await writeBlocked(url, key, uid);
+  if (_blocked) return NextResponse.json(_blocked, { status: 403 });
+
   try {
     const b = await req.json();
     const nm = cleanName(b.name);

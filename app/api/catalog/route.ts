@@ -1,5 +1,6 @@
 // app/api/catalog/route.ts
 import { NextResponse } from "next/server";
+import { writeBlocked } from "@/lib/entitlements";
 import { softDelete } from "@/lib/soft-delete";
 import { getUid } from "@/lib/auth";
 
@@ -27,6 +28,10 @@ export async function POST(req: Request) {
   const { url, key } = sb();
   if (!uid) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   if (!url || !key) return NextResponse.json({ error: "Not configured." }, { status: 500 });
+  // Billing: expired accounts are read-only (data safe, no new writes).
+  const _blocked = await writeBlocked(url, key, uid);
+  if (_blocked) return NextResponse.json(_blocked, { status: 403 });
+
   try {
     const b = await req.json();
     if (!b.name?.trim()) return NextResponse.json({ error: "Name is required." }, { status: 400 });

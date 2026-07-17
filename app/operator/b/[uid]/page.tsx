@@ -17,6 +17,10 @@ export default function BusinessDetail() {
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState("");
   const [authed, setAuthed] = useState(true);
+  const [bill, setBill] = useState<any>(null);       // this business's subscription
+  const [allPlans, setAllPlans] = useState<any[]>([]);
+  const [planPick, setPlanPick] = useState("");
+  const [acting, setActing] = useState(false);
 
   function load() {
     fetch(`/api/operator/business?uid=${encodeURIComponent(uid)}`).then(async (r) => {
@@ -24,7 +28,19 @@ export default function BusinessDetail() {
       setD(await r.json()); setLoading(false);
     }).catch(() => setLoading(false));
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [uid]);
+  function loadBilling() {
+    fetch("/api/operator/billing").then((r) => r.json()).then((b) => {
+      if (b?.subs) setBill(b.subs.find((s: any) => s.uid === uid) || null);
+    }).catch(() => {});
+    fetch("/api/operator/plans").then((r) => r.json()).then((p) => setAllPlans((p.plans || []).filter((x: any) => x.is_active))).catch(() => {});
+  }
+  useEffect(() => { load(); loadBilling(); /* eslint-disable-next-line */ }, [uid]);
+
+  async function billingAct(action: string, extra: any = {}) {
+    setActing(true);
+    await fetch("/api/operator/billing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ uid, action, ...extra }) });
+    setActing(false); loadBilling();
+  }
 
   async function addNote() {
     if (!note.trim()) return;
@@ -99,6 +115,35 @@ export default function BusinessDetail() {
       )}
 
       {/* Your private notes */}
+      {/* Billing — plan, trial, and the operator's sales levers */}
+      <div className="dawn-card p-5">
+        <p className="text-sm font-semibold text-navy mb-3">Billing</p>
+        {!bill ? (
+          <p className="text-xs text-muted">No subscription row yet — it appears on their first visit after V25, or use an action below to create one.</p>
+        ) : (
+          <p className="text-sm text-navy mb-1">
+            <span className={`font-semibold ${bill.status === "complimentary" ? "text-emerald-600" : bill.status === "active" ? "text-navy" : "text-amber-deep"}`}>{bill.status}</span>
+            <span className="text-muted"> · {bill.planName} · {bill.cycle}</span>
+            {bill.trialEndsAt && bill.status === "trialing" && <span className="text-muted"> · trial ends {new Date(bill.trialEndsAt).toLocaleDateString()}</span>}
+            {bill.periodEnd && bill.status !== "trialing" && <span className="text-muted"> · period ends {new Date(bill.periodEnd).toLocaleDateString()}</span>}
+            {bill.hasPaid && <span className="text-emerald-600"> · has paid</span>}
+            {bill.cancelAtPeriodEnd && <span className="text-red-500"> · cancelling</span>}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-2 mt-3">
+          <button disabled={acting} onClick={() => billingAct("extend_trial", { days: 7 })} className="text-xs font-medium border border-navy-line text-navy px-3 py-1.5 rounded-lg hover:bg-surface disabled:opacity-50">Extend trial +7d</button>
+          <button disabled={acting} onClick={() => billingAct("complimentary")} className="text-xs font-medium border border-emerald-200 text-emerald-700 px-3 py-1.5 rounded-lg hover:bg-emerald-50 disabled:opacity-50">Mark complimentary</button>
+          <span className="flex items-center gap-1.5">
+            <select value={planPick} onChange={(e) => setPlanPick(e.target.value)} className="text-xs border border-navy-line rounded-lg px-2 py-1.5 text-navy bg-white">
+              <option value="">Change plan…</option>
+              {allPlans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            {planPick && <button disabled={acting} onClick={() => { billingAct("change_plan", { planId: planPick }); setPlanPick(""); }} className="text-xs font-medium bg-navy text-white px-3 py-1.5 rounded-lg disabled:opacity-50">Apply</button>}
+          </span>
+          <button disabled={acting} onClick={() => billingAct("cancel")} className="text-xs font-medium border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50">Cancel</button>
+        </div>
+      </div>
+
       <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
         <p className="text-sm font-semibold text-navy flex items-center gap-1.5 mb-3"><StickyNote className="w-4 h-4 text-amber-deep" /> Your notes on this business</p>
         <div className="flex gap-2 mb-3">
