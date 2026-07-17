@@ -33,11 +33,19 @@ export async function POST(req: Request) {
     await fetch(`${url}/rest/v1/business_settings`, {
       method: "POST", headers: H(key, { Prefer: "resolution=merge-duplicates,return=minimal" }), body: JSON.stringify(row),
     });
-    // Mirror key fields into storefront so the public price list & receipts match
-    if (b.business_name !== undefined || b.logo_url !== undefined || b.phone !== undefined || b.whatsapp !== undefined || b.currency !== undefined) {
+    // Mirror key fields into storefront so the public price list & receipts
+    // match. Only include fields actually provided, so a partial save (e.g.
+    // just the logo) never blanks the business name or phone already there.
+    const mirrorFields = ["business_name", "logo_url", "phone", "whatsapp", "currency"];
+    const mirror: any = { uid, updated_at: new Date().toISOString() };
+    let hasMirror = false;
+    for (const f of mirrorFields) {
+      if (b[f] !== undefined) { mirror[f] = b[f]; hasMirror = true; }
+    }
+    if (hasMirror) {
       await fetch(`${url}/rest/v1/storefront`, {
         method: "POST", headers: H(key, { Prefer: "resolution=merge-duplicates,return=minimal" }),
-        body: JSON.stringify({ uid, business_name: b.business_name, logo_url: b.logo_url, phone: b.phone, whatsapp: b.whatsapp, currency: b.currency, gst_number: b.gst_number, updated_at: new Date().toISOString() }),
+        body: JSON.stringify(mirror),
       });
     }
     return NextResponse.json({ ok: true });
