@@ -11,11 +11,8 @@ import { ToastProvider, useToast } from "@/components/Toast";
 import { Loader2, Check, CreditCard, Sparkles, ShieldCheck, X } from "lucide-react";
 
 const FEATURE_LABELS: Record<string, string> = {
-  team: "Employee portal & team work",
-  scoring: "Monthly team scoring",
-  csv_import: "CSV contact import",
-  item_analytics: "Item sales analytics",
-  ai: "AI briefing & suggestions",
+  crm: "CRM & Business — contacts, orders, finance, team, price list",
+  instagram_ai: "Instagram & AI — briefing, suggestions, content tools",
 };
 
 function Inner() {
@@ -26,6 +23,8 @@ function Inner() {
   const [checkout, setCheckout] = useState<any>(null); // plan being bought
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState<any>(null);
+  const [cancelModal, setCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   function load() {
     fetch("/api/billing").then((r) => r.json()).then((res) => { setD(res); setLoading(false); }).catch(() => setLoading(false));
@@ -43,8 +42,8 @@ function Inner() {
     setPaying(false);
   }
 
-  async function cancelOrResume(action: "cancel" | "resume") {
-    await fetch("/api/billing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+  async function cancelOrResume(action: "cancel" | "resume", reason?: string) {
+    await fetch("/api/billing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, reason }) });
     toast(action === "cancel" ? "Will not renew — access continues till period end" : "Auto-renew resumed");
     load();
   }
@@ -58,7 +57,7 @@ function Inner() {
     e.effective === "trialing" ? `Free trial — ${e.daysLeft} day${e.daysLeft === 1 ? "" : "s"} left (full access)` :
     e.effective === "grace" ? `Trial ended — ${e.daysLeft} day${e.daysLeft === 1 ? "" : "s"} of grace before read-only` :
     e.effective === "expired" ? "Read-only — your data is safe; upgrade to continue" :
-    `${e.planName} · renews ${e.periodEnd ? new Date(e.periodEnd).toLocaleDateString() : ""}${e.cancelAtPeriodEnd ? " · will not renew" : ""}`;
+    `${e.planName} · renews${e.renewsInDays != null ? ` in ${e.renewsInDays}d` : ""} on ${e.periodEnd ? new Date(e.periodEnd).toLocaleDateString() : ""}${e.cancelAtPeriodEnd ? " · will not renew" : ""}`;
 
   return (
     <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
@@ -83,10 +82,17 @@ function Inner() {
           {(e.effective === "active") && (
             e.cancelAtPeriodEnd
               ? <button onClick={() => cancelOrResume("resume")} className="text-sm font-medium text-emerald-700 border border-emerald-200 px-3.5 py-2 rounded-xl hover:bg-emerald-50">Resume auto-renew</button>
-              : <button onClick={() => cancelOrResume("cancel")} className="text-sm font-medium text-navy/60 border border-navy-line px-3.5 py-2 rounded-xl hover:bg-surface">Cancel at period end</button>
+              : <button onClick={() => setCancelModal(true)} className="text-sm font-medium text-navy/60 border border-navy-line px-3.5 py-2 rounded-xl hover:bg-surface">Cancel at period end</button>
           )}
         </div>
       </div>
+
+      {e.effective === "active" && e.renewsInDays != null && e.renewsInDays <= 7 && !e.cancelAtPeriodEnd && (
+        <div className="dawn-card border-amber/40 p-4 flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm text-navy"><span className="font-semibold">Renewal due in {e.renewsInDays} day{e.renewsInDays === 1 ? "" : "s"}.</span> <span className="text-muted">Renew now to start your next period.</span></p>
+          <button onClick={() => { const cur = d.plans.find((p: any) => p.id === e.planId); if (cur) setCheckout(cur); }} className="bg-amber-deep text-white text-sm font-semibold px-4 py-2 rounded-xl">Renew now</button>
+        </div>
+      )}
 
       {/* Cycle toggle */}
       <div className="flex items-center justify-center gap-2">
@@ -144,6 +150,26 @@ function Inner() {
               <span className="font-semibold text-navy">₹{Number(p.amount)}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ---- cancel-reason modal ---- */}
+      {cancelModal && (
+        <div className="fixed inset-0 bg-navy/40 flex items-center justify-center z-50 p-4" onClick={() => setCancelModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl p-5" onClick={(ev) => ev.stopPropagation()}>
+            <p className="font-display font-semibold text-lg text-navy">Before you go —</p>
+            <p className="text-sm text-muted mt-1 mb-3">What&apos;s the main reason? It genuinely shapes what we build.</p>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {["Too costly", "Missing features", "Not using it", "Switching tools", "Other"].map((r) => (
+                <button key={r} onClick={() => setCancelReason(r)} className={`text-xs font-medium px-3 py-1.5 rounded-full border ${cancelReason === r ? "bg-navy text-white border-navy" : "text-navy/60 border-navy-line"}`}>{r}</button>
+              ))}
+            </div>
+            <p className="text-xs text-muted mb-4">You keep full access until the period ends — and if timing is the issue, message us on WhatsApp; an extension is usually a yes.</p>
+            <div className="flex gap-2">
+              <button onClick={() => setCancelModal(false)} className="flex-1 border border-navy-line text-navy text-sm font-medium py-2.5 rounded-xl">Keep my plan</button>
+              <button disabled={!cancelReason} onClick={() => { cancelOrResume("cancel", cancelReason); setCancelModal(false); setCancelReason(""); }} className="flex-1 bg-navy text-white text-sm font-medium py-2.5 rounded-xl disabled:opacity-50">Confirm cancel</button>
+            </div>
+          </div>
         </div>
       )}
 

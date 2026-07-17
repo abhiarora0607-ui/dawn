@@ -3,6 +3,7 @@
 // pending work, across time windows. Computed from real CRM data.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,8 @@ export async function GET(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ employees: [] });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   const win = new URL(req.url).searchParams.get("window") || "all";
 
   try {

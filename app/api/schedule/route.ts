@@ -1,5 +1,6 @@
 // app/api/schedule/route.ts
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,14 @@ async function igUserId(): Promise<string | null> {
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SECRET_KEY }; }
 
 export async function GET() {
+  { // Billing: Instagram & AI is a plan area.
+    const _uid = await (await import("@/lib/auth")).getUid();
+    const _url = process.env.NEXT_PUBLIC_SUPABASE_URL, _key = process.env.SUPABASE_SECRET_KEY;
+    if (_uid && _url && _key) {
+      const _area = await requireArea(_url, _key, _uid, "instagram_ai");
+      if (_area) return NextResponse.json(_area, { status: 403 });
+    }
+  }
   const id = await igUserId();
   const { url, key } = sb();
   if (!id || !url || !key) return NextResponse.json({ items: [] });
@@ -24,6 +33,14 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  { // Billing: Instagram & AI is a plan area.
+    const _uid = await (await import("@/lib/auth")).getUid();
+    const _url = process.env.NEXT_PUBLIC_SUPABASE_URL, _key = process.env.SUPABASE_SECRET_KEY;
+    if (_uid && _url && _key) {
+      const _area = await requireArea(_url, _key, _uid, "instagram_ai");
+      if (_area) return NextResponse.json(_area, { status: 403 });
+    }
+  }
   const id = await igUserId();
   const { url, key } = sb();
   if (!id || !url || !key) return NextResponse.json({ error: "Connect Instagram first." }, { status: 400 });
@@ -42,6 +59,14 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  { // Billing: Instagram & AI is a plan area.
+    const _uid = await (await import("@/lib/auth")).getUid();
+    const _url = process.env.NEXT_PUBLIC_SUPABASE_URL, _key = process.env.SUPABASE_SECRET_KEY;
+    if (_uid && _url && _key) {
+      const _area = await requireArea(_url, _key, _uid, "instagram_ai");
+      if (_area) return NextResponse.json(_area, { status: 403 });
+    }
+  }
   const id = await igUserId();
   const { url, key } = sb();
   if (!id || !url || !key) return NextResponse.json({ error: "Not allowed." }, { status: 400 });

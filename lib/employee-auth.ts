@@ -70,6 +70,15 @@ export async function getEmployee(): Promise<EmployeeContext | null> {
     const accRows = await (await fetch(`${url}/rest/v1/employee_accounts?id=eq.${s.account_id}&select=*&limit=1`, { headers: H(), cache: "no-store" })).json();
     const acc = accRows?.[0];
     if (!acc || !acc.active) return null;
+
+    // Billing (V26): the portal belongs to the CRM & Business area. If the
+    // owner's trial/subscription lapsed or they didn't buy CRM, employees are
+    // locked out here — one gate covers every team API and login.
+    try {
+      const { getEntitlements } = await import("@/lib/entitlements");
+      const ent = await getEntitlements(url, key, s.uid);
+      if (!ent.canWrite || !ent.features.crm) return null;
+    } catch { /* fail open — billing down ≠ portal down */ }
     // Employee name (for greeting)
     let name: string | undefined;
     try {

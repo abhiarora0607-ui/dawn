@@ -3,6 +3,7 @@
 // portal launched — this makes it visible.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,8 @@ export async function GET() {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   try {
     const H = { apikey: key!, Authorization: `Bearer ${key}` } as any;
     const [logs, emps] = await Promise.all([

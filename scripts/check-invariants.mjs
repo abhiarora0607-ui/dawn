@@ -36,7 +36,7 @@ const read = (p) => readFileSync(p, "utf8");
 
 // ---- 1. TENANT ISOLATION ----------------------------------------------------
 console.log("\n[1] Tenant isolation — every tenant-table read filters by uid");
-const TENANT_TABLES = ["contacts", "sales", "catalog_items", "expenses", "employees", "tasks", "activities", "subscriptions", "payments"];
+const TENANT_TABLES = ["contacts", "sales", "catalog_items", "expenses", "employees", "tasks", "activities", "subscriptions", "payments", "events", "feedback"];
 {
   let bad = 0;
   for (const p of files.filter((f) => f.includes("/api/"))) {
@@ -131,6 +131,22 @@ console.log("\n[6] Service key never referenced in client components");
     }
   }
   if (bad === 0) pass("no client component touches the service key");
+}
+
+// ---- 7. AREA GATES (V26) ----------------------------------------------------
+console.log("\n[7] Billing area gates — every area API carries its guard");
+{
+  const CRM = ["contacts","sales","catalog","expenses","employees","contacts/import","admin-tasks","employee-accounts","employee-detail","employee-performance","finance","pulse","records","recovery","scores","search","item-detail","onboarding","demo","audit"];
+  const IG  = ["brief","suggestions","analyze-image","automation","brand-voice","calendar","carousel","competitors","content","persona","schedule","saved","value"];
+  let bad = 0;
+  for (const r of CRM) {
+    try { if (!read(`app/api/${r}/route.ts`).includes('"crm"')) { fail(`app/api/${r}: missing crm gate`); bad++; } } catch {}
+  }
+  for (const r of IG) {
+    try { if (!read(`app/api/${r}/route.ts`).includes('"instagram_ai"')) { fail(`app/api/${r}: missing instagram_ai gate`); bad++; } } catch {}
+  }
+  try { if (!read("lib/employee-auth.ts").includes("features.crm")) { fail("employee portal choke-point gate missing"); bad++; } } catch {}
+  if (bad === 0) pass(`all ${CRM.length + IG.length} area APIs + the portal choke point are gated`);
 }
 
 // ---- RESULT -----------------------------------------------------------------

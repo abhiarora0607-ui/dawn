@@ -4,7 +4,7 @@
 // due, and payment-proof→convert. Thresholds are defaults (editable later).
 
 import { NextResponse } from "next/server";
-import { getEntitlements } from "@/lib/entitlements";
+import { requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +18,8 @@ export async function GET() {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ suggestions: [] });
-  const _ent = await getEntitlements(url, key, uid);
-  if (!_ent.features.ai) return NextResponse.json({ suggestions: [], locked: true, lockedReason: "AI suggestions are on the Pro plan." });
+  const _area = await requireArea(url, key, uid, "instagram_ai");
+  if (_area) return NextResponse.json(_area, { status: 403 });
 
 
   try {

@@ -5,6 +5,7 @@
 // touches real data or the permanent owner-employee record.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { ensureOwnerEmployee } from "@/lib/owner-employee";
 
@@ -50,6 +51,8 @@ export async function POST(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   const action = new URL(req.url).searchParams.get("action");
 
   // ---------------------------------------------------------------- CLEAR

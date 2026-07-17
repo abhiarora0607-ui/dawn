@@ -4,6 +4,7 @@
 // getUid, and lives outside the team surface). All uid-scoped.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { restore, RECOVERY_WINDOW_DAYS } from "@/lib/soft-delete";
 import { audit } from "@/lib/audit";
@@ -19,6 +20,8 @@ export async function GET() {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ items: [] });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
 
   const cutoff = new Date(Date.now() - RECOVERY_WINDOW_DAYS * 86400000).toISOString();
   try {
@@ -51,6 +54,8 @@ export async function POST(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   try {
     const b = await req.json();
     const table = KIND_TABLE[b.kind];

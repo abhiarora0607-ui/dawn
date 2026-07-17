@@ -3,6 +3,7 @@
 // we can guide them the last mile. All uid-scoped; pure counts.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,8 @@ export async function GET() {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ available: false });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
 
   try {
     const [items, contacts, orders, employees, settings] = await Promise.all([

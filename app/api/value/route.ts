@@ -6,6 +6,7 @@
 // This is what makes the subscription feel obviously worth it.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,14 @@ function daysAgo(n: number) {
 }
 
 export async function GET() {
+  { // Billing: Instagram & AI is a plan area.
+    const _uid = await (await import("@/lib/auth")).getUid();
+    const _url = process.env.NEXT_PUBLIC_SUPABASE_URL, _key = process.env.SUPABASE_SECRET_KEY;
+    if (_uid && _url && _key) {
+      const _area = await requireArea(_url, _key, _uid, "instagram_ai");
+      if (_area) return NextResponse.json(_area, { status: 403 });
+    }
+  }
   const id = await igUserId();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY;

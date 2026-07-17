@@ -3,6 +3,7 @@
 // niche, persona, and brand voice.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { getProviderAsync, getProvider } from "@/lib/data-provider";
 import { getBrandVoice, brandVoicePrompt } from "@/lib/brand-voice";
 import { getPersona, personaPrompt } from "@/lib/persona";
@@ -13,6 +14,14 @@ export const maxDuration = 60;
 const MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
 
 export async function GET() {
+  { // Billing: Instagram & AI is a plan area.
+    const _uid = await (await import("@/lib/auth")).getUid();
+    const _url = process.env.NEXT_PUBLIC_SUPABASE_URL, _key = process.env.SUPABASE_SECRET_KEY;
+    if (_uid && _url && _key) {
+      const _area = await requireArea(_url, _key, _uid, "instagram_ai");
+      if (_area) return NextResponse.json(_area, { status: 403 });
+    }
+  }
   const key = process.env.GEMINI_API_KEY;
   let account;
   try { account = await (await getProviderAsync()).getAccount(); } catch { account = await getProvider().getAccount(); }

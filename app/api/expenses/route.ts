@@ -1,6 +1,6 @@
 // app/api/expenses/route.ts
 import { NextResponse } from "next/server";
-import { writeBlocked } from "@/lib/entitlements";
+import { writeBlocked, requireArea } from "@/lib/entitlements";
 import { softDelete } from "@/lib/soft-delete";
 import { getUid } from "@/lib/auth";
 
@@ -14,6 +14,8 @@ export async function GET() {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ expenses: [] });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   try {
     const res = await fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&deleted_at=is.null&order=date.desc`, { headers: H(key), cache: "no-store" });
     return NextResponse.json({ expenses: await res.json() });
@@ -25,9 +27,8 @@ export async function POST(req: Request) {
   const { url, key } = sb();
   if (!uid) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   if (!url || !key) return NextResponse.json({ error: "Not configured." }, { status: 500 });
-  // Billing: expired accounts are read-only (data safe, no new writes).
-  const _blocked = await writeBlocked(url, key, uid);
-  if (_blocked) return NextResponse.json(_blocked, { status: 403 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
 
   try {
     const b = await req.json();
@@ -53,6 +54,8 @@ export async function DELETE(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
   try {

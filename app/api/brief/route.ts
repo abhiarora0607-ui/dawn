@@ -1,6 +1,6 @@
 // app/api/brief/route.ts
 import { NextResponse } from "next/server";
-import { getEntitlements } from "@/lib/entitlements";
+import { getEntitlements, requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { getProviderAsync, getProvider } from "@/lib/data-provider";
 import { generateBrief } from "@/lib/briefing-engine";
@@ -54,8 +54,8 @@ export async function GET(req: Request) {
     const _uid = await getUid();
     const _url = process.env.NEXT_PUBLIC_SUPABASE_URL, _key = process.env.SUPABASE_SECRET_KEY;
     if (_uid && _url && _key) {
-      const _ent = await getEntitlements(_url, _key, _uid);
-      if (!_ent.features.ai) return NextResponse.json({ locked: true, error: "AI briefing is on the Pro plan — upgrade in Settings → Billing." }, { status: 403 });
+      const _area = await requireArea(_url, _key, _uid, "instagram_ai");
+      if (_area) return NextResponse.json(_area, { status: 403 });
     }
   }
 

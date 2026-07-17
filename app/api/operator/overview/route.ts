@@ -56,6 +56,29 @@ export async function GET() {
     for (const s of Array.isArray(statsRows) ? statsRows : []) statsByUid[s.uid] = s;
     const useStats = Object.keys(statsByUid).length > 0;
 
+    // Billing state per business (V26): status + days left, computed live.
+    const [subsRows, plansRows] = await Promise.all([
+      fetch(`${url}/rest/v1/subscriptions?select=uid,plan_id,status,trial_ends_at,period_end,cancel_at_period_end`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+      fetch(`${url}/rest/v1/plans?select=id,name`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+    ]);
+    const planNameById: Record<string, string> = {};
+    for (const p of Array.isArray(plansRows) ? plansRows : []) planNameById[p.id] = p.name;
+    const subByUid: Record<string, any> = {};
+    for (const sRow of Array.isArray(subsRows) ? subsRows : []) subByUid[sRow.uid] = sRow;
+    const billingOf = (uid: string) => {
+      const sub = subByUid[uid];
+      if (!sub) return { billingStatus: "none", billingPlan: null, billingDaysLeft: null };
+      const nowB = Date.now();
+      if (sub.status === "complimentary") return { billingStatus: "comp", billingPlan: planNameById[sub.plan_id] || null, billingDaysLeft: null };
+      if (sub.status === "trialing") {
+        const dl = sub.trial_ends_at ? Math.ceil((new Date(sub.trial_ends_at).getTime() - nowB) / 86400000) : null;
+        return dl != null && dl <= 0 ? { billingStatus: "expired", billingPlan: null, billingDaysLeft: null } : { billingStatus: "trial", billingPlan: planNameById[sub.plan_id] || null, billingDaysLeft: dl };
+      }
+      const pe = sub.period_end ? new Date(sub.period_end).getTime() : 0;
+      if (pe && pe > nowB) return { billingStatus: "paid", billingPlan: planNameById[sub.plan_id] || null, billingDaysLeft: Math.ceil((pe - nowB) / 86400000) };
+      return { billingStatus: "expired", billingPlan: planNameById[sub.plan_id] || null, billingDaysLeft: null };
+    };
+
     const [users, settings, ig, contacts, sales, employees, activities] = await Promise.all([
       fetch(`${url}/rest/v1/dawn_users?select=uid,email,created_at,last_active_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/business_settings?select=uid,business_name,phone,whatsapp,updated_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
@@ -139,6 +162,7 @@ export async function GET() {
         realOrders: useStats ? (stat?.real_orders || 0) : countReal(S, uid),
         weeks,
         growingFast: prior >= 3 && recent >= prior * 1.5,
+        ...billingOf(uid),
       };
       // A business whose data is entirely seeded demo content — real usage is zero.
       b.demoOnly = (b.contacts > 0 || b.orders > 0) && b.realContacts === 0 && b.realOrders === 0;

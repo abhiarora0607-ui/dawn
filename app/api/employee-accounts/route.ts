@@ -3,6 +3,7 @@
 // reset password, change login id, activate/deactivate, set permissions.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { hashPassword, generatePassword, loginIdFromName, passwordIssue } from "@/lib/password";
 import { DEFAULT_EMPLOYEE_PERMISSIONS } from "@/lib/employee-auth";
@@ -17,6 +18,8 @@ export async function GET() {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ accounts: [] });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   try {
     const rows = await (await fetch(`${url}/rest/v1/employee_accounts?uid=eq.${uid}&select=id,employee_id,login_id,active,permissions,must_change_password,last_login_at,created_at&order=created_at.desc`, { headers: H(key), cache: "no-store" })).json();
     return NextResponse.json({ accounts: Array.isArray(rows) ? rows : [] });
@@ -30,6 +33,8 @@ export async function POST(req: Request) {
   const { url, key } = sb();
   if (!uid) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
   if (!url || !key) return NextResponse.json({ error: "Not configured." }, { status: 500 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   try {
     const b = await req.json();
     if (!b.employeeId) return NextResponse.json({ error: "Missing employee." }, { status: 400 });
@@ -71,6 +76,8 @@ export async function PATCH(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   try {
     const b = await req.json();
     if (!b.id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
@@ -114,6 +121,8 @@ export async function DELETE(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
   try {

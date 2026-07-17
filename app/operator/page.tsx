@@ -105,10 +105,11 @@ function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
   const a = d.attention;
 
   let rows = (d.businesses || []).filter((b: any) =>
-    (filter === "all" || b.status === filter) &&
+    (filter === "all" || (filter.startsWith("bill:") ? b.billingStatus === filter.slice(5) : b.status === filter)) &&
     (!q || (b.name || "").toLowerCase().includes(q.toLowerCase()) || (b.email || "").toLowerCase().includes(q.toLowerCase()))
   );
-  rows = [...rows].sort((a: any, b: any) =>
+  if (filter === "bill:trial" || filter === "bill:paid") rows = [...rows].sort((a: any, b: any) => (a.billingDaysLeft ?? 999) - (b.billingDaysLeft ?? 999));
+  else rows = [...rows].sort((a: any, b: any) =>
     sort === "score" ? b.score - a.score
     : sort === "newest" ? new Date(b.signedUp).getTime() - new Date(a.signedUp).getTime()
     : sort === "quiet" ? (b.daysQuiet ?? -1) - (a.daysQuiet ?? -1)
@@ -240,6 +241,10 @@ function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
           <option value="cooling">Cooling</option>
           <option value="churning">Churning</option>
           <option value="never_started">Never started</option>
+          <option value="bill:trial">💳 On trial</option>
+          <option value="bill:paid">💳 Paying</option>
+          <option value="bill:expired">💳 Expired</option>
+          <option value="bill:comp">💳 Complimentary</option>
         </select>
         <select value={sort} onChange={(e) => setSort(e.target.value)} className="px-3 py-2.5 rounded-xl border border-navy-line text-sm text-navy bg-white">
           <option value="score">By engagement</option>
@@ -266,6 +271,10 @@ function Console({ d, onLogout }: { d: any; onLogout: () => void }) {
                       {b.ig && <Instagram className="w-3.5 h-3.5 text-navy/30 shrink-0" />}
                       {b.demoOnly && <span className="text-[9px] font-bold uppercase bg-violet-50 text-violet-600 px-1.5 py-0.5 rounded shrink-0">demo</span>}
                       {b.unclaimedLegacy && <span className="text-[9px] font-bold uppercase bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded shrink-0">unclaimed</span>}
+                      {b.billingStatus === "trial" && <span className="text-[9px] font-bold uppercase bg-amber/15 text-amber-deep px-1.5 py-0.5 rounded shrink-0">trial · {b.billingDaysLeft}d</span>}
+                      {b.billingStatus === "paid" && <span className="text-[9px] font-bold uppercase bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded shrink-0">paid · {b.billingDaysLeft}d</span>}
+                      {b.billingStatus === "expired" && <span className="text-[9px] font-bold uppercase bg-red-50 text-red-600 px-1.5 py-0.5 rounded shrink-0">expired</span>}
+                      {b.billingStatus === "comp" && <span className="text-[9px] font-bold uppercase bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded shrink-0">comp</span>}
                     </p>
                     <p className="text-xs text-muted truncate">{b.email || "no email on file"} · joined {new Date(b.signedUp).toLocaleDateString()} ({b.daysSinceSignup}d ago)</p>
                   </div>

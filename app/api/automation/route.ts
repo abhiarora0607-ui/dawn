@@ -1,5 +1,6 @@
 // app/api/automation/route.ts
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,14 @@ export async function POST(req: Request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY;
   if (!url || !key) return NextResponse.json({ error: "Not configured." }, { status: 500 });
+  { // Billing: Instagram & AI is a plan area.
+    const _uid = await (await import("@/lib/auth")).getUid();
+    const _url = process.env.NEXT_PUBLIC_SUPABASE_URL, _key = process.env.SUPABASE_SECRET_KEY;
+    if (_uid && _url && _key) {
+      const _area = await requireArea(_url, _key, _uid, "instagram_ai");
+      if (_area) return NextResponse.json(_area, { status: 403 });
+    }
+  }
   try {
     const b = await req.json();
     const res = await fetch(`${url}/rest/v1/automation_settings`, {

@@ -126,7 +126,8 @@ export default function BusinessDetail() {
             <span className="text-muted"> · {bill.planName} · {bill.cycle}</span>
             {bill.trialEndsAt && bill.status === "trialing" && <span className="text-muted"> · trial ends {new Date(bill.trialEndsAt).toLocaleDateString()}</span>}
             {bill.periodEnd && bill.status !== "trialing" && <span className="text-muted"> · period ends {new Date(bill.periodEnd).toLocaleDateString()}</span>}
-            {bill.hasPaid && <span className="text-emerald-600"> · has paid</span>}
+            {bill.hasPaid && <span className="text-emerald-600"> · ₹{Number(bill.lifetimePaid || 0).toLocaleString()} lifetime</span>}
+            {bill.startedAt && <span className="text-muted"> · started {new Date(bill.startedAt).toLocaleDateString()} ({bill.daysUsed}d used{bill.daysLeft != null ? `, ${bill.daysLeft}d left` : ""})</span>}
             {bill.cancelAtPeriodEnd && <span className="text-red-500"> · cancelling</span>}
           </p>
         )}

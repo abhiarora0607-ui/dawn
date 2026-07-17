@@ -40,11 +40,17 @@ export async function POST(req: Request) {
 
     // ---- cancel at period end / resume --------------------------------
     if (b.action === "cancel" || b.action === "resume") {
+      const patch: any = { cancel_at_period_end: b.action === "cancel", status: b.action === "cancel" ? "cancelled" : "active", updated_at: new Date().toISOString() };
+      if (b.action === "cancel") patch.cancel_reason = String(b.reason || "").slice(0, 200) || null;
       await fetch(`${url}/rest/v1/subscriptions?uid=eq.${uid}`, {
         method: "PATCH", headers: H(key, { Prefer: "return=minimal" }),
-        body: JSON.stringify({ cancel_at_period_end: b.action === "cancel", status: b.action === "cancel" ? "cancelled" : "active", updated_at: new Date().toISOString() }),
+        body: JSON.stringify(patch),
       });
-      await audit({ uid, action: `billing.${b.action}`, entity: "subscriptions", entityId: uid });
+      if (b.action === "cancel") {
+        // churn research from day one
+        fetch(`${url}/rest/v1/events`, { method: "POST", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify({ uid, kind: "cancel", meta: { reason: patch.cancel_reason } }) }).catch(() => {});
+      }
+      await audit({ uid, action: `billing.${b.action}`, entity: "subscriptions", entityId: uid, meta: { reason: b.reason } });
       return NextResponse.json({ ok: true });
     }
 

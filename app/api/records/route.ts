@@ -4,6 +4,7 @@
 // this is a faster door into the product, not a back door around it.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { softDelete } from "@/lib/soft-delete";
 import { getUid } from "@/lib/auth";
 import { audit } from "@/lib/audit";
@@ -20,6 +21,8 @@ export async function GET(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   const p = new URL(req.url).searchParams;
   const obj = p.get("object") || "contacts";
   const spec = OBJECTS[obj];
@@ -48,6 +51,8 @@ export async function PATCH(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   try {
     const b = await req.json();
     const spec = OBJECTS[b.object];
@@ -100,6 +105,8 @@ export async function DELETE(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   const p = new URL(req.url).searchParams;
   const obj = p.get("object") || "";
   const id = p.get("id") || "";

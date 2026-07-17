@@ -26,6 +26,13 @@ async function getData(slug: string) {
     ]);
     const items = await itemsRes.json();
     const settings = (await setRes.json().catch(() => []))?.[0] || null;
+    // Count the view (kind + uid only — no visitor identity; privacy wall intact).
+    try {
+      await fetch(`${url}/rest/v1/events`, {
+        method: "POST", headers: { ...h, "Content-Type": "application/json", Prefer: "return=minimal" },
+        body: JSON.stringify({ uid: sf.uid, kind: "pricelist_view" }),
+      });
+    } catch {}
     return { sf, settings, items: Array.isArray(items) ? items : [] };
   } catch { return null; }
 }

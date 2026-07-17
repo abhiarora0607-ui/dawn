@@ -9,6 +9,8 @@ import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useSettings, money } from "@/lib/use-settings";
 import { OnboardingCard } from "@/components/OnboardingCard";
+import { WhatsNew } from "@/components/WhatsNew";
+import { FeedbackPulse } from "@/components/FeedbackPulse";
 import {
   Loader2, TrendingUp, TrendingDown, Wallet, AlertTriangle, Clock, Snowflake,
   Truck, Trophy, Users, Target, Phone, MessageCircle, ArrowRight, CheckSquare, Flame,
@@ -39,6 +41,7 @@ export default function BusinessDashboard() {
       <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
 
         <OnboardingCard />
+        <WhatsNew />
 
         {/* ---------------------------------------------------------- MONEY */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -61,6 +64,10 @@ export default function BusinessDashboard() {
             </div>
             {m.targetPct >= 100 && <p className="text-xs text-emerald-600 font-medium mt-1.5">🎉 Goal reached this month!</p>}
           </div>
+        )}
+
+        {d.menuViews7d > 0 && (
+          <p className="text-xs text-muted -mt-2">👀 Your public price list was viewed <span className="font-semibold text-navy">{d.menuViews7d}</span> time{d.menuViews7d === 1 ? "" : "s"} this week.</p>
         )}
 
         {/* ------------------------------------------------- NEEDS ATTENTION */}
@@ -247,6 +254,8 @@ export default function BusinessDashboard() {
             {p.bestSource && <Mini label="Best source" value={`${p.bestSource.name} (${p.bestSource.rate}%)`} />}
           </div>
         </section>
+
+        <FeedbackPulse />
 
       </div>
     </DashboardShell>

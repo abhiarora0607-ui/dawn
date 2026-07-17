@@ -4,6 +4,7 @@
 // Instagram cannot auto-discover competitors, so the user provides handles.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -52,6 +53,14 @@ Write ONE punchy sentence (max 30 words) that identifies what's actually working
 }
 
 export async function GET() {
+  { // Billing: Instagram & AI is a plan area.
+    const _uid = await (await import("@/lib/auth")).getUid();
+    const _url = process.env.NEXT_PUBLIC_SUPABASE_URL, _key = process.env.SUPABASE_SECRET_KEY;
+    if (_uid && _url && _key) {
+      const _area = await requireArea(_url, _key, _uid, "instagram_ai");
+      if (_area) return NextResponse.json(_area, { status: 403 });
+    }
+  }
   // AI suggests competitor handles based on the connected account's niche/bio.
   const conn = await getToken();
   const key = process.env.GEMINI_API_KEY;
@@ -97,6 +106,14 @@ RULES:
 }
 
 export async function POST(req: Request) {
+  { // Billing: Instagram & AI is a plan area.
+    const _uid = await (await import("@/lib/auth")).getUid();
+    const _url = process.env.NEXT_PUBLIC_SUPABASE_URL, _key = process.env.SUPABASE_SECRET_KEY;
+    if (_uid && _url && _key) {
+      const _area = await requireArea(_url, _key, _uid, "instagram_ai");
+      if (_area) return NextResponse.json(_area, { status: 403 });
+    }
+  }
   const conn = await getToken();
   if (!conn) {
     return NextResponse.json({ error: "Connect Instagram first to analyze competitors.", competitors: [] }, { status: 400 });

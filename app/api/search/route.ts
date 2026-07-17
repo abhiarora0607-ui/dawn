@@ -1,5 +1,6 @@
 // app/api/search/route.ts
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,8 @@ export async function GET(req: Request) {
   const { url, key } = sb();
   const raw = (new URL(req.url).searchParams.get("q") || "").trim();
   if (!uid || !url || !key || raw.length < 2) return NextResponse.json({ results: [] });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
 
   // Strip PostgREST filter metacharacters so the query can't be broken out of
   // (*, comma, parentheses, backslash), then URL-encode the safe remainder.

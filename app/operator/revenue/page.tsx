@@ -18,6 +18,11 @@ export default function RevenuePage() {
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<any>(null); // plan being edited (or {new:true})
   const [saving, setSaving] = useState(false);
+  const [ann, setAnn] = useState<any[]>([]);
+  const [annTitle, setAnnTitle] = useState("");
+  const [annBody, setAnnBody] = useState("");
+  const [cfgTrial, setCfgTrial] = useState("");
+  const [cfgGrace, setCfgGrace] = useState("");
 
   function load() {
     Promise.all([
@@ -26,6 +31,9 @@ export default function RevenuePage() {
     ]).then(([bill, pl]) => {
       if (bill.error) { window.location.href = "/operator"; return; }
       setD(bill); setPlans(pl.plans || []); setLoading(false);
+      setCfgTrial(String(bill.billingSettings?.default_trial_days ?? 14));
+      setCfgGrace(String(bill.billingSettings?.grace_days ?? 3));
+      fetch("/api/operator/announcements").then((r) => r.json()).then((x) => setAnn(x.items || [])).catch(() => {});
     }).catch(() => setLoading(false));
   }
   useEffect(() => { load(); }, []);
@@ -43,6 +51,21 @@ export default function RevenuePage() {
     if (!edit.new) body.id = edit.id;
     await fetch("/api/operator/plans", { method: edit.new ? "POST" : "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     setSaving(false); setEdit(null); load();
+  }
+
+  async function saveSettings() {
+    await fetch("/api/operator/billing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "update_settings", default_trial_days: Number(cfgTrial), grace_days: Number(cfgGrace) }) });
+    load();
+  }
+  async function postAnn() {
+    if (!annTitle.trim()) return;
+    await fetch("/api/operator/announcements", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: annTitle, body: annBody }) });
+    setAnnTitle(""); setAnnBody("");
+    fetch("/api/operator/announcements").then((r) => r.json()).then((x) => setAnn(x.items || [])).catch(() => {});
+  }
+  async function delAnn(id: string) {
+    await fetch(`/api/operator/announcements?id=${id}`, { method: "DELETE" });
+    setAnn(ann.filter((a) => a.id !== id));
   }
 
   function exportLedger() {
@@ -92,6 +115,79 @@ export default function RevenuePage() {
           </div>
         )}
 
+        {/* Renewals due — collect the money */}
+        {d.renewalsSoon?.length > 0 && (
+          <div className="dawn-card p-4">
+            <p className="dawn-section-title text-sm mb-2"><IndianRupee className="w-4 h-4 text-emerald-600" /> Renewals due within 7 days</p>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {d.renewalsSoon.map((t: any) => (
+                <Link key={t.uid} href={`/operator/b/${encodeURIComponent(t.uid)}`} className="flex items-center justify-between bg-surface rounded-xl px-3 py-2.5 hover:bg-emerald-50/50 text-sm">
+                  <span className="min-w-0"><span className="font-medium text-navy truncate">{t.name || t.uid.slice(0, 14)}</span><span className="text-muted"> · {t.planName}</span>{t.cancelAtPeriodEnd && <span className="text-red-500 text-xs"> · cancelling</span>}</span>
+                  <span className={`shrink-0 font-semibold ${t.daysLeft <= 2 ? "text-red-600" : "text-emerald-700"}`}>{t.daysLeft}d</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Insight row: churn reasons, gate hits, feedback */}
+        <div className="grid md:grid-cols-3 gap-3">
+          <div className="dawn-card p-4">
+            <p className="text-sm font-semibold text-navy mb-2">Cancel reasons</p>
+            {Object.keys(d.cancelReasons || {}).length === 0 ? <p className="text-xs text-muted">None yet — good sign.</p> : (
+              Object.entries(d.cancelReasons).sort((a: any, b: any) => b[1] - a[1]).map(([r, n]: any) => (
+                <p key={r} className="text-sm text-navy flex justify-between py-0.5"><span>{r}</span><span className="font-semibold">{n}</span></p>
+              ))
+            )}
+          </div>
+          <div className="dawn-card p-4">
+            <p className="text-sm font-semibold text-navy mb-2">Locked-feature demand <span className="text-[10px] text-muted font-normal">(30d)</span></p>
+            {Object.keys(d.gateHits || {}).length === 0 ? <p className="text-xs text-muted">No gate hits yet.</p> : (
+              Object.entries(d.gateHits).map(([a, n]: any) => (
+                <p key={a} className="text-sm text-navy flex justify-between py-0.5"><span>{a === "crm" ? "CRM & Business" : a === "instagram_ai" ? "Instagram & AI" : a}</span><span className="font-semibold">{n} hit{n > 1 ? "s" : ""}</span></p>
+              ))
+            )}
+            <p className="text-[10px] text-muted mt-2">People reaching for an area they didn&apos;t buy — pricing research, live.</p>
+          </div>
+          <div className="dawn-card p-4">
+            <p className="text-sm font-semibold text-navy mb-2">Feedback pulse</p>
+            {(d.feedback || []).length === 0 ? <p className="text-xs text-muted">No feedback yet.</p> : (
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {d.feedback.map((f: any) => (
+                  <p key={f.id} className="text-xs text-navy"><span>{f.mood === "happy" ? "😍" : f.mood === "neutral" ? "😐" : "😞"}</span> <span className="font-medium">{f.name || f.uid.slice(0, 10)}</span>{f.note && <span className="text-muted"> — {f.note}</span>}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Billing settings + announcements */}
+        <div className="grid md:grid-cols-2 gap-3">
+          <div className="dawn-card p-4">
+            <p className="text-sm font-semibold text-navy mb-2">Billing settings <span className="text-[10px] text-muted font-normal">(applies to all new trials)</span></p>
+            <div className="flex items-end gap-3">
+              <label className="block text-xs text-muted">Trial days<input type="number" value={cfgTrial} onChange={(e) => setCfgTrial(e.target.value)} className="inp mt-1 w-24" /></label>
+              <label className="block text-xs text-muted">Grace days<input type="number" value={cfgGrace} onChange={(e) => setCfgGrace(e.target.value)} className="inp mt-1 w-24" /></label>
+              <button onClick={saveSettings} className="bg-navy text-white text-sm font-medium px-4 py-2 rounded-xl">Save</button>
+            </div>
+          </div>
+          <div className="dawn-card p-4">
+            <p className="text-sm font-semibold text-navy mb-2">Post a &quot;What&apos;s new&quot;</p>
+            <input value={annTitle} onChange={(e) => setAnnTitle(e.target.value)} placeholder="Title — e.g. Public menu cards are here" className="inp mb-2" />
+            <div className="flex gap-2">
+              <input value={annBody} onChange={(e) => setAnnBody(e.target.value)} placeholder="One-line detail (optional)" className="inp flex-1" />
+              <button onClick={postAnn} className="bg-navy text-white text-sm font-medium px-4 rounded-xl">Post</button>
+            </div>
+            {ann.length > 0 && (
+              <div className="mt-2 space-y-1 max-h-28 overflow-y-auto">
+                {ann.map((a) => (
+                  <p key={a.id} className="text-xs text-navy flex items-center justify-between"><span className="truncate">{a.title}</span><button onClick={() => delAnn(a.id)} className="text-red-400 hover:text-red-600 ml-2 shrink-0">×</button></p>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Plans manager */}
         <div className="dawn-card p-5">
           <div className="flex items-center justify-between mb-3">
@@ -105,7 +201,7 @@ export default function RevenuePage() {
                 <div key={p.id} className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 ${p.is_active ? "border-navy-line bg-white" : "border-navy-line/50 bg-surface opacity-60"}`}>
                   <div className="min-w-0">
                     <p className="font-semibold text-navy text-sm">{p.name} <span className="font-normal text-muted">· ₹{p.price_monthly}/mo · ₹{p.price_yearly}/yr · {p.trial_days}d trial · {p.max_seats ?? "∞"} seats</span>{!p.is_active && <span className="text-red-500 text-xs"> · archived</span>}</p>
-                    <p className="text-[11px] text-muted mt-0.5">{FEATURES.filter((f) => p.features?.[f]).map((f) => FEATURE_SHORT[f]).join(" · ") || "No extra features"}{counts ? ` — ${counts.active} paying, ${counts.trialing} trialing` : ""}</p>
+                    <p className="text-[11px] text-muted mt-0.5">{FEATURES.filter((f) => p.features?.[f]).map((f) => FEATURE_SHORT[f]).join(" · ") || "No extra features"}{counts ? ` — ${counts.active} paying, ${counts.trialing} trialing, ${counts.paidEver} ever paid` : ""}</p>
                   </div>
                   <button onClick={() => setEdit({ ...p })} className="shrink-0 text-navy/50 hover:text-navy"><Pencil className="w-4 h-4" /></button>
                 </div>

@@ -4,6 +4,7 @@
 // Uses brand voice so captions sound like the creator.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { getBrandVoice, brandVoicePrompt } from "@/lib/brand-voice";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,14 @@ function parseJson(text: string): any | null {
 }
 
 export async function POST(req: Request) {
+  { // Billing: Instagram & AI is a plan area.
+    const _uid = await (await import("@/lib/auth")).getUid();
+    const _url = process.env.NEXT_PUBLIC_SUPABASE_URL, _key = process.env.SUPABASE_SECRET_KEY;
+    if (_uid && _url && _key) {
+      const _area = await requireArea(_url, _key, _uid, "instagram_ai");
+      if (_area) return NextResponse.json(_area, { status: 403 });
+    }
+  }
   const key = process.env.GEMINI_API_KEY;
   if (!key) {
     return NextResponse.json({ error: "AI isn't configured yet." }, { status: 500 });

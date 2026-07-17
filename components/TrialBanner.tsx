@@ -17,7 +17,16 @@ export function TrialBanner() {
     fetch("/api/billing").then((r) => r.json()).then((d) => setE(d?.ent || null)).catch(() => {});
   }, []);
 
-  if (!e || e.effective === "active" || e.effective === "complimentary") return null;
+  if (!e || e.effective === "complimentary") return null;
+  if (e.effective === "active") {
+    if (e.renewsInDays == null || e.renewsInDays > 3 || e.cancelAtPeriodEnd) return null;
+    return (
+      <div className="bg-navy px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 text-sm">
+        <span className="flex items-center gap-2 min-w-0"><Clock className="w-4 h-4 text-amber shrink-0" /><span className="truncate text-white/90">Your plan renews in {e.renewsInDays} day{e.renewsInDays === 1 ? "" : "s"}</span></span>
+        <Link href="/dashboard/billing" className="flex items-center gap-1 font-semibold text-amber shrink-0">Renew <ArrowRight className="w-3.5 h-3.5" /></Link>
+      </div>
+    );
+  }
 
   const urgent = e.effective !== "trialing" || (e.daysLeft != null && e.daysLeft <= 3);
   if (hidden && !urgent) return null;

@@ -4,6 +4,7 @@
 // context. Revenue = money actually collected; cancelled orders are excluded.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { touchActive } from "@/lib/touch";
 
@@ -52,6 +53,8 @@ export async function GET(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ available: false });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
 
   const p = new URL(req.url).searchParams;
   const range = p.get("range") || "month";

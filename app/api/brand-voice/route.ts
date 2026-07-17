@@ -1,5 +1,6 @@
 // app/api/brand-voice/route.ts
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { getBrandVoice, saveBrandVoice } from "@/lib/brand-voice";
 
 export const dynamic = "force-dynamic";
@@ -74,6 +75,14 @@ RULES:
 }
 
 export async function GET(req: Request) {
+  { // Billing: Instagram & AI is a plan area.
+    const _uid = await (await import("@/lib/auth")).getUid();
+    const _url = process.env.NEXT_PUBLIC_SUPABASE_URL, _key = process.env.SUPABASE_SECRET_KEY;
+    if (_uid && _url && _key) {
+      const _area = await requireArea(_url, _key, _uid, "instagram_ai");
+      if (_area) return NextResponse.json(_area, { status: 403 });
+    }
+  }
   const v = await getBrandVoice();
   // If empty and the user asked to auto-detect, analyze their IG.
   const wantDetect = new URL(req.url).searchParams.get("detect") === "1";
@@ -86,6 +95,14 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  { // Billing: Instagram & AI is a plan area.
+    const _uid = await (await import("@/lib/auth")).getUid();
+    const _url = process.env.NEXT_PUBLIC_SUPABASE_URL, _key = process.env.SUPABASE_SECRET_KEY;
+    if (_uid && _url && _key) {
+      const _area = await requireArea(_url, _key, _uid, "instagram_ai");
+      if (_area) return NextResponse.json(_area, { status: 403 });
+    }
+  }
   try {
     const { cookies } = await import("next/headers");
     const igUserId = cookies().get("dawn_ig")?.value;

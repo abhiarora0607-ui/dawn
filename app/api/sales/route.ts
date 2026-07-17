@@ -4,7 +4,7 @@
 // customer). This is the core lead→customer conversion loop.
 
 import { NextResponse } from "next/server";
-import { writeBlocked } from "@/lib/entitlements";
+import { writeBlocked, requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { softDelete } from "@/lib/soft-delete";
@@ -20,6 +20,8 @@ export async function GET(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ sales: [] });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   const wantCustomers = new URL(req.url).searchParams.get("customers") === "1";
   try {
     if (wantCustomers) {
@@ -36,6 +38,8 @@ export async function PATCH(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   try {
     const b = await req.json();
     if (!b.id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
@@ -127,6 +131,8 @@ export async function DELETE(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
   try {
@@ -147,9 +153,8 @@ export async function POST(req: Request) {
   const { url, key } = sb();
   if (!uid) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   if (!url || !key) return NextResponse.json({ error: "Not configured." }, { status: 500 });
-  // Billing: expired accounts are read-only (data safe, no new writes).
-  const _blocked = await writeBlocked(url, key, uid);
-  if (_blocked) return NextResponse.json(_blocked, { status: 403 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
 
   try {
     const b = await req.json();

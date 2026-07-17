@@ -5,6 +5,7 @@
 // Also returns the list of frozen months available, for month selectors.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { computeScores, monthKey } from "@/lib/scoring";
 
@@ -16,6 +17,8 @@ export async function GET(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
 
   const p = new URL(req.url).searchParams;
   const askMonth = p.get("month");

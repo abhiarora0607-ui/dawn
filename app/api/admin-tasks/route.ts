@@ -5,6 +5,7 @@
 // admin where it came from.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { ensureOwnerEmployee } from "@/lib/owner-employee";
@@ -19,6 +20,8 @@ export async function GET() {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   try {
     await ensureOwnerEmployee(url, key, uid);
     const [tasks, notes, employees, contacts] = await Promise.all([
@@ -40,6 +43,8 @@ export async function POST(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   try {
     const b = await req.json();
     const employeeId = b.employeeId || (await ensureOwnerEmployee(url, key, uid));
@@ -72,6 +77,8 @@ export async function PATCH(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   try {
     const b = await req.json();
     if (!b.id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
@@ -91,6 +98,8 @@ export async function DELETE(req: Request) {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
   const p = new URL(req.url).searchParams;
   const id = p.get("id");
   const table = p.get("kind") === "note" ? "emp_notes" : "tasks";

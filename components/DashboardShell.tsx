@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { DawnLogo } from "@/components/DawnLogo";
 import { TrialBanner } from "@/components/TrialBanner";
 import {
-  LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus, Menu, X, Bookmark, CalendarDays, CalendarClock, Tag, Contact, Wallet, Lightbulb, ShoppingBag, UserCog, BarChart3, CheckSquare, Database, Flame, RotateCcw, CreditCard,
+  LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus, Menu, X, Bookmark, CalendarDays, CalendarClock, Tag, Contact, Wallet, Lightbulb, ShoppingBag, UserCog, BarChart3, CheckSquare, Database, Flame, RotateCcw, CreditCard, Lock,
 } from "lucide-react";
 
 const CRM_NAV = [
@@ -42,8 +42,20 @@ const BOTTOM_NAV = [
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
-function NavItem({ item, pathname, onNavigate, badgeCount }: { item: any; pathname: string; onNavigate?: () => void; badgeCount?: number }) {
+function NavItem({ item, pathname, onNavigate, badgeCount, locked }: { item: any; pathname: string; onNavigate?: () => void; badgeCount?: number; locked?: boolean }) {
   const active = pathname === item.href;
+  if (locked) {
+    // Honest UI: the area they didn't buy is visibly locked and routes to
+    // Billing — no mystery 403s.
+    return (
+      <Link href="/dashboard/billing" onClick={onNavigate} title="Included in another plan — tap to upgrade"
+        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-navy/30 hover:bg-navy/5">
+        <item.icon className="w-[18px] h-[18px]" />
+        <span>{item.label}</span>
+        <Lock className="ml-auto w-3.5 h-3.5" />
+      </Link>
+    );
+  }
   return (
     <Link
       href={item.href}
@@ -62,13 +74,13 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <p className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-navy/35">{children}</p>;
 }
 
-function NavLinks({ pathname, onNavigate, suggCount }: { pathname: string; onNavigate?: () => void; suggCount?: number }) {
+function NavLinks({ pathname, onNavigate, suggCount, ent }: { pathname: string; onNavigate?: () => void; suggCount?: number; ent?: any }) {
   return (
     <>
       <SectionLabel>CRM &amp; Business</SectionLabel>
-      {CRM_NAV.map((item) => <NavItem key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} badgeCount={suggCount} />)}
+      {CRM_NAV.map((item) => <NavItem key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} badgeCount={suggCount} locked={ent ? (item.label === "Suggestions" ? !ent.features?.instagram_ai : !ent.features?.crm) : false} />)}
       <SectionLabel>Instagram &amp; AI</SectionLabel>
-      {IG_NAV.map((item) => <NavItem key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} />)}
+      {IG_NAV.map((item) => <NavItem key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} locked={ent ? !ent.features?.instagram_ai : false} />)}
       <div className="pt-3 mt-2 border-t border-navy-line/60">
         {BOTTOM_NAV.map((item) => <NavItem key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} />)}
       </div>
@@ -81,9 +93,13 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
   const [open, setOpen] = useState(false);
   const [suggCount, setSuggCount] = useState(0);
 
+  const [ent, setEnt] = useState<any>(null);
   useEffect(() => {
     fetch("/api/suggestions").then((r) => r.json()).then((d) => setSuggCount((d.suggestions || []).length)).catch(() => {});
   }, [pathname]);
+  useEffect(() => {
+    fetch("/api/billing").then((r) => r.json()).then((d) => setEnt(d?.ent || null)).catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen bg-surface flex">
@@ -93,7 +109,7 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
           <Link href="/"><DawnLogo className="h-8" /></Link>
         </div>
         <nav className="p-3 space-y-1 flex-1 overflow-y-auto">
-          <NavLinks pathname={pathname} suggCount={suggCount} />
+          <NavLinks pathname={pathname} suggCount={suggCount} ent={ent} />
         </nav>
         <div className="p-3 border-t border-navy/8">
           <Link href="/" className="flex items-center gap-2 px-3 py-2 text-xs text-navy/40 hover:text-navy/70">
@@ -122,7 +138,7 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
               </button>
             </div>
             <nav className="p-3 space-y-1 flex-1 overflow-y-auto">
-              <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} suggCount={suggCount} />
+              <NavLinks pathname={pathname} onNavigate={() => setOpen(false)} suggCount={suggCount} ent={ent} />
             </nav>
             <div className="p-3 border-t border-navy/8">
               <Link href="/" onClick={() => setOpen(false)} className="flex items-center gap-2 px-3 py-2 text-xs text-navy/40">
@@ -136,7 +152,7 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
       {/* Main content — pushed right on desktop, down on mobile */}
       <main className="flex-1 lg:ml-60 pt-14 lg:pt-0 w-full min-w-0 pb-16 lg:pb-0 dawn-app-bg min-h-screen">
         <TrialBanner />
-        {children}
+        {ent && ent.effective === "expired" && pathname !== "/dashboard/billing" ? <PaywallScreen /> : children}
       </main>
 
       {/* Mobile bottom nav */}
@@ -159,6 +175,26 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
           );
         })}
       </nav>
+    </div>
+  );
+}
+
+
+// The hard wall (V26): trial or subscription over → the product locks behind a
+// plan chooser. Two doors stay open on principle: Billing (they can't pay if
+// they can't reach payment) and data export (their data is theirs, always).
+function PaywallScreen() {
+  return (
+    <div className="min-h-[80vh] flex items-center justify-center p-6">
+      <div className="dawn-card p-8 max-w-md w-full text-center">
+        <span className="w-14 h-14 rounded-2xl bg-navy flex items-center justify-center mx-auto mb-4"><Lock className="w-6 h-6 text-amber" /></span>
+        <h1 className="font-display font-semibold text-2xl text-navy">Your trial has ended</h1>
+        <p className="text-sm text-muted mt-2">Everything you built is safe — contacts, orders, finances, all of it. Choose a plan to pick up exactly where you left off.</p>
+        <Link href="/dashboard/billing" className="mt-6 w-full flex items-center justify-center gap-2 bg-amber-deep text-white font-semibold py-3 rounded-xl hover:bg-amber-deep/90">
+          Choose a plan <ArrowRight className="w-4 h-4" />
+        </Link>
+        <a href="/api/export-data" className="mt-3 inline-block text-xs text-navy/50 hover:text-navy underline">Export all my data first</a>
+      </div>
     </div>
   );
 }

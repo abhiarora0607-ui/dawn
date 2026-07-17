@@ -6,6 +6,7 @@
 // what the owner does today, it doesn't belong on this screen.
 
 import { NextResponse } from "next/server";
+import { requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { touchActive } from "@/lib/touch";
 
@@ -27,6 +28,8 @@ export async function GET() {
   const uid = await getUid();
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  const _area = await requireArea(url, key, uid, "crm");
+  if (_area) return NextResponse.json(_area, { status: 403 });
 
   try {
     await touchActive(url, key, uid);
@@ -40,6 +43,12 @@ export async function GET() {
       fetch(`${url}/rest/v1/business_settings?uid=eq.${uid}&select=revenue_target&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
     ]);
     const revenueTarget = Array.isArray(settingsRow) && settingsRow[0]?.revenue_target ? Number(settingsRow[0].revenue_target) : null;
+    // Public menu views this week — the "your showcase is working" number.
+    let menuViews7d = 0;
+    try {
+      const vc = await fetch(`${url}/rest/v1/events?uid=eq.${uid}&kind=eq.pricelist_view&created_at=gte.${new Date(Date.now() - 7 * 86400000).toISOString()}&select=id&limit=1`, { headers: { ...H(key), Prefer: "count=exact" }, cache: "no-store" });
+      menuViews7d = Number(vc.headers.get("content-range")?.split("/")[1] || 0);
+    } catch {}
 
     const C = Array.isArray(contacts) ? contacts : [];
     const S = (Array.isArray(sales) ? sales : []).filter((s: any) => s.order_status !== "Cancelled");
@@ -193,6 +202,7 @@ export async function GET() {
       .sort((a, b) => b.rate - a.rate)[0] || null;
 
     return NextResponse.json({
+      menuViews7d,
       money: { revenueMTD, expensesMTD, profitMTD, revenueTrend, totalOwed, avgOrderValue, revenueTarget, targetPct: revenueTarget ? Math.min(100, Math.round((revenueMTD / revenueTarget) * 100)) : null },
       attention: {
         unpaid: unpaid.slice(0, 8),

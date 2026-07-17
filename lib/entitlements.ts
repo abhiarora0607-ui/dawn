@@ -33,13 +33,16 @@ export type Entitlements = {
   priceLocked: number | null;
   cancelAtPeriodEnd: boolean;
   testMode: boolean;
+  trialStartedAt: string | null;
+  renewsInDays: number | null;   // days until period_end while active
 };
 
 const OPEN: Entitlements = {
   status: "unknown", effective: "active", canWrite: true, planId: null, planName: "—",
-  features: { team: true, scoring: true, csv_import: true, ai: true, item_analytics: true },
+  features: { crm: true, instagram_ai: true },
   maxSeats: null, trialEndsAt: null, daysLeft: null, cycle: "monthly", periodEnd: null,
   priceLocked: null, cancelAtPeriodEnd: false, testMode: true,
+  trialStartedAt: null, renewsInDays: null,
 };
 
 export async function getEntitlements(url: string, key: string, uid: string): Promise<Entitlements> {
@@ -93,7 +96,15 @@ export async function getEntitlements(url: string, key: string, uid: string): Pr
       canWrite: effective !== "expired",
       planId: sub.plan_id || null,
       planName: plan?.name || "Trial",
-      features: { ...OPEN.features, ...(effective === "trialing" || effective === "complimentary" ? {} : plan?.features || {}) },
+      // Areas. Legacy tier plans (pre-V26) never had a "crm" key — CRM was
+      // ungated then, so legacy subscribers keep it (grandfathering). Their
+      // old "ai" flag maps to the Instagram & AI area.
+      features: (effective === "trialing" || effective === "complimentary")
+        ? { crm: true, instagram_ai: true }
+        : {
+            crm: plan?.features?.crm !== undefined ? !!plan.features.crm : true,
+            instagram_ai: plan?.features?.instagram_ai !== undefined ? !!plan.features.instagram_ai : !!plan?.features?.ai,
+          },
       maxSeats: effective === "trialing" || effective === "complimentary" ? null : plan?.max_seats ?? null,
       trialEndsAt: sub.trial_ends_at || null,
       daysLeft,
@@ -102,6 +113,8 @@ export async function getEntitlements(url: string, key: string, uid: string): Pr
       priceLocked: sub.price_locked != null ? Number(sub.price_locked) : null,
       cancelAtPeriodEnd: !!sub.cancel_at_period_end,
       testMode,
+      trialStartedAt: sub.created_at || sub.period_start || null,
+      renewsInDays: effective === "active" && sub.period_end ? Math.max(0, Math.ceil((new Date(sub.period_end).getTime() - now) / DAY)) : null,
     };
   } catch {
     return OPEN; // billing down ≠ product down
@@ -114,4 +127,25 @@ export async function writeBlocked(url: string, key: string, uid: string): Promi
   const e = await getEntitlements(url, key, uid);
   if (e.canWrite) return null;
   return { error: "Your trial has ended. Your data is safe and exportable — upgrade in Settings → Billing to continue adding to it." };
+}
+
+// The V26 gate: one call guards a whole API for an area. Blocks when the
+// business is past its wall (trial/subscription expired → hard paywall) or
+// didn't buy this half of Dawn. Area denials are logged as gate_hit events —
+// that's live pricing research (which package people reach for).
+export async function requireArea(url: string, key: string, uid: string, area: "crm" | "instagram_ai"): Promise<{ error: string; locked: string } | null> {
+  const e = await getEntitlements(url, key, uid);
+  if (!e.canWrite) {
+    return { error: "Your trial or subscription has ended. Your data is safe — choose a plan in Billing to continue.", locked: "expired" };
+  }
+  if (!e.features[area]) {
+    // fire-and-forget analytics; never blocks the response
+    fetch(`${url}/rest/v1/events`, {
+      method: "POST", headers: H(key, { Prefer: "return=minimal" }),
+      body: JSON.stringify({ uid, kind: "gate_hit", meta: { area } }),
+    }).catch(() => {});
+    const label = area === "crm" ? "CRM & Business" : "Instagram & AI";
+    return { error: `This is part of the ${label} plan — upgrade in Settings → Billing to unlock it.`, locked: area };
+  }
+  return null;
 }
