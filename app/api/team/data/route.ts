@@ -55,6 +55,27 @@ export async function GET(req: Request) {
         revenue: hasPermission(ctx, "financials") ? myOrders.reduce((a: number, o: any) => a + (Number(o.amount_paid) || 0), 0) : null,
       };
     }
+    // Their own current-month score — motivating, and only their own row.
+    try {
+      const { computeScores } = await import("@/lib/scoring");
+      const [emps, allContacts, allSales, allTasks, acts] = await Promise.all([
+        fetch(`${url}/rest/v1/employees?uid=eq.${uid}&select=id,name,status,is_owner,joining_date`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+        fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&select=id,stage,employee_id,follow_up_date,created_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+        fetch(`${url}/rest/v1/sales?uid=eq.${uid}&deleted_at=is.null&select=employee_id,amount_paid,date,order_status`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+        fetch(`${url}/rest/v1/tasks?uid=eq.${uid}&select=employee_id,done,done_at,due_date`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+        fetch(`${url}/rest/v1/activities?uid=eq.${uid}&select=contact_id,type,content,created_at&limit=2000`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      ]);
+      const result = computeScores({
+        employees: Array.isArray(emps) ? emps : [],
+        contacts: Array.isArray(allContacts) ? allContacts : [],
+        sales: (Array.isArray(allSales) ? allSales : []).filter((s: any) => s.order_status !== "Cancelled"),
+        tasks: Array.isArray(allTasks) ? allTasks : [],
+        activities: Array.isArray(acts) ? acts : [],
+      });
+      const mine = result.scores.find((s: any) => s.employeeId === empId);
+      if (mine) out.myScore = { score: mine.score, rank: mine.rank, tooNew: mine.tooNew, isTop: result.top?.employeeId === empId, breakdown: mine.breakdown };
+    } catch {}
+
     return NextResponse.json(out);
   } catch {
     return NextResponse.json({ error: "Failed to load." }, { status: 500 });

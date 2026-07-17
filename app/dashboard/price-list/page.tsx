@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
@@ -221,7 +222,7 @@ function PriceListInner() {
                       {item.category && <span className="text-[10px] text-muted">{item.category}</span>}
                       
                     </div>
-                    <p className="font-semibold text-navy mt-1">{item.name}</p>
+                    <Link href={`/dashboard/price-list/${item.id}`} className="font-semibold text-navy mt-1 hover:text-amber-deep hover:underline block">{item.name}</Link>
                     {item.description && <p className="text-xs text-muted leading-snug mt-0.5 line-clamp-2">{item.description}</p>}
                     <div className="flex items-baseline gap-2 mt-1.5">
                       {item.price != null && <span className="text-lg font-bold text-navy">{currency}{item.price}</span>}

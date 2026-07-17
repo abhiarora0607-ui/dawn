@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     ]);
     const results = [
       ...(Array.isArray(contacts) ? contacts : []).map((c: any) => ({ kind: "contact", id: c.id, title: c.name, sub: c.phone || c.stage, href: `/dashboard/contacts/${c.id}` })),
-      ...(Array.isArray(items) ? items : []).map((i: any) => ({ kind: "item", id: i.id, title: i.name, sub: `₹${i.price ?? 0}`, href: `/dashboard/price-list` })),
+      ...(Array.isArray(items) ? items : []).map((i: any) => ({ kind: "item", id: i.id, title: i.name, sub: `₹${i.price ?? 0}`, href: `/dashboard/price-list/${i.id}` })),
     ];
     return NextResponse.json({ results });
   } catch { return NextResponse.json({ results: [] }); }

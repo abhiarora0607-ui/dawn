@@ -148,6 +148,9 @@ function ContactsInner() {
   const [showImport, setShowImport] = useState(false);
   const [quickAdd, setQuickAdd] = useState(false);
   const [query, setQuery] = useState("");
+  const [filterSource, setFilterSource] = useState("");
+  const [filterEmp, setFilterEmp] = useState("");
+  const [empList, setEmpList] = useState<{ id: string; name: string }[]>([]);
   const [convert, setConvert] = useState<Contact | null>(null);
   const [lostFor, setLostFor] = useState<Contact | null>(null);
   const [backFor, setBackFor] = useState<{ c: Contact; stage: string } | null>(null);
@@ -156,10 +159,15 @@ function ContactsInner() {
   function load() {
     setLoading(true);
     fetch("/api/contacts").then((r) => r.json()).then((d) => { setContacts(d.contacts || []); setLoading(false); }).catch(() => setLoading(false));
+    fetch("/api/employees").then((r) => r.json()).then((d) => setEmpList((d.employees || []).map((e: any) => ({ id: e.id, name: e.name })))).catch(() => {});
   }
   useEffect(() => { load(); }, []);
 
-  const filtered = contacts.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()) || (c.phone || "").includes(query) || (c.instagram_handle || "").toLowerCase().includes(query.toLowerCase()));
+  const filtered = contacts.filter((c) =>
+    (c.name.toLowerCase().includes(query.toLowerCase()) || (c.phone || "").includes(query) || (c.instagram_handle || "").toLowerCase().includes(query.toLowerCase())) &&
+    (!filterSource || c.source === filterSource) &&
+    (!filterEmp || (c as any).employee_id === filterEmp)
+  );
 
   async function moveStage(id: string, stage: string, lostNote?: string, confirmedBack?: boolean) {
     const c = contacts.find((x) => x.id === id);
@@ -201,9 +209,20 @@ function ContactsInner() {
         </div>
 
         {!loading && contacts.length > 0 && (
-          <div className="flex items-center gap-2 border border-navy-line rounded-xl px-3 bg-white max-w-sm">
-            <Search className="w-4 h-4 text-navy/40" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search contacts…" className="flex-1 py-2.5 text-sm text-navy focus:outline-none" />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 border border-navy-line rounded-xl px-3 bg-white flex-1 min-w-[200px] max-w-sm">
+              <Search className="w-4 h-4 text-navy/40" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search contacts…" className="flex-1 py-2.5 text-sm text-navy focus:outline-none" />
+            </div>
+            <select value={filterSource} onChange={(e) => setFilterSource(e.target.value)} className="text-sm px-3 py-2.5 rounded-xl border border-navy-line text-navy bg-white">
+              <option value="">All sources</option>
+              {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <select value={filterEmp} onChange={(e) => setFilterEmp(e.target.value)} className="text-sm px-3 py-2.5 rounded-xl border border-navy-line text-navy bg-white">
+              <option value="">All employees</option>
+              {empList.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+            {(filterSource || filterEmp || query) && <button onClick={() => { setQuery(""); setFilterSource(""); setFilterEmp(""); }} className="text-xs text-muted hover:text-navy px-2">Clear</button>}
           </div>
         )}
 

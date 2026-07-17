@@ -26,6 +26,7 @@ export default function TeamDashboard() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [stats, setStats] = useState<any>({});
+  const [myScore, setMyScore] = useState<any>(null);
   const [modal, setModal] = useState<null | "lead" | "order">(null);
   const [pwModal, setPwModal] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -53,7 +54,7 @@ export default function TeamDashboard() {
     fetch("/api/team/data").then((r) => { if (r.status === 401) { router.push("/team-login"); return null; } return r.json(); })
       .then((d) => {
         if (!d) return;
-        setMe(d.me); setLeads(d.leads || []); setCustomers(d.customers || []); setOrders(d.orders || []); setStats(d.stats || {});
+        setMe(d.me); setLeads(d.leads || []); setCustomers(d.customers || []); setOrders(d.orders || []); setStats(d.stats || {}); setMyScore(d.myScore || null);
         if (d.me?.mustChangePassword) setPwModal(true);
         setLoading(false);
       }).catch(() => setLoading(false));
@@ -102,6 +103,15 @@ export default function TeamDashboard() {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
         {tab === "dashboard" && can("dashboard") && (
           <>
+            {myScore && !myScore.tooNew && (
+              <div className="bg-navy rounded-2xl p-4 text-white flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-white/50">My score this month</p>
+                  <p className="text-xs text-white/60 mt-0.5">{myScore.isTop ? "🏆 Top of the team right now" : myScore.rank ? `Ranked #${myScore.rank}` : "Keep going"}</p>
+                </div>
+                <p className="text-3xl font-bold text-amber">{myScore.score}<span className="text-sm text-white/40 font-normal">/100</span></p>
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-3">
               <Stat label="My leads" value={stats.leads ?? leads.length} icon={Users} />
               <Stat label="My customers" value={stats.customers ?? customers.length} icon={Users} />
