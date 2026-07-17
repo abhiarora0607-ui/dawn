@@ -26,9 +26,14 @@ async function getSale(token: string) {
       const c = await fetch(`${url}/rest/v1/contacts?id=eq.${sale.contact_id}&select=name,phone&limit=1`, { headers: h, cache: "no-store" }).then((r) => r.json());
       contact = c?.[0] || null;
     }
-    const sf = await fetch(`${url}/rest/v1/storefront?uid=eq.${sale.uid}&select=*&limit=1`, { headers: h, cache: "no-store" }).then((r) => r.json());
+    const [sf, st] = await Promise.all([
+      fetch(`${url}/rest/v1/storefront?uid=eq.${sale.uid}&select=*&limit=1`, { headers: h, cache: "no-store" }).then((r) => r.json()),
+      // GST + address live in business_settings, not storefront.
+      fetch(`${url}/rest/v1/business_settings?uid=eq.${sale.uid}&select=business_name,logo_url,phone,gst_number,address&limit=1`, { headers: h, cache: "no-store" }).then((r) => r.json()).catch(() => []),
+    ]);
     store = sf?.[0] || null;
-    return { sale, contact, store };
+    const settings = st?.[0] || null;
+    return { sale, contact, store, settings };
   } catch { return null; }
 }
 
@@ -47,12 +52,16 @@ export default async function Receipt({ params, searchParams }: { params: { id: 
     );
   }
 
-  const { sale, contact, store } = data;
+  const { sale, contact, store, settings } = data as any;
   const currency = store?.currency || "₹";
+  const logo = store?.logo_url || settings?.logo_url || null;
+  const phone = store?.phone || settings?.phone || null;
+  const gst = settings?.gst_number || store?.gst_number || null;
+  const address = settings?.address || null;
   const isOwner = searchParams?.owner === "1";
   const cancelled = sale.order_status === "Cancelled";
   const date = new Date(sale.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-  const bizName = store?.business_name || "Receipt";
+  const bizName = store?.business_name || settings?.business_name || "Receipt";
   const initial = (bizName || "R").trim().charAt(0).toUpperCase();
   const items: any[] = sale.items || [];
   const balance = Number(sale.balance) || 0;
@@ -85,14 +94,16 @@ export default async function Receipt({ params, searchParams }: { params: { id: 
               <div style={{ position: "absolute", top: -70, right: -50, width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,158,67,.20), transparent 65%)" }} />
               <div style={{ position: "absolute", bottom: -90, left: -60, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,158,67,.10), transparent 65%)" }} />
 
-              {store?.logo_url ? (
-                <img src={store.logo_url} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: "3px solid rgba(255,255,255,.25)", boxShadow: "0 4px 16px rgba(0,0,0,.25)", position: "relative" }} />
+              {logo ? (
+                <img src={logo} alt="" style={{ width: 88, height: 88, borderRadius: "50%", objectFit: "cover", border: "3px solid rgba(255,255,255,.3)", boxShadow: "0 6px 20px rgba(0,0,0,.3)", position: "relative", display: "block", margin: "0 auto" }} />
               ) : (
-                <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(255,255,255,.12)", border: "3px solid rgba(255,255,255,.25)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: "'Fraunces', serif", fontSize: 30, fontWeight: 600, color: "#FF9E43", position: "relative" }}>{initial}</div>
+                <div style={{ width: 88, height: 88, borderRadius: "50%", background: "rgba(255,255,255,.12)", border: "3px solid rgba(255,255,255,.3)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Fraunces', serif", fontSize: 36, fontWeight: 600, color: "#FF9E43", position: "relative", margin: "0 auto" }}>{initial}</div>
               )}
 
               <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 23, fontWeight: 600, color: "#fff", margin: "12px 0 2px", position: "relative", letterSpacing: ".2px" }}>{bizName}</h1>
-              {store?.phone && <p style={{ fontSize: 13, color: "rgba(255,255,255,.65)", margin: 0, position: "relative" }}>{store.phone}</p>}
+              {phone && <p style={{ fontSize: 13, color: "rgba(255,255,255,.65)", margin: 0, position: "relative" }}>{phone}</p>}
+              {address && <p style={{ fontSize: 11.5, color: "rgba(255,255,255,.5)", margin: "3px auto 0", position: "relative", maxWidth: 300 }}>{address}</p>}
+              {gst && <p style={{ fontSize: 11, color: "rgba(255,255,255,.55)", margin: "5px 0 0", position: "relative", letterSpacing: .5, fontVariantNumeric: "tabular-nums" }}>GSTIN: {gst}</p>}
 
               <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", marginTop: 16, position: "relative" }}>
                 <span style={{ height: 1, width: 34, background: "rgba(255,158,67,.5)" }} />
@@ -151,9 +162,13 @@ export default async function Receipt({ params, searchParams }: { params: { id: 
 
               {/* Totals */}
               <div style={{ background: "#FAF7F1", border: "1px solid #F0EADD", borderRadius: 14, padding: "14px 16px" }}>
-                <TotalRow label="Subtotal" value={`${currency}${Number(sale.subtotal).toFixed(0)}`} />
-                {Number(sale.discount) > 0 && <TotalRow label="Discount" value={`−${currency}${Number(sale.discount).toFixed(0)}`} accent="#059669" />}
-                <div style={{ borderTop: "1px solid #EDE6D8", margin: "9px 0" }} />
+                {Number(sale.discount) > 0 && (
+                  <>
+                    <TotalRow label="Subtotal" value={`${currency}${(Number(sale.subtotal) || items.reduce((a: number, it: any) => a + Number(it.unitPrice) * Number(it.qty), 0)).toFixed(0)}`} />
+                    <TotalRow label="Discount" value={`−${currency}${Number(sale.discount).toFixed(0)}`} accent="#059669" />
+                    <div style={{ borderTop: "1px solid #EDE6D8", margin: "9px 0" }} />
+                  </>
+                )}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                   <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: MUTED }}>TOTAL</span>
                   <span style={{ fontSize: 22, fontWeight: 800, fontVariantNumeric: "tabular-nums" } as any}>{currency}{Number(sale.total).toFixed(0)}</span>
@@ -188,9 +203,7 @@ export default async function Receipt({ params, searchParams }: { params: { id: 
                 </div>
               )}
 
-              {store?.gst_number && (
-                <p style={{ textAlign: "center", fontSize: 11, color: SOFT, margin: "18px 0 0", paddingTop: 14, borderTop: `1px solid ${LINE}` }}>GST: {store.gst_number}</p>
-              )}
+
             </div>
           </div>
 
