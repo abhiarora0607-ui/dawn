@@ -37,8 +37,14 @@ function SettingsInner() {
       try {
         const res = await fetch("/api/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl: reader.result }) });
         const d = await res.json();
-        if (d.url) { set("logo_url", d.url); toast("Logo uploaded"); }
-        else toast(d.error || "Upload failed", "error");
+        if (d.url) {
+          set("logo_url", d.url);
+          // Persist immediately — don't wait for the Save button, or a refresh
+          // loses the logo. This is what makes it survive.
+          await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ logo_url: d.url }) });
+          invalidateSettingsCache();
+          toast("Logo uploaded & saved");
+        } else toast(d.error || "Upload failed", "error");
       } catch { toast("Upload error", "error"); }
       setUploading(false);
     };
@@ -86,7 +92,7 @@ function SettingsInner() {
         <section className="bg-white rounded-2xl border border-navy-line p-5 shadow-card space-y-4">
           <div className="flex items-center gap-2"><Building2 className="w-4 h-4 text-amber-deep" /><h2 className="font-semibold text-navy">Business profile</h2></div>
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-surface border border-navy-line flex items-center justify-center overflow-hidden shrink-0">
+            <div className="w-16 h-16 rounded-full bg-surface border border-navy-line flex items-center justify-center overflow-hidden shrink-0">
               {s.logo_url ? <img src={s.logo_url} alt="" className="w-full h-full object-cover" /> : <Building2 className="w-6 h-6 text-navy/30" />}
             </div>
             <label className="cursor-pointer flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface">
