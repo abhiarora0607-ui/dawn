@@ -30,14 +30,16 @@ export async function GET() {
 
   try {
     await touchActive(url, key, uid);
-    const [contacts, sales, expenses, employees, tasks, activities] = await Promise.all([
+    const [contacts, sales, expenses, employees, tasks, activities, settingsRow] = await Promise.all([
       fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&select=id,name,phone,stage,employee_id,follow_up_date,created_at,instagram_handle,source`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/sales?uid=eq.${uid}&deleted_at=is.null&select=id,contact_id,employee_id,total,amount_paid,balance,status,order_status,date,items`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&deleted_at=is.null&select=amount,date,category`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/employees?uid=eq.${uid}&select=id,name,status,is_owner`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/tasks?uid=eq.${uid}&select=id,title,due_date,done,employee_id`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/activities?uid=eq.${uid}&select=contact_id,created_at&order=created_at.desc&limit=1000`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/activities?uid=eq.${uid}&select=contact_id,created_at&order=created_at.desc&limit=500`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/business_settings?uid=eq.${uid}&select=revenue_target&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
     ]);
+    const revenueTarget = Array.isArray(settingsRow) && settingsRow[0]?.revenue_target ? Number(settingsRow[0].revenue_target) : null;
 
     const C = Array.isArray(contacts) ? contacts : [];
     const S = (Array.isArray(sales) ? sales : []).filter((s: any) => s.order_status !== "Cancelled");
@@ -191,7 +193,7 @@ export async function GET() {
       .sort((a, b) => b.rate - a.rate)[0] || null;
 
     return NextResponse.json({
-      money: { revenueMTD, expensesMTD, profitMTD, revenueTrend, totalOwed, avgOrderValue },
+      money: { revenueMTD, expensesMTD, profitMTD, revenueTrend, totalOwed, avgOrderValue, revenueTarget, targetPct: revenueTarget ? Math.min(100, Math.round((revenueMTD / revenueTarget) * 100)) : null },
       attention: {
         unpaid: unpaid.slice(0, 8),
         unpaidCount: unpaid.length,

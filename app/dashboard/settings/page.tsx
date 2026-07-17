@@ -101,6 +101,7 @@ function SettingsInner() {
           </div>
           <Field label="Address"><input value={s.address || ""} onChange={(e) => set("address", e.target.value)} className="inp" /></Field>
           <Field label="GST number (shown on invoices)"><input value={s.gst_number || ""} onChange={(e) => set("gst_number", e.target.value)} className="inp" placeholder="e.g. 22AAAAA0000A1Z5" /></Field>
+          <Field label="Monthly revenue target (optional)"><input type="number" value={s.revenue_target || ""} onChange={(e) => set("revenue_target", e.target.value)} className="inp" placeholder="e.g. 50000" /></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Currency"><select value={s.currency} onChange={(e) => set("currency", e.target.value)} className="inp">{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></Field>
             <Field label="Business type"><input value={s.business_type || ""} onChange={(e) => set("business_type", e.target.value)} className="inp" placeholder="e.g. D2C, salon" /></Field>

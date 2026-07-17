@@ -49,15 +49,22 @@ export async function GET() {
   if (!url || !key) return NextResponse.json({ error: "Not configured." }, { status: 500 });
 
   try {
+    // Prefer precomputed stats (fast, scales to thousands). Fall back to live
+    // counting only when the summary table is empty (before the first cron run).
+    const statsRows = await fetch(`${url}/rest/v1/business_stats?select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
+    const statsByUid: Record<string, any> = {};
+    for (const s of Array.isArray(statsRows) ? statsRows : []) statsByUid[s.uid] = s;
+    const useStats = Object.keys(statsByUid).length > 0;
+
     const [users, settings, ig, contacts, sales, employees, activities] = await Promise.all([
       fetch(`${url}/rest/v1/dawn_users?select=uid,email,created_at,last_active_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/business_settings?select=uid,business_name,phone,whatsapp,updated_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/ig_connections?select=ig_user_id,owner_uid,connected_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
-      fetch(`${url}/rest/v1/contacts?deleted_at=is.null&select=uid,is_demo,created_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/sales?deleted_at=is.null&select=uid,is_demo,date`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/employees?select=uid,is_demo,is_owner`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
-      // Usage SHAPE: uid + timestamp only — how much is happening, never what.
-      fetch(`${url}/rest/v1/activities?select=uid,created_at&order=created_at.desc&limit=4000`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+      // Live count sources — only fetched when there's no precomputed summary.
+      useStats ? Promise.resolve([]) : fetch(`${url}/rest/v1/contacts?deleted_at=is.null&select=uid,is_demo,created_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      useStats ? Promise.resolve([]) : fetch(`${url}/rest/v1/sales?deleted_at=is.null&select=uid,is_demo,date`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      useStats ? Promise.resolve([]) : fetch(`${url}/rest/v1/employees?select=uid,is_demo,is_owner`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      useStats ? Promise.resolve([]) : fetch(`${url}/rest/v1/activities?select=uid,created_at&order=created_at.desc&limit=4000`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
     ]);
 
     const U = Array.isArray(users) ? users : [];
@@ -72,9 +79,12 @@ export async function GET() {
     const uidSet = new Set<string>();
     for (const u of U) uidSet.add(u.uid);
     for (const s of SET) uidSet.add(s.uid);
-    for (const c of C) if (c.is_demo !== true) uidSet.add(c.uid);
-    for (const s of S) if (s.is_demo !== true) uidSet.add(s.uid);
     for (const g of IG) if (g.owner_uid) uidSet.add(g.owner_uid);
+    if (useStats) { for (const uid of Object.keys(statsByUid)) uidSet.add(uid); }
+    else {
+      for (const c of C) if (c.is_demo !== true) uidSet.add(c.uid);
+      for (const s of S) if (s.is_demo !== true) uidSet.add(s.uid);
+    }
 
     const userByUid: Record<string, any> = {};
     for (const u of U) userByUid[u.uid] = u;
@@ -88,7 +98,7 @@ export async function GET() {
     const countReal = (rows: any[], uid: string, extra?: (r: any) => boolean) =>
       rows.filter((r) => r.uid === uid && r.is_demo !== true && (!extra || extra(r))).length;
 
-    // Weekly activity buckets (last 8 weeks) per uid — the usage sparkline.
+    // Weekly activity buckets (last 8 weeks) per uid — only in the live path.
     const now = Date.now();
     const weeksByUid: Record<string, number[]> = {};
     for (const a of A) {
@@ -102,6 +112,7 @@ export async function GET() {
     const businesses = Array.from(uidSet).map((uid) => {
       const u = userByUid[uid];
       const st = setByUid[uid];
+      const stat = statsByUid[uid];
       const igs = igByUid[uid] || [];
       const signedUp = u?.created_at || st?.updated_at || new Date().toISOString();
       const lastActive = u?.last_active_at ? new Date(u.last_active_at).getTime() : null;
@@ -121,11 +132,11 @@ export async function GET() {
         daysQuiet: lastActive ? Math.floor((now - lastActive) / DAY) : null,
         ig: igs.length > 0,
         igCount: igs.length,
-        contacts: count(C, uid),
-        orders: count(S, uid),
-        employees: count(E, uid, (r) => r.is_owner !== true),
-        realContacts: countReal(C, uid),
-        realOrders: countReal(S, uid),
+        contacts: useStats ? (stat?.contacts || 0) : count(C, uid),
+        orders: useStats ? (stat?.orders || 0) : count(S, uid),
+        employees: useStats ? (stat?.employees || 0) : count(E, uid, (r) => r.is_owner !== true),
+        realContacts: useStats ? (stat?.real_contacts || 0) : countReal(C, uid),
+        realOrders: useStats ? (stat?.real_orders || 0) : countReal(S, uid),
         weeks,
         growingFast: prior >= 3 && recent >= prior * 1.5,
       };

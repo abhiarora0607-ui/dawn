@@ -28,6 +28,7 @@ export async function POST(req: Request) {
     for (const f of ["business_name", "logo_url", "phone", "whatsapp", "address", "currency", "business_type", "gst_number"]) {
       if (b[f] !== undefined) row[f] = b[f];
     }
+    if (b.revenue_target !== undefined) row.revenue_target = b.revenue_target === "" || b.revenue_target == null ? null : Number(b.revenue_target);
     if (b.stage_names !== undefined) row.stage_names = b.stage_names;
     await fetch(`${url}/rest/v1/business_settings`, {
       method: "POST", headers: H(key, { Prefer: "resolution=merge-duplicates,return=minimal" }), body: JSON.stringify(row),

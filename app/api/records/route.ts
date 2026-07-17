@@ -25,12 +25,17 @@ export async function GET(req: Request) {
   const spec = OBJECTS[obj];
   if (!spec) return NextResponse.json({ error: "Unknown object." }, { status: 400 });
   try {
-    const [rows, employees] = await Promise.all([
-      fetch(`${url}/rest/v1/${spec.table}?uid=eq.${uid}${["contacts","sales","catalog_items","expenses"].includes(spec.table) ? "&deleted_at=is.null" : ""}&order=${spec.order}&limit=300`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+    const filter = `uid=eq.${uid}${["contacts","sales","catalog_items","expenses"].includes(spec.table) ? "&deleted_at=is.null" : ""}`;
+    const [rowsRes, employees] = await Promise.all([
+      fetch(`${url}/rest/v1/${spec.table}?${filter}&order=${spec.order}&limit=1000`, { headers: { ...H(key), Prefer: "count=exact" }, cache: "no-store" }),
       fetch(`${url}/rest/v1/employees?uid=eq.${uid}&select=id,name,is_owner&order=is_owner.desc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
     ]);
+    const rows = await rowsRes.json();
+    const total = Number(rowsRes.headers.get("content-range")?.split("/")[1] || (Array.isArray(rows) ? rows.length : 0));
     return NextResponse.json({
       rows: Array.isArray(rows) ? rows : [],
+      total,
+      shown: Array.isArray(rows) ? rows.length : 0,
       employees: Array.isArray(employees) ? employees : [],
       editable: spec.editable,
       labelField: spec.label_field,

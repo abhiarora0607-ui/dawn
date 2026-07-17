@@ -50,6 +50,19 @@ export default function BusinessDashboard() {
           </Link>
         </section>
 
+        {m.revenueTarget && (
+          <div className="dawn-card p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold text-navy">Monthly revenue goal</p>
+              <p className="text-sm text-muted"><span className="font-bold text-navy">{money(m.revenueMTD, currency)}</span> of {money(m.revenueTarget, currency)} · {m.targetPct}%</p>
+            </div>
+            <div className="h-2.5 bg-navy-line rounded-full overflow-hidden">
+              <div className={`h-full rounded-full transition-all ${m.targetPct >= 100 ? "bg-emerald-500" : "bg-amber-deep"}`} style={{ width: `${m.targetPct}%` }} />
+            </div>
+            {m.targetPct >= 100 && <p className="text-xs text-emerald-600 font-medium mt-1.5">🎉 Goal reached this month!</p>}
+          </div>
+        )}
+
         {/* ------------------------------------------------- NEEDS ATTENTION */}
         <section>
           <div className="flex items-center justify-between mb-3">

@@ -124,6 +124,38 @@ export async function GET(req: Request) {
     }
   } catch { /* non-fatal */ }
 
+  // Precompute per-business stats for the Operator console, so it reads ~1,000
+  // summary rows instead of scanning millions live. One upserted row per uid.
+  try {
+    const DAY = 86400000;
+    const cutoff30 = new Date(Date.now() - 30 * DAY).toISOString();
+    const [allUsers, allContacts, allSales, allEmployees, recentActs] = await Promise.all([
+      fetch(`${url}/rest/v1/dawn_users?select=uid,last_active_at`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/contacts?deleted_at=is.null&select=uid,is_demo`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/sales?deleted_at=is.null&select=uid,is_demo`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/employees?select=uid,is_owner`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/activities?created_at=gte.${cutoff30}&select=uid`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
+    ]);
+
+    const stat: Record<string, any> = {};
+    const ensure = (uid: string) => (stat[uid] = stat[uid] || { uid, contacts: 0, real_contacts: 0, orders: 0, real_orders: 0, employees: 0, activities_30d: 0, last_activity_at: null });
+    for (const u of allUsers || []) { ensure(u.uid).last_activity_at = u.last_active_at || null; }
+    for (const c of allContacts || []) { const s = ensure(c.uid); s.contacts++; if (c.is_demo !== true) s.real_contacts++; }
+    for (const o of allSales || []) { const s = ensure(o.uid); s.orders++; if (o.is_demo !== true) s.real_orders++; }
+    for (const e of allEmployees || []) { if (e.is_owner !== true) ensure(e.uid).employees++; }
+    for (const a of recentActs || []) { ensure(a.uid).activities_30d++; }
+
+    const rows = Object.values(stat).map((s: any) => ({ ...s, computed_at: new Date().toISOString() }));
+    // Upsert in chunks.
+    for (let i = 0; i < rows.length; i += 200) {
+      await fetch(`${url}/rest/v1/business_stats`, {
+        method: "POST",
+        headers: { ...sbHeaders(key), "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify(rows.slice(i, i + 200)),
+      });
+    }
+  } catch { /* non-fatal — operator falls back to live compute */ }
+
   for (const conn of connections || []) {
     const igUserId = conn.ig_user_id;
     let token = conn.access_token;
