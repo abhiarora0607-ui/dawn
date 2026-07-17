@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check": "node scripts/validate-schema.mjs && node scripts/check-invariants.mjs && next build",
+    "invariants": "node scripts/check-invariants.mjs"
   },
   "dependencies": {
     "next": "14.2.5",
