@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { healthOf } from "@/lib/operator-health";
 import { useParams } from "next/navigation";
 import {
   Loader2, ArrowLeft, Instagram, MessageCircle, Mail, Trash2, StickyNote,
@@ -59,9 +60,26 @@ export default function BusinessDetail() {
   const maxWeek = Math.max(1, ...(d.weeks || []));
   const wa = (d.whatsapp || "").replace(/[^0-9]/g, "");
 
+  // Health in words, computed from the same signals the console uses.
+  const health = healthOf({
+    daysSinceSignup: d.signedUp ? Math.floor((Date.now() - new Date(d.signedUp).getTime()) / 86400000) : 0,
+    daysQuiet: d.daysQuiet, realContacts: d.contacts, realOrders: d.orders,
+    employees: d.employees, ig: (d.instagram?.length || 0) > 0,
+    billingStatus: bill?.status,
+  });
+
+  const fmt = (v: any) => (v ? new Date(v).toLocaleDateString() : null);
+  const timeline = [
+    { label: "Signed up", done: !!d.signedUp, when: fmt(d.signedUp) },
+    { label: "Connected Instagram", done: (d.instagram?.length || 0) > 0, when: null },
+    { label: "Added their first real contact", done: (d.contacts || 0) > 0, when: null },
+    { label: "Recorded their first order", done: (d.orders || 0) > 0, when: null },
+    { label: bill?.hasPaid ? "Became a paying customer" : "Started paying", done: !!bill?.hasPaid, when: bill?.startedAt ? fmt(bill.startedAt) : null },
+  ];
+
   return (
     <Wrap>
-      <Link href="/operator" className="flex items-center gap-1.5 text-sm text-muted hover:text-navy mb-5"><ArrowLeft className="w-4 h-4" /> All businesses</Link>
+      <Link href="/operator/businesses" className="flex items-center gap-1.5 text-sm text-muted hover:text-navy mb-5"><ArrowLeft className="w-4 h-4" /> All businesses</Link>
 
       <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card mb-4">
         <div className="flex items-start justify-between gap-3">
@@ -115,6 +133,30 @@ export default function BusinessDetail() {
       )}
 
       {/* Your private notes */}
+      {/* Why this business is where it is — words, not a score */}
+      {health && (
+        <div className={`dawn-card p-4 mb-4 border-l-4 ${health.tone === "red" ? "border-l-red-400" : health.tone === "amber" ? "border-l-amber" : health.tone === "green" ? "border-l-emerald-400" : "border-l-navy/20"}`}>
+          <p className="text-sm font-semibold text-navy">{health.label}</p>
+          <p className="text-sm text-muted mt-0.5">{health.why}</p>
+        </div>
+      )}
+
+      {/* The life of this account, in order */}
+      <div className="dawn-card p-5 mb-4">
+        <p className="text-sm font-semibold text-navy mb-3">How they got here</p>
+        <div className="space-y-2.5">
+          {timeline.map((t: any, i: number) => (
+            <div key={i} className="flex items-start gap-3">
+              <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${t.done ? "bg-amber-deep" : "bg-navy-line"}`} />
+              <div className="min-w-0">
+                <p className={`text-sm ${t.done ? "text-navy" : "text-navy/35"}`}>{t.label}</p>
+                {t.when && <p className="text-[11px] text-muted">{t.when}</p>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Billing — plan, trial, and the operator's sales levers */}
       <div className="dawn-card p-5">
         <p className="text-sm font-semibold text-navy mb-3">Billing</p>

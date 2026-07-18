@@ -161,6 +161,29 @@ export async function GET(req: Request) {
       }
     }
 
+    // ---- operator's own daily digest: today's worklist, in one email ----
+    try {
+      const opEmail = process.env.OPERATOR_EMAIL;
+      if (opEmail) {
+        const dayTag = new Date().toISOString().slice(0, 10);
+        if (!(await alreadySent(url, key, "operator", `opdigest_${dayTag}`))) {
+          const trialsEnding = (Array.isArray(subs) ? subs : []).filter((s: any) => s.status === "trialing" && s.trial_ends_at && Math.ceil((new Date(s.trial_ends_at).getTime() - now) / DAY) <= 3 && new Date(s.trial_ends_at).getTime() > now);
+          const renewals = (Array.isArray(subs) ? subs : []).filter((s: any) => (s.status === "active") && s.period_end && Math.ceil((new Date(s.period_end).getTime() - now) / DAY) <= 5 && new Date(s.period_end).getTime() > now);
+          const lines: string[] = [];
+          for (const t of trialsEnding) lines.push(`${nameByUid[t.uid] || t.uid.slice(0, 12)} — trial ends in ${Math.ceil((new Date(t.trial_ends_at).getTime() - now) / DAY)}d`);
+          for (const r of renewals) lines.push(`${nameByUid[r.uid] || r.uid.slice(0, 12)} — renewal in ${Math.ceil((new Date(r.period_end).getTime() - now) / DAY)}d`);
+          if (lines.length > 0) {
+            const ok = await sendMail(opEmail, `Dawn — ${lines.length} to handle today`, shell({
+              heading: "Today's list",
+              body: `<p>${lines.map((l) => `• ${l}`).join("<br>")}</p>`,
+              ctaLabel: "Open operator", ctaHref: `${APP}/operator`,
+            }));
+            if (ok) await markSent(url, key, "operator", `opdigest_${dayTag}`);
+          }
+        }
+      }
+    } catch { /* the operator digest never breaks the customer run */ }
+
     return NextResponse.json({ ok: true, sent });
   } catch (e) {
     return NextResponse.json({ ok: false, error: "Lifecycle run failed", sent });

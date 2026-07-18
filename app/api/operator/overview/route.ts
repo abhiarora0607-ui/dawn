@@ -13,6 +13,7 @@
 
 import { NextResponse } from "next/server";
 import { isOperator } from "@/lib/operator-auth";
+import { healthOf, buildWorklist } from "@/lib/operator-health";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL!, key: process.env.SUPABASE_SECRET_KEY! }; }
@@ -173,11 +174,12 @@ export async function GET() {
       return b;
     }).sort((a: any, b: any) => b.score - a.score);
 
-    // ------ attention lists: who to talk to today ------
-    const churnRisk = businesses.filter((b: any) => (b.status === "cooling" || b.status === "churning") && b.daysQuiet != null && b.daysQuiet >= 14 && (b.contacts > 0 || b.orders > 0)).slice(0, 8);
-    const neverStarted = businesses.filter((b: any) => b.status === "never_started" && b.daysSinceSignup >= 3).slice(0, 8);
-    const powerUsers = businesses.filter((b: any) => b.score >= 60).slice(0, 5);
-    const growing = businesses.filter((b: any) => b.growingFast).slice(0, 5);
+    // ------ V29: health as a word + one prioritised worklist ------
+    for (const b of businesses) {
+      const h = healthOf(b);
+      b.health = h.key; b.healthLabel = h.label; b.healthTone = h.tone; b.healthWhy = h.why;
+    }
+    const worklist = buildWorklist(businesses);
 
     const inLast = (d: string, days: number) => now - new Date(d).getTime() <= days * DAY;
     const total = businesses.length;
@@ -189,6 +191,12 @@ export async function GET() {
     }
 
     return NextResponse.json({
+      funnel: {
+        signedUp: total,
+        setUp: activated,
+        firstOrder: businesses.filter((b: any) => b.realOrders > 0).length,
+        habit: businesses.filter((b: any) => b.health === "thriving" || b.health === "steady").length,
+      },
       health: {
         total,
         newWeek: businesses.filter((b: any) => inLast(b.signedUp, 7)).length,
@@ -203,7 +211,7 @@ export async function GET() {
         unclaimed: businesses.filter((b: any) => b.unclaimedLegacy).length,
         growth: Object.entries(signupsByMonth).sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([month, n]) => ({ month, n })),
       },
-      attention: { churnRisk, neverStarted, powerUsers, growing },
+      worklist,
       businesses,
     });
   } catch {
