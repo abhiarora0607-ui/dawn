@@ -131,6 +131,23 @@ export async function GET(req: Request) {
         const { touchActive } = await import("@/lib/touch");
         await touchActive(sbUrl, sbKey, resolvedUid);
       } catch {}
+
+      // Referral credit: if this browser arrived via a "Powered by Dawn" link,
+      // record it once. Stored as an event (kind: referral) against the NEW
+      // business, naming the referring storefront slug.
+      try {
+        const { cookies: ck } = await import("next/headers");
+        const ref = ck().get("dawn_ref")?.value;
+        if (ref) {
+          const seen = await fetch(`${sbUrl}/rest/v1/events?uid=eq.${resolvedUid}&kind=eq.referral&select=id&limit=1`, { headers: h, cache: "no-store" }).then((r) => r.json()).catch(() => []);
+          if (!Array.isArray(seen) || seen.length === 0) {
+            await fetch(`${sbUrl}/rest/v1/events`, {
+              method: "POST", headers: { ...h, Prefer: "return=minimal" },
+              body: JSON.stringify({ uid: resolvedUid, kind: "referral", meta: { ref } }),
+            });
+          }
+        }
+      } catch { /* referral tracking never blocks sign-in */ }
     }
 
     // ONE cookie of truth: connecting sets both together, so the header and

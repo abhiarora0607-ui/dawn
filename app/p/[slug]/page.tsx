@@ -169,7 +169,9 @@ export default async function PublicList({ params }: { params: { slug: string } 
         <footer className="pt-2 text-center space-y-3">
           {gst && <p className="text-[11px] text-navy/35">GSTIN: {gst}</p>}
           <a href="/" className="inline-flex items-center gap-1.5 text-[11px] text-navy/30 hover:text-navy/50">
-            <DawnLogo className="h-5 opacity-60" /> <span>Powered by Dawn</span>
+            <a href={`/?ref=${encodeURIComponent(sf.slug || "")}`} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 hover:opacity-100 opacity-70 transition-opacity">
+              <DawnLogo className="h-5" /> <span>Powered by Dawn</span>
+            </a>
           </a>
         </footer>
       </div>

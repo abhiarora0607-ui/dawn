@@ -18,7 +18,7 @@ export async function GET() {
   if (!(await isOperator())) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
   const { url, key } = sb();
   try {
-    const [subs, plans, payments, settings, cfgRows, gateEvents, feedbackRows] = await Promise.all([
+    const [subs, plans, payments, settings, cfgRows, gateEvents, feedbackRows, referralRows] = await Promise.all([
       fetch(`${url}/rest/v1/subscriptions?select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/plans?order=sort_order.asc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/payments?order=created_at.desc&limit=500`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
@@ -26,6 +26,7 @@ export async function GET() {
       fetch(`${url}/rest/v1/app_config?key=eq.billing&select=value&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
       fetch(`${url}/rest/v1/events?kind=eq.gate_hit&created_at=gte.${new Date(Date.now() - 30 * 86400000).toISOString()}&select=meta&limit=2000`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
       fetch(`${url}/rest/v1/feedback?order=created_at.desc&limit=20`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+      fetch(`${url}/rest/v1/events?kind=eq.referral&select=uid,meta,created_at&order=created_at.desc&limit=200`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
     ]);
     const S: any[] = Array.isArray(subs) ? subs : [];
     const P: any[] = Array.isArray(payments) ? payments : [];
@@ -85,6 +86,9 @@ export async function GET() {
     for (const sRow of S) if (sRow.cancel_reason) cancelReasons[sRow.cancel_reason] = (cancelReasons[sRow.cancel_reason] || 0) + 1;
     const gateHits: Record<string, number> = {};
     for (const ev of Array.isArray(gateEvents) ? gateEvents : []) { const a = ev?.meta?.area || "unknown"; gateHits[a] = (gateHits[a] || 0) + 1; }
+    // Referrals: which storefront sent us signups (the Powered-by loop working).
+    const referrals: Record<string, number> = {};
+    for (const r of Array.isArray(referralRows) ? referralRows : []) { const k = r?.meta?.ref || "unknown"; referrals[k] = (referrals[k] || 0) + 1; }
     const feedback = (Array.isArray(feedbackRows) ? feedbackRows : []).map((f: any) => ({ id: f.id, uid: f.uid, name: nameByUid[f.uid] || null, mood: f.mood, note: f.note, at: f.created_at }));
 
     const expiringSoon = trialing
@@ -108,7 +112,7 @@ export async function GET() {
     return NextResponse.json({
       testMode: cfg.test_mode !== false,
       metrics: { mrr, arr: mrr * 12, totalRevenue, arpu: active.length ? Math.round(mrr / active.length) : 0, paying: active.length, trialing: trialing.length, complimentary: comp.length, lapsedTrials: lapsedTrials.length, conversion, cancelled, growthPct },
-      weeks, byPlan, expiringSoon, renewalsSoon, cancelReasons, gateHits, feedback,
+      weeks, byPlan, expiringSoon, renewalsSoon, cancelReasons, gateHits, feedback, referrals,
       billingSettings: { default_trial_days: Number(cfg.default_trial_days ?? 14), grace_days: Number(cfg.grace_days ?? 3) },
       subs: subsOut,
       ledger: P.slice(0, 100).map((p) => ({ id: p.id, uid: p.uid, name: nameByUid[p.uid] || null, planName: p.plan_name, amount: Number(p.amount || 0), cycle: p.billing_cycle, status: p.status, gateway: p.gateway, reference: p.reference, at: p.created_at })),

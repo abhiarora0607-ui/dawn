@@ -1,7 +1,8 @@
 import BriefingDemo from "@/components/BriefingDemo";
-import WaitlistForm from "@/components/WaitlistForm";
+import { PublicFooter } from "@/components/PublicFooter";
+import { ReferralCapture } from "@/components/ReferralCapture";
 import { DawnLogo } from "@/components/DawnLogo";
-import { Sunrise, Brain, Eye, PenLine, Check, Sparkles } from "lucide-react";
+import { Sunrise, Brain, Eye, PenLine, Check, Sparkles, ArrowRight, Contact, Wallet, Users } from "lucide-react";
 
 export default function Home() {
   const jsonLd = {
@@ -17,14 +18,16 @@ export default function Home() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     <main className="min-h-screen bg-cream">
+      <ReferralCapture />
       {/* Nav */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-cream/80 border-b border-navy-line">
         <div className="max-w-6xl mx-auto px-5 sm:px-6 h-16 flex items-center justify-between">
           <DawnLogo className="h-10" />
           <div className="flex items-center gap-2 sm:gap-4">
             <a href="/pricing" className="text-sm font-medium text-navy/70 hover:text-navy px-2 py-2">Pricing</a>
-            <a href="#waitlist" className="text-sm font-medium bg-navy text-white px-4 py-2 rounded-xl hover:bg-navy-soft transition-colors">
-              Join the waitlist
+            <a href="/signin" className="text-sm font-medium text-navy/70 hover:text-navy px-2 py-2">Sign in</a>
+            <a href="/signin" className="text-sm font-medium bg-navy text-white px-4 py-2 rounded-xl hover:bg-navy-soft transition-colors">
+              Start free trial
             </a>
           </div>
         </div>
@@ -45,7 +48,7 @@ export default function Home() {
               Every morning, Dawn reads your Instagram and your sales, tells you what changed, and hands you a plan. Plus a built-in CRM to manage leads, orders, and money — all in one place.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
-              <a href="#waitlist" className="inline-flex items-center justify-center bg-navy text-white font-medium px-6 py-3.5 rounded-2xl hover:bg-navy-soft transition-colors shadow-card">
+              <a href="/signin" className="inline-flex items-center justify-center bg-navy text-white font-medium px-6 py-3.5 rounded-2xl hover:bg-navy-soft transition-colors shadow-card">
                 Get early access
               </a>
               <a href="/dashboard" className="inline-flex items-center justify-center bg-white/60 border border-navy-line text-navy font-medium px-6 py-3.5 rounded-2xl hover:bg-white transition-colors">
@@ -121,30 +124,26 @@ export default function Home() {
       </section>
 
       {/* Waitlist CTA */}
-      <section id="waitlist" className="relative bg-navy py-20 sm:py-24 overflow-hidden">
+      <section id="start" className="relative bg-navy py-20 sm:py-24 overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-amber/10 rounded-full blur-3xl" />
         <div className="relative max-w-2xl mx-auto px-5 sm:px-6 text-center">
           <Sunrise className="w-10 h-10 text-amber mx-auto mb-6 animate-float" />
           <h2 className="font-display font-semibold text-white text-3xl sm:text-[2.5rem]">Start every day ahead.</h2>
           <p className="mt-4 text-white/60 text-lg">
-            Dawn is in early access. Join the waitlist and be first to wake up to your briefing.
+            Connect your Instagram and start free. Full access, no card, nothing to lose.
           </p>
-          <WaitlistForm />
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a href="/signin" className="inline-flex items-center justify-center gap-2 bg-amber-deep text-white font-semibold px-7 py-3.5 rounded-2xl hover:bg-amber-deep/90">
+              Start free trial <ArrowRight className="w-4 h-4" />
+            </a>
+            <a href="/pricing" className="inline-flex items-center justify-center border border-white/20 text-white/80 font-medium px-7 py-3.5 rounded-2xl hover:bg-white/5">
+              See pricing
+            </a>
+          </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-navy-line py-8 bg-cream">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <DawnLogo className="h-9" />
-          <p className="text-muted text-xs">© {new Date().getFullYear()} Dawn · Wake up knowing what to do.</p>
-          <div className="flex gap-4 text-xs text-muted">
-            <a href="/privacy" className="hover:text-navy">Privacy</a>
-            <a href="/data-deletion" className="hover:text-navy">Data deletion</a>
-            <a href="/dashboard" className="hover:text-navy">Open app</a>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </main>
     </>
   );

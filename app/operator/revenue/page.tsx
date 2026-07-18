@@ -131,7 +131,7 @@ export default function RevenuePage() {
         )}
 
         {/* Insight row: churn reasons, gate hits, feedback */}
-        <div className="grid md:grid-cols-3 gap-3">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="dawn-card p-4">
             <p className="text-sm font-semibold text-navy mb-2">Cancel reasons</p>
             {Object.keys(d.cancelReasons || {}).length === 0 ? <p className="text-xs text-muted">None yet — good sign.</p> : (
@@ -148,6 +148,14 @@ export default function RevenuePage() {
               ))
             )}
             <p className="text-[10px] text-muted mt-2">People reaching for an area they didn&apos;t buy — pricing research, live.</p>
+          </div>
+          <div className="dawn-card p-4">
+            <p className="text-sm font-semibold text-navy mb-2">Referrals <span className="text-[10px] text-muted font-normal">(Powered-by loop)</span></p>
+            {Object.keys(d.referrals || {}).length === 0 ? <p className="text-xs text-muted">No referred signups yet.</p> : (
+              Object.entries(d.referrals).sort((a: any, b: any) => b[1] - a[1]).slice(0, 6).map(([r, n]: any) => (
+                <p key={r} className="text-sm text-navy flex justify-between py-0.5"><span className="truncate">{r}</span><span className="font-semibold">{n}</span></p>
+              ))
+            )}
           </div>
           <div className="dawn-card p-4">
             <p className="text-sm font-semibold text-navy mb-2">Feedback pulse</p>

@@ -11,7 +11,9 @@ export const metadata: Metadata = {
     "Dawn is an AI-powered tool for Instagram-first businesses: a daily plan for your account plus a built-in CRM for leads, orders, and money.",
   applicationName: "Dawn",
   keywords: ["Instagram CRM", "small business CRM", "Instagram business tool", "lead management", "order tracking"],
-  icons: { icon: "/icon.svg" },
+  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Dawn", statusBarStyle: "default" },
   alternates: { canonical: "/" },
   openGraph: {
     title: "Dawn — Run your Instagram business in one place",

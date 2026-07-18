@@ -216,7 +216,11 @@ export default async function Receipt({ params, searchParams }: { params: { id: 
               currency={currency}
             />
           )}
-          <p style={{ textAlign: "center", fontSize: 11, color: "#A6ACBB", marginTop: 18 }}>Powered by Dawn</p>
+          <p style={{ textAlign: "center", fontSize: 11, color: "#A6ACBB", marginTop: 18 }} className="noprint">
+            <a href={`https://dawn-jet.vercel.app/?ref=${encodeURIComponent(store?.slug || "")}`} target="_blank" rel="noopener" style={{ color: "#A6ACBB", textDecoration: "none" }}>
+              Powered by <strong style={{ color: "#8A92A6" }}>Dawn</strong> — run your shop from Instagram
+            </a>
+          </p>
         </div>
         <style dangerouslySetInnerHTML={{ __html: `@media print { .noprint { display: none !important; } body { background: #fff !important; } .rcard { box-shadow: none !important; } .notch { background: #fff !important; } }` }} />
       </body>
