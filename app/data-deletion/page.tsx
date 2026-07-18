@@ -1,7 +1,7 @@
 import { DawnLogo } from "@/components/DawnLogo";
 import Link from "next/link";
 
-export const metadata = { title: "Data Deletion — Dawn" };
+export const metadata = { title: "Data Deletion" };
 
 export default function DataDeletion() {
   return (

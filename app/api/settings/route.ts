@@ -11,9 +11,18 @@ export async function GET() {
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ settings: {} });
   try {
-    const res = await fetch(`${url}/rest/v1/business_settings?uid=eq.${uid}&select=*&limit=1`, { headers: H(key), cache: "no-store" });
+    const [res, igRows] = await Promise.all([
+      fetch(`${url}/rest/v1/business_settings?uid=eq.${uid}&select=*&limit=1`, { headers: H(key), cache: "no-store" }),
+      // Is an Instagram account actually connected to this business? The header
+      // used to guess (and always guessed "no"), which told connected owners to
+      // connect on every page.
+      fetch(`${url}/rest/v1/ig_connections?owner_uid=eq.${uid}&select=ig_user_id&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+    ]);
     const rows = await res.json();
-    return NextResponse.json({ settings: rows?.[0] || {} });
+    return NextResponse.json({
+      settings: rows?.[0] || {},
+      instagramConnected: Array.isArray(igRows) && igRows.length > 0,
+    });
   } catch { return NextResponse.json({ settings: {} }); }
 }
 

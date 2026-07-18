@@ -147,7 +147,10 @@ function Inner() {
           {d.payments.map((p: any) => (
             <div key={p.id} className="flex items-center justify-between px-4 py-2.5 border-b border-navy-line/40 last:border-0 text-sm">
               <div>
-                <p className="font-medium text-navy">{p.plan_name} · {p.billing_cycle}</p>
+                <p className="font-medium text-navy">
+                  {p.plan_name} · {p.billing_cycle}
+                  {!d.plans.some((pl: any) => pl.name === p.plan_name) && <span className="text-[10px] text-muted font-normal"> · plan no longer offered</span>}
+                </p>
                 <p className="text-[11px] text-muted">{new Date(p.created_at).toLocaleDateString()} · {p.invoice_no || p.reference}{p.gateway === "mock" && " · test"}</p>
               </div>
               <span className="font-semibold text-navy">₹{Number(p.amount)}</span>

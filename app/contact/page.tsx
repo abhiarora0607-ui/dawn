@@ -3,7 +3,7 @@ import { DawnLogo } from "@/components/DawnLogo";
 import { PublicFooter } from "@/components/PublicFooter";
 import { MessageCircle, Mail, MapPin, Clock } from "lucide-react";
 
-export const metadata = { title: "Contact & Support — Dawn" };
+export const metadata = { title: "Contact & Support" };
 
 // A real, reachable support door — required for gateway onboarding and the
 // difference between a product people trust and one they don't.

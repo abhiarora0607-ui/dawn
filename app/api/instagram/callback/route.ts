@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   const origin = url.origin;
 
   if (error || !code) {
-    return NextResponse.redirect(`${origin}/dashboard?connect=cancelled`);
+    return NextResponse.redirect(`${origin}/signin?error=cancelled`);
   }
 
   const appId = process.env.INSTAGRAM_APP_ID;
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   const redirectUri = `${origin}/api/instagram/callback`;
 
   if (!appId || !appSecret) {
-    return NextResponse.redirect(`${origin}/dashboard?connect=error`);
+    return NextResponse.redirect(`${origin}/signin?error=failed`);
   }
 
   try {
@@ -43,7 +43,7 @@ export async function GET(req: Request) {
     const shortToken = tokenData.access_token;
     const igUserId = tokenData.user_id;
     if (!shortToken) {
-      return NextResponse.redirect(`${origin}/dashboard?connect=error`);
+      return NextResponse.redirect(`${origin}/signin?error=failed`);
     }
 
     // 2) Upgrade to long-lived token (60 days)
@@ -165,6 +165,6 @@ export async function GET(req: Request) {
     });
     return res;
   } catch {
-    return NextResponse.redirect(`${origin}/dashboard?connect=error`);
+    return NextResponse.redirect(`${origin}/signin?error=failed`);
   }
 }

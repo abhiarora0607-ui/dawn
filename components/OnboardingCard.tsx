@@ -26,7 +26,7 @@ export function OnboardingCard() {
           <span className="w-9 h-9 rounded-xl bg-amber/15 flex items-center justify-center"><Rocket className="w-4.5 h-4.5 text-amber-deep" /></span>
           <div>
             <p className="font-semibold text-navy">Get set up</p>
-            <p className="text-xs text-muted">{d.doneCount} of {d.total} done — you&apos;re almost there</p>
+            <p className="text-xs text-muted">{d.doneCount} of {d.total} essentials done{d.doneCount >= d.total - 1 ? " — you're almost there" : ""}</p>
           </div>
         </div>
         <button onClick={() => setDismissed(true)} className="text-navy/30 hover:text-navy" title="Hide"><X className="w-4 h-4" /></button>

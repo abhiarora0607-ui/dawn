@@ -3,7 +3,7 @@ import { DawnLogo } from "@/components/DawnLogo";
 import { PublicFooter } from "@/components/PublicFooter";
 import { ShieldCheck, Lock, RotateCcw, Download, Eye, CheckCircle2 } from "lucide-react";
 
-export const metadata = { title: "Security & Data Protection — Dawn" };
+export const metadata = { title: "Security & Data Protection" };
 
 // The trust story Dawn already earned in code (uid isolation, the invariant
 // suite, soft-delete, exports) — finally told where buyers can read it.

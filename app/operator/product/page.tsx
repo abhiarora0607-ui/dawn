@@ -43,6 +43,10 @@ function Product() {
     <>
       <Hero line={line} sub={sub} />
 
+      {d.countsLive === false && d.countsAsOf && (
+        <p className="text-[11px] text-muted">Counts summarised {new Date(d.countsAsOf).toLocaleString()} — not live.</p>
+      )}
+
       {/* Funnel — bars, not a number soup */}
       <div className="dawn-card p-5">
         <p className="font-semibold text-navy text-sm mb-3">Getting started</p>

@@ -101,7 +101,7 @@ function EmployeesInner() {
       <DashTopbar account={data?.account} pageTitle="Employees" />
       <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
         <div className="flex items-center justify-between gap-3">
-          <div><h1 className="font-display font-semibold text-2xl text-navy">Employees</h1><p className="text-muted text-sm mt-1">Your team. Active salaries auto-post as monthly expenses.</p></div>
+          <div><h1 className="font-display font-semibold text-2xl text-navy">Employees</h1><p className="text-muted text-sm mt-1">Your team. Active salaries auto-post as monthly expenses. Use <span className="font-medium text-navy/70">Login</span> on any row to give someone their own staff portal sign-in.</p></div>
           <button onClick={() => setModal({ open: true, emp: null })} className="flex items-center gap-2 bg-navy text-white font-medium px-4 py-2 rounded-xl hover:bg-navy-soft shrink-0"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span></button>
         </div>
 
@@ -131,7 +131,7 @@ function EmployeesInner() {
                   ) : (
                     <>
                       <button onClick={() => setPendingToggle(e)} className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${e.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-navy/5 text-navy/50"}`}>{e.status}</button>
-                      <button onClick={() => setAccessEmp(e)} className="p-1.5 text-navy/40 hover:text-amber-deep" title="Login access"><KeyRound className="w-4 h-4" /></button>
+                      <button onClick={() => setAccessEmp(e)} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium text-navy/60 hover:text-amber-deep hover:bg-amber/5" title="Create or reset this person's portal login"><KeyRound className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Login</span></button>
                     </>
                   )}
                   <button onClick={() => setModal({ open: true, emp: e })} className="p-1.5 text-navy/40 hover:text-navy" title="Edit"><Pencil className="w-4 h-4" /></button>

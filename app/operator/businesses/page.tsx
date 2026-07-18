@@ -63,6 +63,10 @@ function Businesses() {
     <>
       <Hero line={total === 1 ? "One business on Dawn" : `${total} businesses on Dawn`} sub="Health is a word, not a score. Tap any row for the full story." />
 
+      {d.countsLive === false && d.countsAsOf && (
+        <p className="text-[11px] text-muted">Counts summarised {new Date(d.countsAsOf).toLocaleString()} — not live.</p>
+      )}
+
       {/* views */}
       <div className="flex flex-wrap gap-1.5">
         {VIEWS.map((v) => {

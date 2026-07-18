@@ -1,7 +1,7 @@
 import { DawnLogo } from "@/components/DawnLogo";
 import Link from "next/link";
 
-export const metadata = { title: "Privacy Policy — Dawn" };
+export const metadata = { title: "Privacy Policy" };
 
 export default function Privacy() {
   return (
@@ -35,7 +35,7 @@ export default function Privacy() {
 
         <div>
           <h2 className="text-lg font-semibold text-navy mb-2">Contact</h2>
-          <p>Questions about this policy? Email us at the address listed on our site. We&rsquo;ll respond promptly.</p>
+          <p>Questions about this policy, or want your data deleted? Reach us through our <Link href="/contact" className="text-amber-deep underline">contact page</Link> — WhatsApp and email are both listed there, and we respond within 2 working days.</p>
         </div>
       </div>
     </main>

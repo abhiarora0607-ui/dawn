@@ -1,12 +1,14 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
 import { ToastProvider, useToast, ConfirmDialog } from "@/components/Toast";
 import { invalidateSettingsCache } from "@/lib/use-settings";
-import { Loader2, Save, Upload, Database, Trash2, Download, Building2, Copy, Check } from "lucide-react";
+import { Loader2, Save, Upload, Database, Trash2, Download, Building2, Copy, Check , RotateCcw} from "lucide-react";
 
 const CURRENCIES = ["₹", "$", "€", "£", "₨", "R$", "A$"];
 
@@ -127,7 +129,9 @@ function SettingsInner() {
             <button onClick={() => setConfirmClear(true)} className="flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface text-red-600"><Trash2 className="w-4 h-4" /> Clear demo data</button>
             <a href="/api/catalog/export" className="flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface"><Download className="w-4 h-4" /> Export catalog CSV</a>
             <a href="/api/export-data" className="flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface"><Download className="w-4 h-4" /> Export all my data</a>
+            <Link href="/dashboard/recovery" className="flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface"><RotateCcw className="w-4 h-4" /> Recently deleted</Link>
           </div>
+          <p className="text-xs text-muted">Deleted contacts, orders, items and expenses stay recoverable for 30 days before they&apos;re permanently removed.</p>
         </section>
 
         <LoginLinksSection />

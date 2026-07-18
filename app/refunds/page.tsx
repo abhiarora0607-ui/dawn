@@ -2,7 +2,7 @@ import Link from "next/link";
 import { DawnLogo } from "@/components/DawnLogo";
 import { PublicFooter } from "@/components/PublicFooter";
 
-export const metadata = { title: "Refunds & Cancellation — Dawn" };
+export const metadata = { title: "Refunds & Cancellation" };
 
 // Required for Indian payment-gateway onboarding, and simply the fair policy.
 export default function Refunds() {

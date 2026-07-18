@@ -20,6 +20,7 @@ export function PublicFooter() {
               <ul className="space-y-1.5 text-navy/60">
                 <li><Link href="/pricing" className="hover:text-navy">Pricing</Link></li>
                 <li><Link href="/security" className="hover:text-navy">Security</Link></li>
+                <li><Link href="/status" className="hover:text-navy">Status</Link></li>
                 <li><Link href="/signin" className="hover:text-navy">Sign in</Link></li>
               </ul>
             </div>

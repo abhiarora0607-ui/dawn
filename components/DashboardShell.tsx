@@ -84,6 +84,7 @@ function NavLinks({ pathname, onNavigate, suggCount, ent }: { pathname: string; 
       {IG_NAV.map((item) => <NavItem key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} locked={ent ? !ent.features?.instagram_ai : false} />)}
       <div className="pt-3 mt-2 border-t border-navy-line/60">
         {BOTTOM_NAV.map((item) => <NavItem key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} />)}
+        <PlanChip ent={ent} onNavigate={onNavigate} />
       </div>
     </>
   );
@@ -197,5 +198,33 @@ function PaywallScreen() {
         <a href="/api/export-data" className="mt-3 inline-block text-xs text-navy/50 hover:text-navy underline">Export all my data first</a>
       </div>
     </div>
+  );
+}
+
+
+// What plan am I on, and when does it renew? Previously invisible unless you
+// went looking in Billing.
+function PlanChip({ ent, onNavigate }: { ent?: any; onNavigate?: () => void }) {
+  if (!ent) return null;
+  const e = ent;
+  const label =
+    e.effective === "complimentary" ? "Complimentary" :
+    e.effective === "trialing" ? `Trial · ${e.daysLeft}d left` :
+    e.effective === "grace" ? `Grace · ${e.daysLeft}d left` :
+    e.effective === "expired" ? "Access ended" :
+    e.planName || "Active";
+  const detail =
+    e.effective === "active" && e.renewsInDays != null ? `Renews in ${e.renewsInDays}d` :
+    e.effective === "trialing" ? "Full access" :
+    e.effective === "expired" ? "Choose a plan" : null;
+  const tone =
+    e.effective === "expired" ? "text-red-600" :
+    e.effective === "grace" || e.effective === "trialing" ? "text-amber-deep" : "text-navy/50";
+  return (
+    <Link href="/dashboard/billing" onClick={onNavigate}
+      className="mx-3 mt-2 mb-1 block rounded-lg border border-navy-line px-3 py-2 hover:bg-navy/5">
+      <p className={`text-[11px] font-semibold ${tone}`}>{label}</p>
+      {detail && <p className="text-[10px] text-navy/40 mt-0.5">{detail}</p>}
+    </Link>
   );
 }

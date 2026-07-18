@@ -55,7 +55,18 @@ export async function GET() {
     const statsRows = await fetch(`${url}/rest/v1/business_stats?select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
     const statsByUid: Record<string, any> = {};
     for (const s of Array.isArray(statsRows) ? statsRows : []) statsByUid[s.uid] = s;
-    const useStats = Object.keys(statsByUid).length > 0;
+    // V30 — the precomputed summary is a SCALE optimisation, not a default.
+    // It's written once a night by the overnight cron, so using it means the
+    // console shows yesterday's numbers: a business that added contacts and
+    // orders this morning reads as "never started". At small scale the live
+    // queries cost nothing, so only fall back to the summary once the live
+    // path would actually hurt. Below the threshold: always live, always true.
+    const STATS_THRESHOLD = 150;
+    const useStats = Object.keys(statsByUid).length >= STATS_THRESHOLD;
+    // When the summary IS used, say so — staleness must never be invisible.
+    const countsAsOf = useStats
+      ? (Object.values(statsByUid).map((r: any) => r.updated_at).filter(Boolean).sort().pop() || null)
+      : null;
 
     // Billing state per business (V26): status + days left, computed live.
     const [subsRows, plansRows] = await Promise.all([
@@ -191,6 +202,8 @@ export async function GET() {
     }
 
     return NextResponse.json({
+      countsLive: !useStats,
+      countsAsOf,
       funnel: {
         signedUp: total,
         setUp: activated,

@@ -93,6 +93,9 @@ function Today() {
       )}
 
       <p className="text-center text-[11px] text-muted pt-2">
+        {d.countsLive === false && d.countsAsOf
+          ? `Counts summarised ${new Date(d.countsAsOf).toLocaleString()} · `
+          : ""}
         Counts and dates only — never anything inside a business&apos;s CRM.
       </p>
     </>

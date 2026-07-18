@@ -105,12 +105,12 @@ function Money() {
             className="flex items-center gap-1.5 text-sm font-medium text-amber-deep border border-amber/40 px-3 py-1.5 rounded-lg hover:bg-amber/5"><Plus className="w-4 h-4" /> New</button>
         </div>
         <div className="space-y-2">
-          {plans.map((p) => {
+          {[...plans].sort((a, b) => Number(b.is_active !== false) - Number(a.is_active !== false)).map((p) => {
             const counts = d.byPlan.find((x: any) => x.id === p.id);
             return (
               <div key={p.id} className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 ${p.is_active ? "border-navy-line bg-white" : "border-navy-line/50 bg-surface opacity-60"}`}>
                 <div className="min-w-0">
-                  <p className="font-semibold text-navy text-sm">{p.name} <span className="font-normal text-muted">· ₹{p.price_monthly}/mo · ₹{p.price_yearly}/yr</span>{!p.is_active && <span className="text-red-500 text-xs"> · archived</span>}</p>
+                  <p className="font-semibold text-navy text-sm">{p.name} <span className="font-normal text-muted">· ₹{p.price_monthly}/mo · ₹{p.price_yearly}/yr</span>{!p.is_active && <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded ml-1.5">RETIRED</span>}</p>
                   <p className="text-[11px] text-muted mt-0.5">
                     {FEATURES.filter((f) => p.features?.[f]).map((f) => FEATURE_SHORT[f]).join(" + ") || "No areas"}
                     {counts ? ` — ${counts.active} paying, ${counts.trialing} trialing` : ""}

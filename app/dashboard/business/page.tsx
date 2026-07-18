@@ -23,6 +23,7 @@ export default function BusinessDashboard() {
   const { currency } = useSettings();
 
   const [sc, setSc] = useState<any>(null);
+  const [tab, setTab] = useState<"team" | "customers" | "pipeline">("team");
   useEffect(() => {
     Promise.all([
       fetch("/api/pulse").then((r) => r.json()),
@@ -139,8 +140,19 @@ export default function BusinessDashboard() {
           )}
         </section>
 
+        {/* ------------------------------------------- DEEPER VIEWS (tabs) */}
+        <div className="flex gap-1 border-b border-navy-line">
+          {(["team", "customers", "pipeline"] as const).map((k) => (
+            <button key={k} onClick={() => setTab(k)}
+              className={`px-3.5 py-2 text-sm font-medium border-b-2 -mb-px capitalize transition-colors ${tab === k ? "border-amber-deep text-navy" : "border-transparent text-muted hover:text-navy"}`}>
+              {k === "team" ? "Team" : k === "customers" ? "Customers" : "Pipeline"}
+            </button>
+          ))}
+        </div>
+
+        <div>
         {/* ----------------------------------------------------------- TEAM */}
-        {t.all.length > 0 && (
+        {tab === "team" && t.all.length > 0 && (
           <section>
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display font-semibold text-lg text-navy">Team</h2>
@@ -197,6 +209,7 @@ export default function BusinessDashboard() {
         )}
 
         {/* ------------------------------------------------------ CUSTOMERS */}
+        {tab === "customers" && (
         <section className="grid md:grid-cols-2 gap-3">
           <div className="dawn-card p-5">
             <h3 className="font-semibold text-navy mb-3 flex items-center gap-2"><Users className="w-4 h-4 text-amber-deep" /> Best customers</h3>
@@ -239,7 +252,10 @@ export default function BusinessDashboard() {
           </div>
         </section>
 
+        )}
+
         {/* ------------------------------------------------------- PIPELINE */}
+        {tab === "pipeline" && (
         <section className="dawn-card p-5">
           <h3 className="font-semibold text-navy mb-4 flex items-center gap-2"><Target className="w-4 h-4 text-amber-deep" /> Pipeline</h3>
           <div className="grid grid-cols-3 gap-3 mb-4">
@@ -256,6 +272,9 @@ export default function BusinessDashboard() {
             {p.bestSource && <Mini label="Best source" value={`${p.bestSource.name} (${p.bestSource.rate}%)`} />}
           </div>
         </section>
+        )}
+
+        </div>
 
         <FeedbackPulse />
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { DawnLogo } from "@/components/DawnLogo";
 import { PublicFooter } from "@/components/PublicFooter";
 
-export const metadata = { title: "Terms & Conditions — Dawn" };
+export const metadata = { title: "Terms & Conditions" };
 
 // Plain-language terms for an Indian SaaS. Reviewed by the operator before
 // publishing; required for payment-gateway onboarding.
