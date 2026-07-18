@@ -21,6 +21,10 @@ export default function RevenuePage() {
   const [ann, setAnn] = useState<any[]>([]);
   const [annTitle, setAnnTitle] = useState("");
   const [annBody, setAnnBody] = useState("");
+  const [coupons, setCoupons] = useState<any[]>([]);
+  const [cpCode, setCpCode] = useState("");
+  const [cpKind, setCpKind] = useState("percent");
+  const [cpValue, setCpValue] = useState("");
   const [cfgTrial, setCfgTrial] = useState("");
   const [cfgGrace, setCfgGrace] = useState("");
 
@@ -34,6 +38,7 @@ export default function RevenuePage() {
       setCfgTrial(String(bill.billingSettings?.default_trial_days ?? 14));
       setCfgGrace(String(bill.billingSettings?.grace_days ?? 3));
       fetch("/api/operator/announcements").then((r) => r.json()).then((x) => setAnn(x.items || [])).catch(() => {});
+      fetch("/api/operator/coupons").then((r) => r.json()).then((x) => setCoupons(x.coupons || [])).catch(() => {});
     }).catch(() => setLoading(false));
   }
   useEffect(() => { load(); }, []);
@@ -66,6 +71,17 @@ export default function RevenuePage() {
   async function delAnn(id: string) {
     await fetch(`/api/operator/announcements?id=${id}`, { method: "DELETE" });
     setAnn(ann.filter((a) => a.id !== id));
+  }
+
+  async function addCoupon() {
+    if (!cpCode.trim()) return;
+    await fetch("/api/operator/coupons", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: cpCode, kind: cpKind, value: Number(cpValue) || 0 }) });
+    setCpCode(""); setCpValue("");
+    fetch("/api/operator/coupons").then((r) => r.json()).then((x) => setCoupons(x.coupons || [])).catch(() => {});
+  }
+  async function toggleCoupon(code: string, active: boolean) {
+    await fetch("/api/operator/coupons", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, is_active: active }) });
+    setCoupons(coupons.map((c) => (c.code === code ? { ...c, is_active: active } : c)));
   }
 
   function exportLedger() {
@@ -106,10 +122,15 @@ export default function RevenuePage() {
             <p className="dawn-section-title text-sm mb-2"><Flame className="w-4 h-4 text-amber-deep" /> Trials expiring within 7 days — reach out today</p>
             <div className="grid sm:grid-cols-2 gap-2">
               {d.expiringSoon.map((t: any) => (
-                <Link key={t.uid} href={`/operator/b/${encodeURIComponent(t.uid)}`} className="flex items-center justify-between bg-surface rounded-xl px-3 py-2.5 hover:bg-amber/5 text-sm">
-                  <span className="font-medium text-navy truncate">{t.name || t.uid.slice(0, 14)}</span>
-                  <span className={`shrink-0 font-semibold ${t.daysLeft <= 2 ? "text-red-600" : "text-amber-deep"}`}>{t.daysLeft}d left</span>
-                </Link>
+                <div key={t.uid} className="flex items-center justify-between bg-surface rounded-xl px-3 py-2.5 text-sm gap-2">
+                  <Link href={`/operator/b/${encodeURIComponent(t.uid)}`} className="font-medium text-navy truncate hover:text-amber-deep">{t.name || t.uid.slice(0, 14)}</Link>
+                  <span className="flex items-center gap-2 shrink-0">
+                    {t.wa && (
+                      <a href={`https://wa.me/${t.wa}?text=${encodeURIComponent(`Hi! Your Dawn trial ends in ${t.daysLeft} day${t.daysLeft === 1 ? "" : "s"}. Anything I can help set up before then? Happy to extend it if you need more time.`)}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-emerald-700 border border-emerald-200 px-2 py-1 rounded-lg hover:bg-emerald-50">Nudge</a>
+                    )}
+                    <span className={`font-semibold ${t.daysLeft <= 2 ? "text-red-600" : "text-amber-deep"}`}>{t.daysLeft}d</span>
+                  </span>
+                </div>
               ))}
             </div>
           </div>
@@ -121,10 +142,15 @@ export default function RevenuePage() {
             <p className="dawn-section-title text-sm mb-2"><IndianRupee className="w-4 h-4 text-emerald-600" /> Renewals due within 7 days</p>
             <div className="grid sm:grid-cols-2 gap-2">
               {d.renewalsSoon.map((t: any) => (
-                <Link key={t.uid} href={`/operator/b/${encodeURIComponent(t.uid)}`} className="flex items-center justify-between bg-surface rounded-xl px-3 py-2.5 hover:bg-emerald-50/50 text-sm">
-                  <span className="min-w-0"><span className="font-medium text-navy truncate">{t.name || t.uid.slice(0, 14)}</span><span className="text-muted"> · {t.planName}</span>{t.cancelAtPeriodEnd && <span className="text-red-500 text-xs"> · cancelling</span>}</span>
-                  <span className={`shrink-0 font-semibold ${t.daysLeft <= 2 ? "text-red-600" : "text-emerald-700"}`}>{t.daysLeft}d</span>
-                </Link>
+                <div key={t.uid} className="flex items-center justify-between bg-surface rounded-xl px-3 py-2.5 text-sm gap-2">
+                  <Link href={`/operator/b/${encodeURIComponent(t.uid)}`} className="min-w-0 hover:text-emerald-700"><span className="font-medium text-navy truncate">{t.name || t.uid.slice(0, 14)}</span><span className="text-muted"> · {t.planName}</span>{t.cancelAtPeriodEnd && <span className="text-red-500 text-xs"> · cancelling</span>}</Link>
+                  <span className="flex items-center gap-2 shrink-0">
+                    {t.wa && (
+                      <a href={`https://wa.me/${t.wa}?text=${encodeURIComponent(`Hi! Just a heads-up that your Dawn plan renews in ${t.daysLeft} day${t.daysLeft === 1 ? "" : "s"}. Anything you'd like changed before then?`)}`} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-emerald-700 border border-emerald-200 px-2 py-1 rounded-lg hover:bg-emerald-50">Nudge</a>
+                    )}
+                    <span className={`font-semibold ${t.daysLeft <= 2 ? "text-red-600" : "text-emerald-700"}`}>{t.daysLeft}d</span>
+                  </span>
+                </div>
               ))}
             </div>
           </div>
@@ -194,6 +220,35 @@ export default function RevenuePage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Coupons */}
+        <div className="dawn-card p-5">
+          <p className="dawn-section-title mb-3">Coupons</p>
+          <div className="flex flex-wrap items-end gap-2 mb-3">
+            <label className="block text-xs text-muted">Code<input value={cpCode} onChange={(e) => setCpCode(e.target.value.toUpperCase())} placeholder="LAUNCH20" className="inp mt-1 w-36" /></label>
+            <label className="block text-xs text-muted">Type
+              <select value={cpKind} onChange={(e) => setCpKind(e.target.value)} className="inp mt-1 w-32">
+                <option value="percent">% off</option>
+                <option value="flat">₹ off</option>
+                <option value="first_free">First period free</option>
+              </select>
+            </label>
+            {cpKind !== "first_free" && <label className="block text-xs text-muted">Value<input type="number" value={cpValue} onChange={(e) => setCpValue(e.target.value)} className="inp mt-1 w-24" /></label>}
+            <button onClick={addCoupon} className="bg-navy text-white text-sm font-medium px-4 py-2 rounded-xl">Create</button>
+          </div>
+          {coupons.length === 0 ? <p className="text-xs text-muted">No coupons yet.</p> : (
+            <div className="space-y-1.5">
+              {coupons.map((c) => (
+                <div key={c.code} className="flex items-center justify-between text-sm border border-navy-line rounded-xl px-3 py-2">
+                  <span className={c.is_active ? "text-navy" : "text-navy/40 line-through"}>
+                    <strong>{c.code}</strong> <span className="text-muted">· {c.kind === "first_free" ? "first period free" : c.kind === "flat" ? `₹${c.value} off` : `${c.value}% off`} · used {c.redeemed || 0}{c.max_redemptions ? `/${c.max_redemptions}` : ""}</span>
+                  </span>
+                  <button onClick={() => toggleCoupon(c.code, !c.is_active)} className="text-xs font-medium text-navy/50 hover:text-navy">{c.is_active ? "Disable" : "Enable"}</button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Plans manager */}

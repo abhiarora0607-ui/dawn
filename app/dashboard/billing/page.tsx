@@ -23,6 +23,8 @@ function Inner() {
   const [checkout, setCheckout] = useState<any>(null); // plan being bought
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState<any>(null);
+  const [coupon, setCoupon] = useState("");
+  const [couponErr, setCouponErr] = useState("");
   const [cancelModal, setCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
@@ -34,10 +36,11 @@ function Inner() {
   async function pay() {
     setPaying(true);
     try {
-      const res = await fetch("/api/billing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ planId: checkout.id, cycle }) });
+      const res = await fetch("/api/billing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ planId: checkout.id, cycle, coupon: coupon.trim() || undefined }) });
       const out = await res.json();
       await new Promise((r) => setTimeout(r, 1100)); // gateway feel
-      if (out.ok) { setPaid(out); load(); } else toast(out.error || "Payment failed", "error");
+      if (out.ok) { setPaid(out); setCoupon(""); setCouponErr(""); load(); }
+      else { setCouponErr(out.error || ""); toast(out.error || "Payment failed", "error"); }
     } catch { toast("Payment failed", "error"); }
     setPaying(false);
   }
@@ -145,7 +148,7 @@ function Inner() {
             <div key={p.id} className="flex items-center justify-between px-4 py-2.5 border-b border-navy-line/40 last:border-0 text-sm">
               <div>
                 <p className="font-medium text-navy">{p.plan_name} · {p.billing_cycle}</p>
-                <p className="text-[11px] text-muted">{new Date(p.created_at).toLocaleDateString()} · {p.reference}{p.gateway === "mock" && " · test"}</p>
+                <p className="text-[11px] text-muted">{new Date(p.created_at).toLocaleDateString()} · {p.invoice_no || p.reference}{p.gateway === "mock" && " · test"}</p>
               </div>
               <span className="font-semibold text-navy">₹{Number(p.amount)}</span>
             </div>
@@ -181,7 +184,9 @@ function Inner() {
               <div className="text-center py-4">
                 <span className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3"><Check className="w-7 h-7 text-emerald-600" /></span>
                 <p className="font-display font-semibold text-lg text-navy">Payment successful</p>
-                <p className="text-sm text-muted mt-1">{paid.planName} is active. Ref: {paid.reference}</p>
+                <p className="text-sm text-muted mt-1">{paid.planName} is active.</p>
+                <p className="text-[11px] text-muted mt-1">{paid.invoiceNo ? `Invoice ${paid.invoiceNo} · ` : ""}Ref {paid.reference}</p>
+                {paid.discount > 0 && <p className="text-[11px] text-emerald-600 mt-0.5">Coupon applied — ₹{Number(paid.discount).toLocaleString()} off</p>}
                 <button onClick={() => { setCheckout(null); setPaid(null); }} className="mt-5 bg-navy text-white px-6 py-2.5 rounded-xl font-medium w-full">Done</button>
               </div>
             ) : (
@@ -195,7 +200,11 @@ function Inner() {
                   <div className="flex justify-between"><span className="text-muted">Billing</span><span className="font-medium text-navy capitalize">{cycle}</span></div>
                   <div className="flex justify-between border-t border-navy-line pt-1.5 mt-1.5"><span className="font-semibold text-navy">Total</span><span className="font-bold text-navy">₹{Number(cycle === "yearly" ? checkout.price_yearly : checkout.price_monthly) || 0}</span></div>
                 </div>
-                <button onClick={pay} disabled={paying} className="mt-4 w-full flex items-center justify-center gap-2 bg-navy text-white font-semibold py-3 rounded-xl hover:bg-navy-soft disabled:opacity-60">
+                <div className="mt-3">
+                  <input value={coupon} onChange={(e) => { setCoupon(e.target.value.toUpperCase()); setCouponErr(""); }} placeholder="Coupon code (optional)" className="inp text-sm" />
+                  {couponErr && <p className="text-[11px] text-red-600 mt-1">{couponErr}</p>}
+                </div>
+                <button onClick={pay} disabled={paying} className="mt-3 w-full flex items-center justify-center gap-2 bg-navy text-white font-semibold py-3 rounded-xl hover:bg-navy-soft disabled:opacity-60">
                   {paying ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing…</> : <><Sparkles className="w-4 h-4 text-amber" /> Proceed to pay</>}
                 </button>
                 <p className="text-[10px] text-muted text-center mt-2.5">Test gateway — no real money moves. Real payments arrive with Razorpay.</p>

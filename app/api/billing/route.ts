@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 import { getUid } from "@/lib/auth";
 import { getEntitlements } from "@/lib/entitlements";
 import { audit } from "@/lib/audit";
+import { sendMail, shell, APP } from "@/lib/mailer";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL!, key: process.env.SUPABASE_SECRET_KEY! }; }
@@ -60,10 +61,43 @@ export async function POST(req: Request) {
     const plan = Array.isArray(planRows) ? planRows[0] : null;
     if (!plan) return NextResponse.json({ error: "Plan not found." }, { status: 400 });
 
-    const amount = Number(cycle === "yearly" ? plan.price_yearly : plan.price_monthly) || 0;
+    const listPrice = Number(cycle === "yearly" ? plan.price_yearly : plan.price_monthly) || 0;
+
+    // ---- coupon (optional) ----
+    let discount = 0, couponCode: string | null = null;
+    if (b.coupon) {
+      const code = String(b.coupon).trim().toUpperCase().slice(0, 40);
+      const cRows = await fetch(`${url}/rest/v1/coupons?code=eq.${encodeURIComponent(code)}&is_active=eq.true&select=*&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
+      const c = Array.isArray(cRows) ? cRows[0] : null;
+      const expired = c?.expires_at ? new Date(c.expires_at).getTime() < Date.now() : false;
+      const exhausted = c?.max_redemptions != null && Number(c.redeemed || 0) >= Number(c.max_redemptions);
+      // one use per business
+      const usedRows = c ? await fetch(`${url}/rest/v1/coupon_redemptions?code=eq.${encodeURIComponent(code)}&uid=eq.${uid}&select=id&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []) : [];
+      const alreadyUsed = Array.isArray(usedRows) && usedRows.length > 0;
+      if (!c || expired || exhausted || alreadyUsed) {
+        return NextResponse.json({ error: !c ? "That code isn't valid." : alreadyUsed ? "You've already used that code." : "That code has expired." }, { status: 400 });
+      }
+      discount = c.kind === "first_free" ? listPrice : c.kind === "flat" ? Math.min(listPrice, Number(c.value) || 0) : Math.round((listPrice * (Number(c.value) || 0)) / 100);
+      couponCode = code;
+    }
+
+    const amount = Math.max(0, listPrice - discount);
     const now = new Date();
     const periodEnd = new Date(now.getTime() + (cycle === "yearly" ? YEAR : MONTH));
     const reference = `MOCK-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+
+    // ---- invoice number: sequential per Indian financial year (Apr–Mar) ----
+    let invoiceNo: string | null = null;
+    try {
+      const y = now.getFullYear(), m = now.getMonth(); // 0-based
+      const fyStart = m >= 3 ? y : y - 1;
+      const fy = `${fyStart}-${String((fyStart + 1) % 100).padStart(2, "0")}`;
+      const nRes = await fetch(`${url}/rest/v1/rpc/next_invoice_no`, {
+        method: "POST", headers: H(key), body: JSON.stringify({ p_fy: fy }),
+      });
+      const n = await nRes.json();
+      if (typeof n === "number") invoiceNo = `DAWN/${fy}/${String(n).padStart(4, "0")}`;
+    } catch { /* invoice numbering is best-effort; payment still records */ }
 
     // Record the payment (gateway: mock — visibly test money).
     await fetch(`${url}/rest/v1/payments`, {
@@ -71,7 +105,8 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         uid, plan_id: plan.id, plan_name: plan.name, amount, currency: "₹",
         billing_cycle: cycle, period_start: now.toISOString(), period_end: periodEnd.toISOString(),
-        status: "succeeded", gateway: "mock", reference,
+        status: "succeeded", gateway: "mock", reference, invoice_no: invoiceNo,
+        coupon_code: couponCode, discount,
       }),
     });
 
@@ -85,7 +120,36 @@ export async function POST(req: Request) {
       }),
     });
 
-    await audit({ uid, action: "billing.payment", entity: "payments", entityId: reference, meta: { plan: plan.name, amount, cycle, gateway: "mock" } });
-    return NextResponse.json({ ok: true, reference, amount, planName: plan.name, periodEnd: periodEnd.toISOString() });
+    // Coupon bookkeeping
+    if (couponCode) {
+      await fetch(`${url}/rest/v1/coupon_redemptions`, { method: "POST", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify({ code: couponCode, uid, amount_off: discount }) }).catch(() => {});
+      const cur = await fetch(`${url}/rest/v1/coupons?code=eq.${encodeURIComponent(couponCode)}&select=redeemed&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
+      const redeemed = Number(cur?.[0]?.redeemed || 0) + 1;
+      await fetch(`${url}/rest/v1/coupons?code=eq.${encodeURIComponent(couponCode)}`, { method: "PATCH", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify({ redeemed }) }).catch(() => {});
+    }
+
+    // Payment receipt email (best-effort; needs an email on file)
+    try {
+      const uRows = await fetch(`${url}/rest/v1/dawn_users?uid=eq.${uid}&select=email&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json());
+      const email = uRows?.[0]?.email;
+      if (email) {
+        await sendMail(email, `Payment received — ${plan.name}`, shell({
+          heading: "Thanks — you're all set",
+          body: `<p><strong>${plan.name}</strong> is active until ${periodEnd.toLocaleDateString("en-IN")}.</p>
+            <table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:14px;">
+              <tr><td style="padding:5px 0;color:#5B6478;">Plan</td><td align="right"><strong>${plan.name} · ${cycle}</strong></td></tr>
+              ${discount > 0 ? `<tr><td style="padding:5px 0;color:#5B6478;">List price</td><td align="right">₹${listPrice.toLocaleString("en-IN")}</td></tr><tr><td style="padding:5px 0;color:#059669;">Discount (${couponCode})</td><td align="right" style="color:#059669;">−₹${discount.toLocaleString("en-IN")}</td></tr>` : ""}
+              <tr><td style="padding:8px 0;border-top:1px solid #EEF1F7;"><strong>Paid</strong></td><td align="right" style="border-top:1px solid #EEF1F7;"><strong>₹${amount.toLocaleString("en-IN")}</strong></td></tr>
+              ${invoiceNo ? `<tr><td style="padding:5px 0;color:#5B6478;">Invoice</td><td align="right">${invoiceNo}</td></tr>` : ""}
+              <tr><td style="padding:5px 0;color:#5B6478;">Reference</td><td align="right">${reference}</td></tr>
+            </table>`,
+          ctaLabel: "View billing", ctaHref: `${APP}/dashboard/billing`,
+          footnote: "This is a test-mode payment while Dawn's live gateway is being set up.",
+        }));
+      }
+    } catch { /* never block a payment on email */ }
+
+    await audit({ uid, action: "billing.payment", entity: "payments", entityId: reference, meta: { plan: plan.name, amount, cycle, gateway: "mock", invoiceNo, couponCode, discount } });
+    return NextResponse.json({ ok: true, reference, invoiceNo, amount, discount, planName: plan.name, periodEnd: periodEnd.toISOString() });
   } catch { return NextResponse.json({ error: "Payment failed." }, { status: 500 }); }
 }

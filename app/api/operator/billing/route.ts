@@ -22,7 +22,7 @@ export async function GET() {
       fetch(`${url}/rest/v1/subscriptions?select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/plans?order=sort_order.asc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/payments?order=created_at.desc&limit=500`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/business_settings?select=uid,business_name`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/business_settings?select=uid,business_name,whatsapp,phone`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/app_config?key=eq.billing&select=value&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
       fetch(`${url}/rest/v1/events?kind=eq.gate_hit&created_at=gte.${new Date(Date.now() - 30 * 86400000).toISOString()}&select=meta&limit=2000`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
       fetch(`${url}/rest/v1/feedback?order=created_at.desc&limit=20`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
@@ -33,7 +33,12 @@ export async function GET() {
     const planById: Record<string, any> = {};
     for (const p of Array.isArray(plans) ? plans : []) planById[p.id] = p;
     const nameByUid: Record<string, string> = {};
-    for (const s of Array.isArray(settings) ? settings : []) nameByUid[s.uid] = s.business_name;
+    const waByUid: Record<string, string> = {};
+    for (const s of Array.isArray(settings) ? settings : []) {
+      nameByUid[s.uid] = s.business_name;
+      const w = (s.whatsapp || s.phone || "").replace(/[^0-9]/g, "");
+      if (w) waByUid[s.uid] = w;
+    }
     const cfg = (Array.isArray(cfgRows) && cfgRows[0]?.value) || {};
 
     const now = Date.now();
@@ -77,7 +82,7 @@ export async function GET() {
 
     // Renewals due within 7 days — the "collect the money" list.
     const renewalsSoon = active
-      .map((s) => ({ uid: s.uid, name: nameByUid[s.uid] || null, planName: planById[s.plan_id]?.name || "—", daysLeft: Math.ceil((new Date(s.period_end).getTime() - now) / DAY), cancelAtPeriodEnd: !!s.cancel_at_period_end }))
+      .map((s) => ({ uid: s.uid, name: nameByUid[s.uid] || null, wa: waByUid[s.uid] || null, planName: planById[s.plan_id]?.name || "—", daysLeft: Math.ceil((new Date(s.period_end).getTime() - now) / DAY), cancelAtPeriodEnd: !!s.cancel_at_period_end }))
       .filter((r) => r.daysLeft <= 7)
       .sort((a, b) => a.daysLeft - b.daysLeft);
 
@@ -92,7 +97,7 @@ export async function GET() {
     const feedback = (Array.isArray(feedbackRows) ? feedbackRows : []).map((f: any) => ({ id: f.id, uid: f.uid, name: nameByUid[f.uid] || null, mood: f.mood, note: f.note, at: f.created_at }));
 
     const expiringSoon = trialing
-      .map((s) => ({ uid: s.uid, name: nameByUid[s.uid] || null, daysLeft: Math.ceil((new Date(s.trial_ends_at).getTime() - now) / DAY) }))
+      .map((s) => ({ uid: s.uid, name: nameByUid[s.uid] || null, wa: waByUid[s.uid] || null, daysLeft: Math.ceil((new Date(s.trial_ends_at).getTime() - now) / DAY) }))
       .filter((t) => t.daysLeft <= 7)
       .sort((a, b) => a.daysLeft - b.daysLeft);
 
