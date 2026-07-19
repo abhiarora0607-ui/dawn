@@ -80,6 +80,34 @@ export async function isRemoteOn(url: string, key: string, uid: string, employee
   } catch { return false; }
 }
 
+
+/**
+ * Approved leave by date for one person. Deliberately duplicated rather than
+ * imported from leave-db, which imports this module — a cycle here would be
+ * paid for on every request.
+ */
+async function approvedLeave(
+  url: string, key: string, uid: string, from: string, to: string, employeeId: string,
+): Promise<Record<string, string>> {
+  try {
+    const rows = await fetch(
+      `${url}/rest/v1/leave_requests?uid=eq.${uid}&employee_id=eq.${employeeId}&status=eq.approved&to_date=gte.${from}&from_date=lte.${to}&select=code,from_date,to_date`,
+      { headers: H(key), cache: "no-store" },
+    ).then((r) => r.json());
+    const out: Record<string, string> = {};
+    for (const r of Array.isArray(rows) ? rows : []) {
+      let d = r.from_date > from ? r.from_date : from;
+      const end = r.to_date < to ? r.to_date : to;
+      let guard = 0;
+      while (d <= end && guard++ < 400) {
+        out[d] = r.code;
+        d = new Date(new Date(`${d}T00:00:00Z`).getTime() + 86400000).toISOString().slice(0, 10);
+      }
+    }
+    return out;
+  } catch { return {}; }
+}
+
 /** Holiday dates for a business within a range (or the whole year). */
 export async function getHolidays(url: string, key: string, uid: string, from?: string, to?: string): Promise<Record<string, string>> {
   try {
@@ -158,9 +186,10 @@ export async function daysForRange(
 ): Promise<any[]> {
   const settings = await getAttSettings(url, key, uid);
   const employee = emp || (await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&id=eq.${employeeId}&select=*&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).then((r) => r?.[0]));
-  const [stored, holidays] = await Promise.all([
+  const [stored, holidays, leaveMap] = await Promise.all([
     fetch(`${url}/rest/v1/attendance_days?uid=eq.${uid}&employee_id=eq.${employeeId}&work_date=gte.${from}&work_date=lte.${to}&select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
     getHolidays(url, key, uid, from, to),
+    approvedLeave(url, key, uid, from, to, employeeId),
   ]);
   const byDate: Record<string, any> = {};
   for (const d of Array.isArray(stored) ? stored : []) byDate[d.work_date] = d;
@@ -169,16 +198,18 @@ export async function daysForRange(
   const today = istDate();
   return dateRange(from, to).map((date) => {
     const existing = byDate[date];
-    if (existing) return { ...existing, holiday_name: holidays[date] || null };
+    const leaveCode = leaveMap[date] || null;
+    if (existing) return { ...existing, holiday_name: holidays[date] || null, leave_code: existing.leave_code || leaveCode };
     // No stored row: derive what the day means anyway.
     let classification: Classification = "absent";
     if (r.joiningDate && date < r.joiningDate) classification = "not_joined";
     else if (holidays[date]) classification = "holiday";
     else if (r.weeklyOffs.includes(istWeekday(date))) classification = "weekly_off";
+    else if (leaveCode) classification = "leave";
     else if (date > today) classification = "not_joined"; // the future isn't absence
     return {
       uid, employee_id: employeeId, work_date: date,
-      worked_minutes: 0, classification, late_minutes: 0,
+      worked_minutes: 0, classification, late_minutes: 0, leave_code: leaveCode,
       flagged: false, flag_reason: null, holiday_name: holidays[date] || null,
     };
   });

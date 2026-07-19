@@ -7,15 +7,16 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TeamAttendance } from "@/components/TeamAttendance";
+import { TeamLeave } from "@/components/TeamLeave";
 import { DawnLogo } from "@/components/DawnLogo";
 import { LostDialog, PaymentModal, WonDialog } from "@/components/SharedModals";
 import {
   Loader2, Users, ShoppingBag, LogOut, Phone, MessageCircle, TrendingUp, Plus, X, Send,
   MessageSquare, KeyRound, Bell, Clock, CheckSquare, CalendarDays, StickyNote, BarChart3,
-  Settings as SettingsIcon, MoreHorizontal, Pencil, Download, Trash2, Home, CalendarClock,
+  Settings as SettingsIcon, MoreHorizontal, Pencil, Download, Trash2, Home, CalendarClock, Palmtree,
 } from "lucide-react";
 
-type Tab = "dashboard" | "attendance" | "leads" | "customers" | "orders" | "messages" | "tasks" | "calendar" | "notes" | "reports" | "settings";
+type Tab = "dashboard" | "attendance" | "leave" | "leads" | "customers" | "orders" | "messages" | "tasks" | "calendar" | "notes" | "reports" | "settings";
 const STAGES = ["New Lead", "Contacted", "Negotiating", "Customer (Won)", "Lost"];
 
 export default function TeamDashboard() {
@@ -73,6 +74,7 @@ export default function TeamDashboard() {
   const ALL_TABS: { id: Tab; label: string; icon: any; perm: string }[] = [
     { id: "dashboard", label: "Home", icon: Home, perm: "dashboard" },
     { id: "attendance", label: "Attendance", icon: CalendarClock, perm: "dashboard" },
+    { id: "leave", label: "Leave", icon: Palmtree, perm: "dashboard" },
     { id: "leads", label: "Leads", icon: Users, perm: "leads" },
     { id: "customers", label: "Customers", icon: Users, perm: "customers" },
     { id: "orders", label: "Orders", icon: ShoppingBag, perm: "orders" },
@@ -171,6 +173,7 @@ export default function TeamDashboard() {
 
         {tab === "messages" && can("messaging") && <Messages />}
         {tab === "attendance" && <TeamAttendance />}
+        {tab === "leave" && <TeamLeave />}
         {tab === "tasks" && can("tasks") && <Tasks contacts={[...leads, ...customers]} />}
         {tab === "calendar" && can("calendar") && <CalendarView leads={leads} />}
         {tab === "notes" && can("notes") && <Notes />}

@@ -57,14 +57,45 @@ export async function GET(req: Request) {
     const recs = await (await fetch(`${url}/rest/v1/recurring_expenses?enabled=eq.true&select=*`, { headers: sbHeaders(key), cache: "no-store" })).json();
     for (const r of recs || []) {
       if (r.last_generated === month) continue; // already done this month
+
+      // V31b: an approved leave encashment rides along on the next salary
+      // expense rather than posting its own row. Two Salaries rows for the
+      // same person in the same month would read as a double payment, and
+      // the owner pays from what this page tells them.
+      let amount = Number(r.amount || 0);
+      let note = r.note || "Recurring expense";
+      let paidEncashments: string[] = [];
+      if (r.source === "salary" && r.employee_id) {
+        try {
+          const pend = await (await fetch(
+            `${url}/rest/v1/encashment_requests?uid=eq.${r.uid}&employee_id=eq.${r.employee_id}&status=eq.approved&paid_in_month=is.null&select=id,amount`,
+            { headers: sbHeaders(key), cache: "no-store" },
+          )).json();
+          const extra = (Array.isArray(pend) ? pend : []).reduce((sum: number, e: any) => sum + Number(e.amount || 0), 0);
+          if (extra > 0) {
+            paidEncashments = (pend as any[]).map((e) => e.id);
+            note = `${note} (₹${amount.toLocaleString("en-IN")} + ₹${extra.toLocaleString("en-IN")} leave encashment)`;
+            amount += extra;
+          }
+        } catch { /* an encashment lookup must never stop payroll posting */ }
+      }
+
       await fetch(`${url}/rest/v1/expenses`, {
         method: "POST", headers: sbHeaders(key),
         body: JSON.stringify({
           uid: r.uid, date: today, category: r.category || (r.source === "salary" ? "Salaries" : "Recurring"),
-          amount: r.amount, note: r.note || "Recurring expense",
+          amount, note,
           source: r.source === "salary" ? "salary" : "recurring", source_id: r.employee_id || r.id, recurring: true,
         }),
       });
+
+      // Only mark encashments paid once the expense actually exists.
+      for (const id of paidEncashments) {
+        await fetch(`${url}/rest/v1/encashment_requests?id=eq.${id}`, {
+          method: "PATCH", headers: sbHeaders(key),
+          body: JSON.stringify({ status: "paid", paid_in_month: month }),
+        }).catch(() => {});
+      }
       await fetch(`${url}/rest/v1/recurring_expenses?id=eq.${r.id}`, {
         method: "PATCH", headers: sbHeaders(key), body: JSON.stringify({ last_generated: month }),
       });
@@ -83,16 +114,83 @@ export async function GET(req: Request) {
     const settingsRows = await (await fetch(`${url}/rest/v1/attendance_settings?enabled=eq.true&select=uid`, { headers: sbHeaders(key), cache: "no-store" })).json();
     for (const s of Array.isArray(settingsRows) ? settingsRows : []) {
       try {
-        const [emps, settings, holidays] = await Promise.all([
+        const { approvedLeaveMap } = await import("@/lib/leave-db");
+        const [emps, settings, holidays, leaveMap] = await Promise.all([
           (await fetch(`${url}/rest/v1/employees?uid=eq.${s.uid}&status=eq.active&select=*`, { headers: sbHeaders(key), cache: "no-store" })).json(),
           getAttSettings(url, key, s.uid),
           getHolidays(url, key, s.uid, yesterday, yesterday),
+          approvedLeaveMap(url, key, s.uid, yesterday, yesterday),
         ]);
         for (const emp of Array.isArray(emps) ? emps : []) {
           if (emp.attendance_exempt) continue;
           await recomputeDay(url, key, s.uid, emp.id, yesterday, {
             emp, settings, holidayName: holidays[yesterday] || null,
+            leaveCode: leaveMap[emp.id]?.[yesterday] || null,
           });
+        }
+      } catch { /* one business failing must not stop the rest */ }
+    }
+  } catch { /* non-fatal */ }
+
+  // Leave accrual and year-end (V31b). Both are idempotent by design: accrual
+  // is stamped with a month tag per person per type, and year-end with a year
+  // tag per business, so a cron that runs twice never gives anyone a second
+  // helping or lapses a balance twice.
+  try {
+    const { istDate } = await import("@/lib/attendance");
+    const { getLeaveTypes, accrueMonth, adjustBalance, getBalances } = await import("@/lib/leave-db");
+    const { yearEndFor } = await import("@/lib/leave");
+    const { getAttSettings } = await import("@/lib/attendance-db");
+
+    const todayIST = istDate();
+    const monthTag = todayIST.slice(0, 7);
+    const yearNow = Number(todayIST.slice(0, 4));
+
+    const settingsRows = await (await fetch(`${url}/rest/v1/attendance_settings?select=uid,leave_enabled,carry_forward_cap,encash_cap,year_end_done`, { headers: sbHeaders(key), cache: "no-store" })).json();
+    for (const srow of Array.isArray(settingsRows) ? settingsRows : []) {
+      if (srow.leave_enabled === false) continue;
+      try {
+        const bizUid = srow.uid;
+        const [emps, types] = await Promise.all([
+          (await fetch(`${url}/rest/v1/employees?uid=eq.${bizUid}&status=eq.active&select=id,joining_date,monthly_salary`, { headers: sbHeaders(key), cache: "no-store" })).json(),
+          getLeaveTypes(url, key, bizUid),
+        ]);
+        const EMP = Array.isArray(emps) ? emps : [];
+
+        // ---- year end: carry, then encash-eligible, then lapse ----
+        // Runs on the first cron of a new year, for the year that just ended.
+        const lastYear = yearNow - 1;
+        if (srow.year_end_done !== String(lastYear)) {
+          const carryCap = Number(srow.carry_forward_cap ?? 12);
+          const encashCap = Number(srow.encash_cap ?? 5);
+          for (const e of EMP) {
+            const balances = await getBalances(url, key, bizUid, e.id, lastYear, types);
+            const input = balances
+              .filter((b: any) => !b.infinite && b.available > 0)
+              .map((b: any) => {
+                const t = types.find((x: any) => x.code === b.code);
+                return { code: b.code, available: b.available, carries_forward: !!t?.carries_forward, encashable: !!t?.encashable };
+              });
+            if (input.length === 0) continue;
+            const plan = yearEndFor(input, carryCap, encashCap);
+            for (const [code, p] of Object.entries(plan) as any) {
+              if (p.carry > 0) await adjustBalance(url, key, bizUid, e.id, code, yearNow, { carried_in: p.carry });
+              if (p.lapse > 0 || p.encash > 0) {
+                // The old year's row records what happened to it, so the
+                // employee can always see where their days went.
+                await adjustBalance(url, key, bizUid, e.id, code, lastYear, { lapsed: p.lapse });
+              }
+            }
+          }
+          await fetch(`${url}/rest/v1/attendance_settings?uid=eq.${bizUid}`, {
+            method: "PATCH", headers: sbHeaders(key),
+            body: JSON.stringify({ year_end_done: String(lastYear) }),
+          }).catch(() => {});
+        }
+
+        // ---- monthly accrual ----
+        for (const e of EMP) {
+          await accrueMonth(url, key, bizUid, e, monthTag, types);
         }
       } catch { /* one business failing must not stop the rest */ }
     }

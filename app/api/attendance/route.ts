@@ -11,6 +11,7 @@ import { NextResponse } from "next/server";
 import { getUid } from "@/lib/auth";
 import { requireArea } from "@/lib/entitlements";
 import { getAttSettings, getHolidays, daysForRange, rulesFor } from "@/lib/attendance-db";
+import { approvedLeaveMap } from "@/lib/leave-db";
 import { istDate, addDays, dateRange, istWeekday, workedMinutesOf, dayValue } from "@/lib/attendance";
 
 export const dynamic = "force-dynamic";
@@ -36,10 +37,11 @@ export async function GET(req: Request) {
 
     // ---------------------------------------------------------- TODAY BOARD
     if (view === "today") {
-      const [logs, days, holidays] = await Promise.all([
+      const [logs, days, holidays, todayLeave] = await Promise.all([
         fetch(`${url}/rest/v1/attendance_logs?uid=eq.${uid}&work_date=eq.${today}&select=*&order=punch_in.asc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
         fetch(`${url}/rest/v1/attendance_days?uid=eq.${uid}&work_date=eq.${today}&select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
         getHolidays(url, key, uid, today, today),
+        approvedLeaveMap(url, key, uid, today, today),
       ]);
       const logsByEmp: Record<string, any[]> = {};
       for (const l of Array.isArray(logs) ? logs : []) (logsByEmp[l.employee_id] ||= []).push(l);
@@ -51,7 +53,8 @@ export async function GET(req: Request) {
         const mine = logsByEmp[e.id] || [];
         const open = mine.find((l: any) => l.punch_in && !l.punch_out) || null;
         const d = dayByEmp[e.id];
-        const isOff = holidays[today] ? "holiday" : r.weeklyOffs.includes(istWeekday(today)) ? "weekly_off" : null;
+        const onLeave = todayLeave[e.id]?.[today];
+        const isOff = holidays[today] ? "holiday" : r.weeklyOffs.includes(istWeekday(today)) ? "weekly_off" : onLeave ? "leave" : null;
         return {
           id: e.id, name: e.name, role: e.role, status: e.status,
           onShift: !!open,
@@ -120,9 +123,10 @@ export async function GET(req: Request) {
     const month = sp.get("month") || today.slice(0, 7);
     const from = `${month}-01`;
     const to = addDays(`${month}-01`, new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate() - 1);
-    const [allDays, holidays] = await Promise.all([
+    const [allDays, holidays, leaveMap] = await Promise.all([
       fetch(`${url}/rest/v1/attendance_days?uid=eq.${uid}&work_date=gte.${from}&work_date=lte.${to}&select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
       getHolidays(url, key, uid, from, to),
+      approvedLeaveMap(url, key, uid, from, to),
     ]);
     const byEmpDate: Record<string, Record<string, any>> = {};
     for (const d of Array.isArray(allDays) ? allDays : []) {
@@ -138,6 +142,7 @@ export async function GET(req: Request) {
         if (date > today) return { date, c: "not_joined", m: 0, f: false };
         if (holidays[date]) return { date, c: "holiday", m: 0, f: false };
         if (r.weeklyOffs.includes(istWeekday(date))) return { date, c: "weekly_off", m: 0, f: false };
+        if (leaveMap[e.id]?.[date]) return { date, c: "leave", m: 0, f: false };
         return { date, c: "absent", m: 0, f: false };
       });
       return {
