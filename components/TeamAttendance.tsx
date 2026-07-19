@@ -34,14 +34,24 @@ export function TeamAttendance() {
 
   async function punch() {
     setBusy(true); setMsg(null);
-    const coords = await new Promise<{ lat: number | null; lng: number | null }>((resolve) => {
-      if (!navigator.geolocation) return resolve({ lat: null, lng: null });
-      navigator.geolocation.getCurrentPosition(
-        (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        () => resolve({ lat: null, lng: null }),   // refused or unavailable — punch anyway
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
-      );
-    });
+    // Ask for a coarse fix first. enableHighAccuracy demands GPS-grade
+    // precision, which a laptop can't provide and a phone indoors often can't
+    // either — the request then hangs until it times out and we lose the
+    // location entirely. A wifi-level fix is plenty to tell "at the shop" from
+    // "at home", and it arrives in a second rather than eight.
+    const getPos = (highAccuracy: boolean, timeout: number) =>
+      new Promise<GeolocationPosition | null>((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (p) => resolve(p), () => resolve(null),
+          { enableHighAccuracy: highAccuracy, timeout, maximumAge: 60000 },
+        );
+      });
+
+    let coords: { lat: number | null; lng: number | null } = { lat: null, lng: null };
+    if (navigator.geolocation) {
+      const pos = (await getPos(false, 8000)) || (await getPos(true, 8000));
+      if (pos) coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    }
 
     const res = await fetch("/api/team/attendance", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(coords),

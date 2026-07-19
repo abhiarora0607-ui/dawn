@@ -108,6 +108,16 @@ export async function POST(req: Request) {
     const half = row.half_day_pct ?? cur.half_day_pct, full = row.full_day_pct ?? cur.full_day_pct;
     if (half >= full) return NextResponse.json({ error: "The half-day percentage has to be below the full-day one." }, { status: 400 });
 
+    // Blocking with no shop location can't do anything — there's nothing to
+    // measure against. Rather than silently accept a setting that does nothing,
+    // say so.
+    const lat = row.shop_lat !== undefined ? row.shop_lat : cur.shop_lat;
+    const lng = row.shop_lng !== undefined ? row.shop_lng : cur.shop_lng;
+    const enforcing = row.enforce_geofence !== undefined ? row.enforce_geofence : cur.enforce_geofence;
+    if (enforcing && (lat == null || lng == null)) {
+      return NextResponse.json({ error: "Set the shop location before switching on blocking — without it there's nothing to check a punch against." }, { status: 400 });
+    }
+
     await fetch(`${url}/rest/v1/attendance_settings`, {
       method: "POST", headers: H(key, { Prefer: "resolution=merge-duplicates,return=minimal" }),
       body: JSON.stringify(row),

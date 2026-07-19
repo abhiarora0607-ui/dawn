@@ -311,6 +311,8 @@ function SetupTab() {
   const [saving, setSaving] = useState(false);
   const [hol, setHol] = useState({ date: "", name: "" });
   const [locating, setLocating] = useState(false);
+  const [locHelp, setLocHelp] = useState("");
+  const [pasted, setPasted] = useState("");
 
   function load() {
     fetch("/api/attendance/settings").then((r) => r.json()).then((x) => { setD(x); setF(x.settings); }).catch(() => {});
@@ -328,13 +330,74 @@ function SetupTab() {
   }
 
   function useMyLocation() {
-    if (!navigator.geolocation) { toast("This device can't share a location.", "error"); return; }
-    setLocating(true);
+    if (!navigator.geolocation) { toast("This browser can't share a location. Paste the coordinates instead.", "error"); return; }
+    setLocating(true); setLocHelp("");
+
+    // Two attempts, and the order matters.
+    //
+    // enableHighAccuracy asks for a GPS-grade fix. A laptop has no GPS radio,
+    // so the browser can sit waiting for a precision it will never reach and
+    // time out — which is why a "use my location" button can fail on a machine
+    // where Google Maps works perfectly well. Maps doesn't ask for high
+    // accuracy; it takes the wifi-based fix and moves on.
+    //
+    // So: ask for the cheap fix first with a generous timeout, and only reach
+    // for high accuracy as a second try if the first genuinely fails.
+    const onOk = (pos: GeolocationPosition) => {
+      setF({
+        ...f,
+        shop_lat: Number(pos.coords.latitude.toFixed(6)),
+        shop_lng: Number(pos.coords.longitude.toFixed(6)),
+      });
+      setLocating(false);
+      const acc = Math.round(pos.coords.accuracy || 0);
+      setLocHelp("");
+      toast(acc > 200
+        ? `Location captured, accurate to about ${acc}m — check it on the map before saving`
+        : "Location captured — remember to save");
+    };
+
+    const onFail = (err: GeolocationPositionError) => {
+      setLocating(false);
+      setLocHelp(
+        err.code === 1
+          ? "Your browser blocked the request. Click the icon at the left of the address bar, allow Location for this site, then try again."
+          : err.code === 3
+            ? "Your device took too long to answer. Paste the coordinates from Google Maps below — it's more accurate for a fixed address anyway."
+            : "Your device couldn't work out where it is right now. Paste the coordinates from Google Maps below.",
+      );
+      toast("Couldn't get your location", "error");
+    };
+
     navigator.geolocation.getCurrentPosition(
-      (pos) => { setF({ ...f, shop_lat: pos.coords.latitude, shop_lng: pos.coords.longitude }); setLocating(false); toast("Location captured — remember to save"); },
-      () => { setLocating(false); toast("Couldn't get your location. Allow location access and try again.", "error"); },
-      { enableHighAccuracy: true, timeout: 10000 },
+      onOk,
+      () => {
+        // First try failed — now try the precise one before giving up.
+        navigator.geolocation.getCurrentPosition(onOk, onFail, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+      },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 },
     );
+  }
+
+  /** Accepts a Google Maps link or a plain "lat, lng" pair. */
+  function applyPasted() {
+    const v = pasted.trim();
+    if (!v) return;
+    const patterns = [
+      /@(-?\d+\.\d+),(-?\d+\.\d+)/,          // .../@28.681,77.065,17z
+      /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,       // ...!3d28.681!4d77.065
+      /^\s*(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)\s*$/, // 28.681, 77.065
+    ];
+    for (const re of patterns) {
+      const m = re.exec(v);
+      if (m) {
+        setF({ ...f, shop_lat: Number(m[1]), shop_lng: Number(m[2]) });
+        setPasted(""); setLocHelp("");
+        toast("Coordinates read — remember to save");
+        return;
+      }
+    }
+    toast("Couldn't find coordinates in that. Try \"28.6812, 77.0654\".", "error");
   }
 
   async function addHoliday() {
@@ -348,6 +411,7 @@ function SetupTab() {
   }
 
   if (!d || !f) return <Loading />;
+  const hasShop = f.shop_lat != null && f.shop_lat !== "" && f.shop_lng != null && f.shop_lng !== "";
 
   return (
     <div className="space-y-4 max-w-2xl">
@@ -366,14 +430,37 @@ function SetupTab() {
           <label className="block"><span className="text-xs text-muted">Longitude</span><input value={f.shop_lng ?? ""} onChange={(e) => setF({ ...f, shop_lng: e.target.value === "" ? null : e.target.value })} className="inp mt-1" placeholder="Not set" /></label>
           <label className="block"><span className="text-xs text-muted">Radius (metres)</span><input type="number" value={f.geofence_radius_m} onChange={(e) => setF({ ...f, geofence_radius_m: e.target.value })} className="inp mt-1" /></label>
         </div>
-        <button onClick={useMyLocation} disabled={locating} className="mt-3 flex items-center gap-1.5 text-sm font-medium text-amber-deep border border-amber/40 px-3 py-2 rounded-xl hover:bg-amber/5 disabled:opacity-60">
-          {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crosshair className="w-4 h-4" />} Use my current location
-        </button>
-        <label className="flex items-start gap-2 text-sm text-navy mt-4">
-          <input type="checkbox" checked={!!f.enforce_geofence} onChange={(e) => setF({ ...f, enforce_geofence: e.target.checked })} className="mt-0.5" />
+        <div className="flex flex-wrap items-center gap-2 mt-3">
+          <button onClick={useMyLocation} disabled={locating} className="flex items-center gap-1.5 text-sm font-medium text-amber-deep border border-amber/40 px-3 py-2 rounded-xl hover:bg-amber/5 disabled:opacity-60">
+            {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crosshair className="w-4 h-4" />} Use my current location
+          </button>
+          <span className="text-[11px] text-muted">Best done on your phone, standing at the shop.</span>
+        </div>
+        {locHelp && <p className="text-xs text-amber-deep mt-2 flex items-start gap-1.5"><AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {locHelp}</p>}
+
+        <div className="mt-3 pt-3 border-t border-navy-line/60">
+          <span className="text-xs text-muted">Or paste from Google Maps</span>
+          <div className="flex gap-2 mt-1">
+            <input value={pasted} onChange={(e) => setPasted(e.target.value)} onKeyDown={(e) => e.key === "Enter" && applyPasted()}
+              placeholder="Paste a maps link, or 28.6812, 77.0654" className="inp flex-1" />
+            <button onClick={applyPasted} className="text-sm font-medium text-navy border border-navy-line px-4 rounded-xl hover:bg-surface">Read</button>
+          </div>
+          <p className="text-[11px] text-muted mt-1">
+            In Google Maps, right-click your shop (or long-press on a phone) — the coordinates appear at the top of the menu.
+          </p>
+        </div>
+        <label className={`flex items-start gap-2 text-sm mt-4 ${hasShop ? "text-navy" : "text-navy/40"}`}>
+          <input type="checkbox" disabled={!hasShop} checked={!!f.enforce_geofence && hasShop}
+            onChange={(e) => setF({ ...f, enforce_geofence: e.target.checked })} className="mt-0.5" />
           <span>
             Block punches from outside the shop
-            <span className="block text-xs text-muted">Off by default. Blocking means someone who genuinely worked has no record of it — leaving it off still flags them for you.</span>
+            <span className="block text-xs text-muted">
+              {!hasShop
+                ? "Set the shop location first — with no location to compare against, blocking would do nothing."
+                : f.enforce_geofence
+                  ? "On. Someone away from the shop can't mark attendance at all — if they genuinely worked, there'll be no record until you fix it by hand."
+                  : "Off. Punches from elsewhere are still recorded, and flagged for you to see."}
+            </span>
           </span>
         </label>
       </div>
