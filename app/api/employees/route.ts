@@ -11,6 +11,21 @@ import { ensureOwnerEmployee } from "@/lib/owner-employee";
 import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
+
+// V31a attendance fields. Blank means "use the business default" — never a
+// zero, because a zero here would silently mean a zero-hour working day.
+function attendanceFields(b: any, out: any) {
+  if (b.shiftStart !== undefined) out.shift_start = b.shiftStart || null;
+  if (b.shiftEnd !== undefined) out.shift_end = b.shiftEnd || null;
+  if (b.requiredHours !== undefined) out.required_hours = b.requiredHours === null || b.requiredHours === "" ? null : Math.min(24, Math.max(1, Number(b.requiredHours)));
+  if (b.weeklyOffs !== undefined) out.weekly_offs = Array.isArray(b.weeklyOffs) ? b.weeklyOffs.filter((d: any) => Number.isInteger(d) && d >= 0 && d <= 6) : null;
+  if (b.remotePermanent !== undefined) out.remote_permanent = !!b.remotePermanent;
+  if (b.attendanceExempt !== undefined) out.attendance_exempt = !!b.attendanceExempt;
+  if (b.dateOfBirth !== undefined) out.date_of_birth = b.dateOfBirth || null;
+  if (b.extraRegularizations !== undefined) out.extra_regularizations = Math.min(30, Math.max(0, Number(b.extraRegularizations) || 0));
+  return out;
+}
+
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SECRET_KEY }; }
 function H(key: string, extra: Record<string, string> = {}) { return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra }; }
 
@@ -84,7 +99,7 @@ export async function POST(req: Request) {
     if (b.monthlySalary != null && Number(b.monthlySalary) < 0) return NextResponse.json({ error: "Salary can't be negative." }, { status: 400 });
     const res = await fetch(`${url}/rest/v1/employees`, {
       method: "POST", headers: H(key, { Prefer: "return=representation" }),
-      body: JSON.stringify({ uid, name: b.name.trim(), status: b.status || "active", monthly_salary: Number(b.monthlySalary) || 0, joining_date: b.joiningDate || null, phone: b.phone || "", role: b.role || "", email: b.email || "" }),
+      body: JSON.stringify(attendanceFields(b, { uid, name: b.name.trim(), status: b.status || "active", monthly_salary: Number(b.monthlySalary) || 0, joining_date: b.joiningDate || null, phone: b.phone || "", role: b.role || "", email: b.email || "" })),
     });
     const emp = (await res.json())?.[0];
     if (emp) await syncSalaryRecurring(url, key, uid, emp);
@@ -108,6 +123,7 @@ export async function PATCH(req: Request) {
     if (b.joiningDate !== undefined) patch.joining_date = b.joiningDate || null;
     if (b.phone !== undefined) patch.phone = b.phone;
     if (b.role !== undefined) patch.role = b.role;
+    attendanceFields(b, patch);
     if (b.email !== undefined) patch.email = b.email;
     await fetch(`${url}/rest/v1/employees?id=eq.${b.id}&uid=eq.${uid}`, {
       method: "PATCH", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify(patch),

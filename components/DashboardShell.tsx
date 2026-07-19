@@ -17,6 +17,7 @@ const CRM_NAV = [
   { href: "/dashboard/suggestions", label: "Suggestions", icon: Lightbulb, badge: true },
   { href: "/dashboard/sales", label: "Finance", icon: Wallet },
   { href: "/dashboard/employees", label: "Employees", icon: UserCog },
+  { href: "/dashboard/attendance", label: "Attendance", icon: CalendarClock },
   { href: "/dashboard/performance", label: "Team Performance", icon: BarChart3 },
   { href: "/dashboard/team-work", label: "Team Work", icon: CheckSquare },
   { href: "/dashboard/records", label: "Records", icon: Database },

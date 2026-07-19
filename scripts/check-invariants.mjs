@@ -36,7 +36,7 @@ const read = (p) => readFileSync(p, "utf8");
 
 // ---- 1. TENANT ISOLATION ----------------------------------------------------
 console.log("\n[1] Tenant isolation — every tenant-table read filters by uid");
-const TENANT_TABLES = ["contacts", "sales", "catalog_items", "expenses", "employees", "tasks", "activities", "subscriptions", "payments", "events", "feedback"];
+const TENANT_TABLES = ["contacts", "sales", "catalog_items", "expenses", "employees", "tasks", "activities", "subscriptions", "payments", "events", "feedback", "attendance_logs", "attendance_days", "holidays", "remote_grants", "regularization_requests"];
 {
   let bad = 0;
   for (const p of files.filter((f) => f.includes("/api/"))) {
@@ -136,7 +136,7 @@ console.log("\n[6] Service key never referenced in client components");
 // ---- 7. AREA GATES (V26) ----------------------------------------------------
 console.log("\n[7] Billing area gates — every area API carries its guard");
 {
-  const CRM = ["contacts","sales","catalog","expenses","employees","contacts/import","admin-tasks","employee-accounts","employee-detail","employee-performance","finance","pulse","records","recovery","scores","search","item-detail","onboarding","demo","audit"];
+  const CRM = ["contacts","sales","catalog","expenses","employees","contacts/import","admin-tasks","employee-accounts","employee-detail","employee-performance","finance","pulse","records","recovery","scores","search","item-detail","onboarding","demo","audit","attendance","attendance/settings","attendance/requests"];
   const IG  = ["brief","suggestions","analyze-image","automation","brand-voice","calendar","carousel","competitors","content","persona","schedule","saved","value"];
   let bad = 0;
   for (const r of CRM) {
@@ -146,6 +146,12 @@ console.log("\n[7] Billing area gates — every area API carries its guard");
     try { if (!read(`app/api/${r}/route.ts`).includes('"instagram_ai"')) { fail(`app/api/${r}: missing instagram_ai gate`); bad++; } } catch {}
   }
   try { if (!read("lib/employee-auth.ts").includes("features.crm")) { fail("employee portal choke-point gate missing"); bad++; } } catch {}
+  // V31a: attendance must never block a punch on a missing CRM permission —
+  // attendance belongs to the person, not to a role. Guard that on purpose.
+  try {
+    const punch = read("app/api/team/attendance/route.ts");
+    if (!punch.includes("guardEmployee()")) { fail("team attendance must use an unpermissioned guardEmployee()"); bad++; }
+  } catch { fail("app/api/team/attendance missing"); bad++; }
   if (bad === 0) pass(`all ${CRM.length + IG.length} area APIs + the portal choke point are gated`);
 }
 

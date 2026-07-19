@@ -71,6 +71,33 @@ export async function GET(req: Request) {
     }
   } catch { /* non-fatal */ }
 
+  // Close out YESTERDAY's attendance for every business (V31a). This is what
+  // turns "no punches" into a recorded absence and an unclosed punch into a
+  // flagged missing punch-out. Without this pass, a day nobody touched simply
+  // wouldn't exist, and the month summary would have holes in it.
+  try {
+    const { istDate, addDays } = await import("@/lib/attendance");
+    const { recomputeDay, getAttSettings, getHolidays } = await import("@/lib/attendance-db");
+    const yesterday = addDays(istDate(), -1);
+
+    const settingsRows = await (await fetch(`${url}/rest/v1/attendance_settings?enabled=eq.true&select=uid`, { headers: sbHeaders(key), cache: "no-store" })).json();
+    for (const s of Array.isArray(settingsRows) ? settingsRows : []) {
+      try {
+        const [emps, settings, holidays] = await Promise.all([
+          (await fetch(`${url}/rest/v1/employees?uid=eq.${s.uid}&status=eq.active&select=*`, { headers: sbHeaders(key), cache: "no-store" })).json(),
+          getAttSettings(url, key, s.uid),
+          getHolidays(url, key, s.uid, yesterday, yesterday),
+        ]);
+        for (const emp of Array.isArray(emps) ? emps : []) {
+          if (emp.attendance_exempt) continue;
+          await recomputeDay(url, key, s.uid, emp.id, yesterday, {
+            emp, settings, holidayName: holidays[yesterday] || null,
+          });
+        }
+      } catch { /* one business failing must not stop the rest */ }
+    }
+  } catch { /* non-fatal */ }
+
   // Freeze LAST month's employee scores, once, for every business — the
   // permanent monthly performance record. Idempotent: skips any uid that
   // already has rows for that month.

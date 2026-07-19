@@ -66,7 +66,14 @@ export async function POST(req: Request) {
       const demoEmps = await (await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&is_demo=is.true&select=id`, { headers: H(key), cache: "no-store" })).json();
       for (const e of Array.isArray(demoEmps) ? demoEmps : []) {
         await fetch(`${url}/rest/v1/recurring_expenses?uid=eq.${uid}&employee_id=eq.${e.id}`, { method: "DELETE", headers: H(key) });
+        // Attendance rows belong to the employee, not to is_demo — clear them
+        // by employee id or they'd outlive the person they describe.
+        for (const t of ["attendance_logs", "attendance_days", "regularization_requests", "remote_grants"]) {
+          await fetch(`${url}/rest/v1/${t}?uid=eq.${uid}&employee_id=eq.${e.id}`, { method: "DELETE", headers: H(key) }).catch(() => {});
+        }
       }
+      // The demo holiday too.
+      await fetch(`${url}/rest/v1/holidays?uid=eq.${uid}&name=eq.Local%20festival`, { method: "DELETE", headers: H(key) }).catch(() => {});
       for (const t of DEMO_TABLES) {
         // Never touch the permanent owner record.
         const guard = t === "employees" ? "&is_owner=is.false" : "";
@@ -84,9 +91,9 @@ export async function POST(req: Request) {
 
     // 1) EMPLOYEES (3)
     const emps = await insert(url, key, "employees", [
-      { uid, name: "Priya Sharma", role: "Sales", phone: "9876543210", email: "priya@example.com", status: "active", monthly_salary: 22000, joining_date: daysAgo(240), is_demo: true },
-      { uid, name: "Rahul Verma", role: "Sales", phone: "9811122233", email: "rahul@example.com", status: "active", monthly_salary: 20000, joining_date: daysAgo(120), is_demo: true },
-      { uid, name: "Neha Bhatt", role: "Support", phone: "9700011122", email: "neha@example.com", status: "active", monthly_salary: 18000, joining_date: daysAgo(60), is_demo: true },
+      { uid, name: "Priya Sharma", role: "Sales", phone: "9876543210", email: "priya@example.com", status: "active", monthly_salary: 22000, joining_date: daysAgo(240), is_demo: true, shift_start: "09:30", shift_end: "18:30", weekly_offs: [0] },
+      { uid, name: "Rahul Verma", role: "Sales", phone: "9811122233", email: "rahul@example.com", status: "active", monthly_salary: 20000, joining_date: daysAgo(120), is_demo: true, shift_start: "10:00", shift_end: "19:00", weekly_offs: [0] },
+      { uid, name: "Neha Bhatt", role: "Support", phone: "9700011122", email: "neha@example.com", status: "active", monthly_salary: 18000, joining_date: daysAgo(60), is_demo: true, remote_permanent: true, weekly_offs: [0] },
     ], true);
     const priya = emps?.[0]?.id || ownerEmp;
     const rahul = emps?.[1]?.id || ownerEmp;
@@ -180,6 +187,58 @@ export async function POST(req: Request) {
       { uid, employee_id: neha, body: "Walk-in customers keep asking for the glass bottle - suggest reordering.", is_demo: true },
       { uid, employee_id: priya, body: "Referrals convert best. Ask happy customers for one after delivery.", is_demo: true },
     ]);
+
+    // 9) ATTENDANCE (last 21 days) — so the attendance screens aren't a blank
+    // grid on first look. Deliberately imperfect: a late arrival, a short day,
+    // one forgotten punch-out and one off-site punch, because a demo where
+    // everything is tidy teaches the owner nothing about what the flags mean.
+    try {
+      const IST = 330;
+      const dayOf = (off: number) =>
+        new Date(new Date(Date.now() - off * 86400000).getTime() + IST * 60000).toISOString().slice(0, 10);
+      const at = (off: number, hhmm: string) => {
+        const [h, m] = hhmm.split(":").map(Number);
+        return new Date(new Date(`${dayOf(off)}T00:00:00Z`).getTime() + (h * 60 + m - IST) * 60000).toISOString();
+      };
+
+      const people = [
+        { id: priya, inT: "09:32", outT: "18:35" },
+        { id: rahul, inT: "10:14", outT: "19:05" },
+        { id: neha, inT: "09:58", outT: "18:40" },
+      ];
+      const logs: any[] = [];
+      for (let d = 1; d <= 21; d++) {
+        const date = dayOf(d);
+        if (new Date(`${date}T00:00:00Z`).getUTCDay() === 0) continue;      // Sunday off
+        people.forEach((p, idx) => {
+          if (!p.id) return;
+          if (d === 4 && idx === 1) return;                                  // Rahul absent once
+          const late = d === 7 && idx === 0;                                 // Priya late once
+          const short = d === 11 && idx === 2;                               // Neha half day
+          const forgot = d === 9 && idx === 1;                               // Rahul forgot to punch out
+          const offsite = d === 6 && idx === 0;                              // Priya punched off-site
+          logs.push({
+            uid, employee_id: p.id, work_date: date,
+            punch_in: at(d, late ? "11:05" : p.inT),
+            punch_out: forgot ? null : at(d, short ? "13:30" : p.outT),
+            within_fence: !offsite,
+            distance_m: offsite ? 620 : 20,
+            source: "punch",
+          });
+        });
+      }
+      if (logs.length) await insert(url, key, "attendance_logs", logs);
+
+      await insert(url, key, "holidays", [{ uid, holiday_date: dayOf(14), name: "Local festival" }]);
+      if (rahul) {
+        await insert(url, key, "regularization_requests", [{
+          uid, employee_id: rahul, work_date: dayOf(9),
+          proposed_logs: [{ in: "10:10", out: "19:00" }],
+          reason: "Forgot to punch out before leaving for a delivery.",
+          status: "pending",
+        }]);
+      }
+    } catch { /* attendance demo data is a nicety, never a blocker */ }
 
     return NextResponse.json({ ok: true, seeded: true });
   } catch (e: any) {
