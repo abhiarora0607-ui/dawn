@@ -158,6 +158,35 @@ console.log("\n[7] Billing area gates — every area API carries its guard");
   if (bad === 0) pass(`all ${CRM.length + IG.length} area APIs + the portal choke point are gated`);
 }
 
+// ---- 8. FEATURE POLICY vs FEATURES (V33) ------------------------------------
+// A Permissions-Policy header can switch off a browser capability for the
+// whole site. Nothing in the app code changes, nothing fails to build, and no
+// test breaks — the feature simply stops working in the browser and reports
+// itself as a user permission denial. Geolocation shipped dead for two whole
+// versions this way. If the product uses a capability, the header has to allow
+// it, and that pairing is checked here rather than discovered in the field.
+console.log("\n[8] Permissions-Policy allows the browser features Dawn actually uses");
+{
+  let bad = 0;
+  try {
+    const cfg = read("next.config.mjs");
+    const m = /"Permissions-Policy",\s*value:\s*"([^"]+)"/.exec(cfg);
+    const policy = m ? m[1] : "";
+
+    const usesGeo = ["components/TeamAttendance.tsx", "app/dashboard/attendance/page.tsx"]
+      .some((f) => { try { return read(f).includes("navigator.geolocation"); } catch { return false; } });
+
+    if (usesGeo) {
+      const allowed = /geolocation=\((self|\*)/.test(policy);
+      if (!allowed) {
+        fail(`Dawn calls navigator.geolocation but Permissions-Policy blocks it → "${policy}"`);
+        bad++;
+      }
+    }
+    if (bad === 0) pass("every browser capability Dawn calls is permitted by the header");
+  } catch { fail("couldn't read next.config.mjs"); }
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {
