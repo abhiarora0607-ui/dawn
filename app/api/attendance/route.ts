@@ -139,10 +139,12 @@ export async function GET(req: Request) {
         const stored = byEmpDate[e.id]?.[date];
         if (stored) return { date, c: stored.classification, m: stored.worked_minutes, f: stored.flagged };
         if (r.joiningDate && date < r.joiningDate) return { date, c: "not_joined", m: 0, f: false };
-        if (date > today) return { date, c: "not_joined", m: 0, f: false };
         if (holidays[date]) return { date, c: "holiday", m: 0, f: false };
         if (r.weeklyOffs.includes(istWeekday(date))) return { date, c: "weekly_off", m: 0, f: false };
+        // Approved leave shows whether it's past or future — a roster that
+        // hides next week's booked leave is no use for planning.
         if (leaveMap[e.id]?.[date]) return { date, c: "leave", m: 0, f: false };
+        if (date > today) return { date, c: "not_joined", m: 0, f: false };
         return { date, c: "absent", m: 0, f: false };
       });
       return {
@@ -151,7 +153,7 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json({ month, from, to, dates, holidays, grid });
+    return NextResponse.json({ month, from, to, today, dates, holidays, grid });
   } catch {
     return NextResponse.json({ error: "Couldn't load attendance." }, { status: 500 });
   }

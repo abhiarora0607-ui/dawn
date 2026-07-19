@@ -19,6 +19,7 @@ export function TeamAttendance() {
   const [d, setD] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ text: string; tone: "ok" | "warn" | "err" } | null>(null);
+  const [blockedHelp, setBlockedHelp] = useState(false);
   const [view, setView] = useState<"today" | "history" | "fix">("today");
   const [tick, setTick] = useState(0);
 
@@ -37,20 +38,33 @@ export function TeamAttendance() {
     // Ask for a coarse fix first. enableHighAccuracy demands GPS-grade
     // precision, which a laptop can't provide and a phone indoors often can't
     // either — the request then hangs until it times out and we lose the
-    // location entirely. A wifi-level fix is plenty to tell "at the shop" from
-    // "at home", and it arrives in a second rather than eight.
+    // location entirely. A wifi-level fix is usually plenty, and it arrives in
+    // a second rather than eight.
+    //
+    // We pass the accuracy along too: the server needs to know whether a
+    // position is trustworthy before it decides someone isn't at work.
     const getPos = (highAccuracy: boolean, timeout: number) =>
-      new Promise<GeolocationPosition | null>((resolve) => {
+      new Promise<{ pos: GeolocationPosition | null; denied: boolean }>((resolve) => {
         navigator.geolocation.getCurrentPosition(
-          (p) => resolve(p), () => resolve(null),
+          (pos) => resolve({ pos, denied: false }),
+          (err) => resolve({ pos: null, denied: err.code === 1 }),
           { enableHighAccuracy: highAccuracy, timeout, maximumAge: 60000 },
         );
       });
 
-    let coords: { lat: number | null; lng: number | null } = { lat: null, lng: null };
+    let coords: { lat: number | null; lng: number | null; accuracy: number | null; denied: boolean } =
+      { lat: null, lng: null, accuracy: null, denied: false };
     if (navigator.geolocation) {
-      const pos = (await getPos(false, 8000)) || (await getPos(true, 8000));
-      if (pos) coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      let r = await getPos(false, 8000);
+      // A refusal won't change on a second ask, so don't make them wait for it.
+      if (!r.pos && !r.denied) r = await getPos(true, 8000);
+      if (r.pos) {
+        coords = { lat: r.pos.coords.latitude, lng: r.pos.coords.longitude, accuracy: r.pos.coords.accuracy ?? null, denied: false };
+      } else {
+        coords = { lat: null, lng: null, accuracy: null, denied: r.denied };
+      }
+    } else {
+      coords.denied = true;
     }
 
     const res = await fetch("/api/team/attendance", {
@@ -59,7 +73,13 @@ export function TeamAttendance() {
     const out = await res.json();
     setBusy(false);
 
-    if (!res.ok) { setMsg({ text: out.error || "Couldn't record that.", tone: "err" }); return; }
+    if (!res.ok) {
+      setMsg({ text: out.error || "Couldn't record that.", tone: "err" });
+      // A blocked punch must never be a dead end — point them at the fix
+      // request so a day they actually worked can still be recorded.
+      if (out.blocked && out.canRegularize) setBlockedHelp(true);
+      return;
+    }
     if (out.flagged) setMsg({ text: `Recorded — but you're ${out.note?.replace("Punched ", "") || "away from the shop"}. Your manager will see this.`, tone: "warn" });
     else setMsg({ text: out.action === "in" ? "Punched in. Have a good shift." : "Punched out. See you tomorrow.", tone: "ok" });
     load();
@@ -100,6 +120,16 @@ export function TeamAttendance() {
 
         {msg && (
           <p className={`text-sm mt-3 ${msg.tone === "err" ? "text-red-600" : msg.tone === "warn" ? "text-amber-deep" : "text-emerald-600"}`}>{msg.text}</p>
+        )}
+        {blockedHelp && (
+          <div className="mt-3 bg-amber/5 border border-amber/30 rounded-xl px-3 py-2.5 text-left">
+            <p className="text-xs text-navy">
+              If you did work today, you can still record it: use <strong>Fix a day</strong> below and your manager will review it.
+            </p>
+            <button onClick={() => { setView("fix"); setBlockedHelp(false); }} className="text-xs font-semibold text-amber-deep underline mt-1">
+              Open Fix a day
+            </button>
+          </div>
         )}
 
         {d.shopSet && !d.remote && (
@@ -187,9 +217,25 @@ function FixDay({ onDone }: { onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [sent, setSent] = useState(false);
+  const [loadedFor, setLoadedFor] = useState("");
 
-  function load() { fetch("/api/team/regularize").then((r) => r.json()).then(setMeta).catch(() => {}); }
-  useEffect(() => { load(); }, []);
+  function load(forDate?: string) {
+    const d = forDate || date;
+    fetch(`/api/team/regularize?date=${d}`).then((r) => r.json()).then((m) => {
+      setMeta(m);
+      // Start from what's actually recorded, so this is an edit rather than a
+      // memory test. A day with two sessions arrives with both filled in.
+      const existing = (m.dayLogs || []).filter((l: any) => l.in || l.out);
+      setRows(existing.length ? existing.map((l: any) => ({ in: l.in, out: l.out })) : [{ in: "", out: "" }]);
+      setLoadedFor(d);
+    }).catch(() => {});
+  }
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  // Changing the date reloads that day's punches.
+  useEffect(() => {
+    if (loadedFor && loadedFor !== date) load(date);
+    /* eslint-disable-next-line */
+  }, [date]);
 
   async function submit() {
     setErr(""); setBusy(true);
@@ -200,7 +246,7 @@ function FixDay({ onDone }: { onDone: () => void }) {
     const out = await res.json();
     setBusy(false);
     if (!res.ok) { setErr(out.error || "Couldn't send that."); return; }
-    setSent(true); setRows([{ in: "", out: "" }]); setReason(""); load(); onDone();
+    setSent(true); setReason(""); load(date); onDone();
   }
 
   if (!meta) return <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-navy/30" /></div>;
@@ -238,7 +284,11 @@ function FixDay({ onDone }: { onDone: () => void }) {
           <p className="text-[11px] text-muted -mt-1">You can fix anything back to {new Date(meta.earliestDate).toLocaleDateString()}.</p>
 
           <div>
-            <span className="text-xs text-muted">What times did you actually work?</span>
+            <span className="text-xs text-muted">
+              {(meta.dayLogs || []).length > 0
+                ? "What times did you actually work? We've filled in what's recorded — correct it."
+                : "What times did you actually work? Nothing is recorded for this day."}
+            </span>
             <div className="space-y-2 mt-1.5">
               {rows.map((r, i) => (
                 <div key={i} className="flex items-center gap-2">

@@ -10,18 +10,40 @@
 import { NextResponse } from "next/server";
 import { guardEmployee, empHeaders } from "@/lib/employee-auth";
 import { getAttSettings } from "@/lib/attendance-db";
-import { istDate, addDays, hhmmToMinutes } from "@/lib/attendance";
+import { istDate, addDays, hhmmToMinutes, istMinutes } from "@/lib/attendance";
+
+/** A stored timestamp as the "HH:MM" an employee sees on the form. */
+function hhmmOf(ts: string): string {
+  const m = istMinutes(ts);
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
 
 export const dynamic = "force-dynamic";
 
 /** Requests that count against this month's allowance. */
 function monthStart(): string { return istDate().slice(0, 7) + "-01"; }
 
-export async function GET() {
+export async function GET(req: Request) {
   const g = await guardEmployee();
   if (!g.ok) return NextResponse.json({ error: g.error }, { status: g.status });
   const { ctx, url, key } = g;
   try {
+    // What's already recorded for the day being fixed. Without this the
+    // employee retypes every session from memory, and a slip silently wipes a
+    // real punch — the request replaces the whole day on approval.
+    const wanted = new URL(req.url).searchParams.get("date");
+    let dayLogs: { in: string; out: string; source?: string }[] = [];
+    if (wanted && /^\d{4}-\d{2}-\d{2}$/.test(wanted)) {
+      const rows = await fetch(
+        `${url}/rest/v1/attendance_logs?uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&work_date=eq.${wanted}&select=punch_in,punch_out,source&order=punch_in.asc`,
+        { headers: empHeaders(key), cache: "no-store" },
+      ).then((r) => r.json()).catch(() => []);
+      dayLogs = (Array.isArray(rows) ? rows : []).map((l: any) => ({
+        in: l.punch_in ? hhmmOf(l.punch_in) : "",
+        out: l.punch_out ? hhmmOf(l.punch_out) : "",
+        source: l.source,
+      }));
+    }
     const [settings, empRows, rows] = await Promise.all([
       getAttSettings(url, key, ctx.uid),
       fetch(`${url}/rest/v1/employees?uid=eq.${ctx.uid}&id=eq.${ctx.employeeId}&select=extra_regularizations&limit=1`, { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()),
@@ -35,6 +57,7 @@ export async function GET() {
     const usedThisMonth = all.filter((r: any) => r.created_at >= ms && r.status !== "rejected").length;
 
     return NextResponse.json({
+      dayLogs,
       requests: all,
       allowed,
       used: usedThisMonth,

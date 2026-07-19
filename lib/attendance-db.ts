@@ -205,6 +205,8 @@ export async function daysForRange(
     if (r.joiningDate && date < r.joiningDate) classification = "not_joined";
     else if (holidays[date]) classification = "holiday";
     else if (r.weeklyOffs.includes(istWeekday(date))) classification = "weekly_off";
+    // Leave is checked before the future test on purpose: booked leave that
+    // hasn't happened yet still belongs on the calendar.
     else if (leaveCode) classification = "leave";
     else if (date > today) classification = "not_joined"; // the future isn't absence
     return {

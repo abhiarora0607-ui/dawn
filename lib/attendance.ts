@@ -97,6 +97,7 @@ export type FenceCheck = {
  */
 export function checkFence(opts: {
   lat?: number | null; lng?: number | null;
+  accuracy?: number | null;
   shopLat?: number | null; shopLng?: number | null;
   radiusM?: number | null;
   isRemote?: boolean;
@@ -108,15 +109,36 @@ export function checkFence(opts: {
   if (opts.lat == null || opts.lng == null) {
     return { withinFence: null, distanceM: null, exempt: false, reason: "Location unavailable" };
   }
+
+  // A reading is only useful if the device is reasonably sure of it. Wifi
+  // positioning indoors routinely reports accuracy of a kilometre or more —
+  // treating that as a real position is exactly how someone standing behind
+  // the counter gets told they're half a mile away. Unknown beats wrong.
+  const accuracy = opts.accuracy != null ? Number(opts.accuracy) : null;
+  if (accuracy != null && accuracy > MAX_USABLE_ACCURACY_M) {
+    return { withinFence: null, distanceM: null, exempt: false, reason: `Location too vague to check (±${Math.round(accuracy)}m)` };
+  }
+
   const d = distanceMetres(opts.lat, opts.lng, opts.shopLat, opts.shopLng);
   const radius = Number(opts.radiusM || 150);
+
+  // Give the reading the benefit of its own margin of error: if the person
+  // could be inside the fence once accuracy is accounted for, they're inside.
+  // Being generous here costs the owner a flag; being strict costs someone
+  // their pay for a day they worked.
+  const effectiveRadius = radius + Math.min(accuracy ?? 0, radius);
+  const within = d <= effectiveRadius;
+
   return {
-    withinFence: d <= radius,
+    withinFence: within,
     distanceM: d,
     exempt: false,
-    reason: d <= radius ? null : `Punched ${d}m from the shop`,
+    reason: within ? null : `Punched ${d}m from the shop`,
   };
 }
+
+/** Beyond this, a browser's position is a guess rather than a location. */
+export const MAX_USABLE_ACCURACY_M = 2000;
 
 // ------------------------------------------------------------ classification
 
@@ -187,10 +209,20 @@ export function classifyDay(input: {
 
   // Precedence: holiday → weekly off → approved leave → punch state → hours.
   if (isHoliday) {
-    return { workedMinutes: worked, classification: "holiday", lateMinutes: 0, flagged: !!flagReason, flagReason };
+    const cameIn = worked > 0;
+    return {
+      workedMinutes: worked, classification: "holiday", lateMinutes: 0,
+      flagged: !!flagReason || cameIn,
+      flagReason: flagReason || (cameIn ? `Worked ${fmtDuration(worked)} on a holiday` : null),
+    };
   }
   if (weeklyOffs.includes(istWeekday(date))) {
-    return { workedMinutes: worked, classification: "weekly_off", lateMinutes: 0, flagged: !!flagReason, flagReason };
+    const cameIn = worked > 0;
+    return {
+      workedMinutes: worked, classification: "weekly_off", lateMinutes: 0,
+      flagged: !!flagReason || cameIn,
+      flagReason: flagReason || (cameIn ? `Worked ${fmtDuration(worked)} on a day off` : null),
+    };
   }
   if (leaveCode) {
     return { workedMinutes: worked, classification: "leave", lateMinutes: 0, flagged: false, flagReason: null };

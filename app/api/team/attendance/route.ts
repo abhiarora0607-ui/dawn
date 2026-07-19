@@ -75,6 +75,11 @@ export async function POST(req: Request) {
     const b = await req.json().catch(() => ({}));
     const lat = b.lat != null ? Number(b.lat) : null;
     const lng = b.lng != null ? Number(b.lng) : null;
+    // The browser tells us how confident it is; a 2km-accurate "fix" is not a
+    // fix, and treating it as one is how staff standing in the shop get told
+    // they're 800m away.
+    const accuracy = b.accuracy != null ? Number(b.accuracy) : null;
+    const locationDenied = !!b.denied;
     const today = istDate();
 
     const [settings, empRows] = await Promise.all([
@@ -95,19 +100,39 @@ export async function POST(req: Request) {
 
     const remote = await isRemoteOn(url, key, ctx.uid, ctx.employeeId, today, emp);
     const fence = checkFence({
-      lat, lng,
+      lat, lng, accuracy,
       shopLat: settings.shop_lat, shopLng: settings.shop_lng,
       radiusM: settings.geofence_radius_m,
       isRemote: remote,
     });
 
-    // Strict mode: refuse a punch that's provably outside the shop. Only ever
-    // blocks when we actually know the location — never on a denied permission.
-    if (settings.enforce_geofence && fence.withinFence === false) {
-      return NextResponse.json({
-        error: `You're ${fence.distanceM}m from the shop. Attendance can only be marked at the shop.`,
-        blocked: true,
-      }, { status: 403 });
+    // ---- Strict mode ----
+    // When the owner has switched blocking on, "I don't know where you are" has
+    // to be refused too. Letting an unknown location through meant anyone who
+    // denied the permission once bypassed the fence permanently, which made
+    // enforcement decorative.
+    //
+    // The refusal is never a dead end: the reply tells the employee exactly
+    // what to do, and they can still record the day through a fix request the
+    // owner reviews. That's the exception route every serious attendance
+    // system pairs with blocking, because GPS and permissions do fail.
+    if (settings.enforce_geofence && !remote) {
+      if (fence.withinFence === null) {
+        return NextResponse.json({
+          error: locationDenied
+            ? "Dawn couldn't check where you are, so attendance can't be marked. Allow location for this site in your browser, then try again."
+            : "Dawn couldn't work out where you are. Move somewhere with a clearer signal and try again.",
+          blocked: true, reason: "location_unknown",
+          canRegularize: true,
+        }, { status: 403 });
+      }
+      if (fence.withinFence === false) {
+        return NextResponse.json({
+          error: `You're about ${fence.distanceM}m from the shop, and attendance can only be marked there.`,
+          blocked: true, reason: "outside_fence",
+          canRegularize: true,
+        }, { status: 403 });
+      }
     }
 
     if (open) {
@@ -133,6 +158,7 @@ export async function POST(req: Request) {
         in_lat: lat, in_lng: lng,
         within_fence: fence.withinFence,
         distance_m: fence.distanceM,
+        accuracy_m: accuracy != null ? Math.round(accuracy) : null,
         source: "punch",
       }),
     });

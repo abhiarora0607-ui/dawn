@@ -43,3 +43,24 @@ for (const [name, got, want] of t) {
   console.log(`${ok ? "  ok  " : "  FAIL"} ${name} → ${got}${ok ? "" : ` (want ${want})`}`);
 }
 console.log(bad === 0 ? `\n*** ALL ${t.length} ATTENDANCE RULES CORRECT ***` : `\n*** ${bad} RULE FAILURE(S) ***`);
+
+// ---- V32: accuracy-aware fencing ----
+const t2: [string, any, string][] = [];
+const shop = { shopLat: 28.65, shopLng: 77.05, radiusM: 150 };
+t2.push(["good fix inside", String(A.checkFence({ ...shop, lat: 28.65, lng: 77.05, accuracy: 20 }).withinFence), "true"]);
+t2.push(["good fix far outside", String(A.checkFence({ ...shop, lat: 28.70, lng: 77.05, accuracy: 20 }).withinFence), "false"]);
+// 200m away but ±300m accuracy — could be inside, so don't accuse
+t2.push(["vague fix gets benefit of doubt", String(A.checkFence({ ...shop, lat: 28.6518, lng: 77.05, accuracy: 300 }).withinFence), "true"]);
+// useless accuracy is not a location at all
+t2.push(["2km accuracy = unknown", String(A.checkFence({ ...shop, lat: 28.65, lng: 77.05, accuracy: 5000 }).withinFence), "null"]);
+t2.push(["no accuracy given still works", String(A.checkFence({ ...shop, lat: 28.65, lng: 77.05 }).withinFence), "true"]);
+// far enough that even the margin can't save it
+t2.push(["far outside despite margin", String(A.checkFence({ ...shop, lat: 28.68, lng: 77.05, accuracy: 100 }).withinFence), "false"]);
+
+let bad2 = 0;
+for (const [name, got, want] of t2) {
+  const ok = String(got) === want;
+  if (!ok) bad2++;
+  console.log(`${ok ? "  ok  " : "  FAIL"} ${name} → ${got}${ok ? "" : ` (want ${want})`}`);
+}
+console.log(bad2 === 0 ? `*** ALL ${t2.length} FENCE RULES CORRECT ***` : `*** ${bad2} FENCE FAILURE(S) ***`);

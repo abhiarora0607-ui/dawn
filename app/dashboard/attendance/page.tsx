@@ -14,7 +14,7 @@ import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { ToastProvider, useToast } from "@/components/Toast";
 import {
-  Loader2, MapPin, Clock, Check, X, CalendarClock, Users,
+  Loader2, MapPin, Clock, Check, X, CalendarClock, Users, Search,
   AlertTriangle, Plus, Trash2, Crosshair, Inbox,
 } from "lucide-react";
 import { fmtDuration, minutesToLabel, istMinutes, CLASS_LABEL } from "@/lib/attendance";
@@ -168,17 +168,22 @@ function MonthTab() {
       </div>
 
       {!d ? <Loading /> : d.grid.length === 0 ? <Empty>No employees to show.</Empty> : (
+        <>
+        <MonthSummary d={d} />
         <div className="dawn-card overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-navy-line">
                 <th className="text-left px-3 py-2.5 font-semibold text-navy sticky left-0 bg-white z-10 min-w-[130px]">Employee</th>
-                {d.dates.map((dt: string) => (
-                  <th key={dt} className="px-0.5 py-2.5 text-[10px] font-medium text-muted w-7">
-                    {dt.slice(8)}
-                    <span className="block text-[8px] text-navy/30">{DAY_LETTERS[new Date(`${dt}T00:00:00Z`).getUTCDay()]}</span>
-                  </th>
-                ))}
+                {d.dates.map((dt: string) => {
+                  const isToday = dt === d.today;
+                  return (
+                    <th key={dt} className={`px-0.5 py-2.5 text-[10px] font-medium w-7 ${isToday ? "text-amber-deep" : "text-muted"}`}>
+                      {isToday ? <span className="block w-5 h-5 mx-auto rounded-full bg-amber/20 leading-5">{dt.slice(8)}</span> : dt.slice(8)}
+                      <span className="block text-[8px] text-navy/30">{DAY_LETTERS[new Date(`${dt}T00:00:00Z`).getUTCDay()]}</span>
+                    </th>
+                  );
+                })}
                 <th className="px-3 py-2.5 text-right font-semibold text-navy whitespace-nowrap">Days</th>
                 <th className="px-3 py-2.5 text-right font-semibold text-navy whitespace-nowrap">Hours</th>
               </tr>
@@ -202,10 +207,42 @@ function MonthTab() {
             <Legend cls="bg-red-400" label="Absent" />
             <Legend cls="bg-sky-300" label="Leave / holiday" />
             <Legend cls="bg-slate-200" label="Weekly off" />
+            <Legend cls="bg-white border border-dashed border-navy-line" label="Not yet" />
           </div>
         </div>
+        </>
       )}
     </>
+  );
+}
+
+// A sentence before the grid, because a wall of squares doesn't tell an owner
+// what happened this month.
+function MonthSummary({ d }: { d: any }) {
+  const people = d.grid.length;
+  const totalDays = d.grid.reduce((n: number, g: any) => n + g.totals.presentDays, 0);
+  const absent = d.grid.reduce((n: number, g: any) => n + g.totals.absentDays, 0);
+  const leave = d.grid.reduce((n: number, g: any) => n + g.totals.leaveDays, 0);
+  const hours = d.grid.reduce((n: number, g: any) => n + g.totals.workedMinutes, 0) / 60;
+  const flagged = d.grid.reduce((n: number, g: any) => n + (g.totals.flaggedDays || 0), 0);
+
+  return (
+    <div className="dawn-card p-5">
+      <p className="font-display font-semibold text-xl text-navy">
+        {totalDays === 0 ? "Nothing recorded yet this month" : `${totalDays} ${totalDays === 1 ? "day" : "days"} worked across ${people} ${people === 1 ? "person" : "people"}`}
+      </p>
+      <p className="text-sm text-muted mt-0.5">
+        {hours > 0 && `${hours.toFixed(1)} hours · `}
+        {absent > 0 && `${absent} absent · `}
+        {leave > 0 && `${leave} on leave · `}
+        {flagged > 0 ? <span className="text-amber-deep font-medium">{flagged} to look at</span> : "nothing flagged"}
+      </p>
+      {totalDays === 0 && (
+        <p className="text-xs text-muted mt-2">
+          Days only appear once someone punches in. If your team hasn&apos;t started using the portal yet, this stays empty.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -313,6 +350,9 @@ function SetupTab() {
   const [locating, setLocating] = useState(false);
   const [locHelp, setLocHelp] = useState("");
   const [pasted, setPasted] = useState("");
+  const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
 
   function load() {
     fetch("/api/attendance/settings").then((r) => r.json()).then((x) => { setD(x); setF(x.settings); }).catch(() => {});
@@ -379,6 +419,27 @@ function SetupTab() {
     );
   }
 
+  /** Find the shop by name or address. Works when geolocation won't. */
+  async function searchAddress() {
+    const q = query.trim();
+    if (!q) return;
+    setSearching(true); setResults([]); setLocHelp("");
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}`, {
+        headers: { "Accept-Language": "en" },
+      });
+      const rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        setLocHelp("Nothing found. Try adding the city, or paste coordinates below.");
+      } else {
+        setResults(rows.map((r: any) => ({ label: r.display_name, lat: Number(r.lat), lng: Number(r.lon) })));
+      }
+    } catch {
+      setLocHelp("Couldn't reach the address lookup. Paste coordinates below instead.");
+    }
+    setSearching(false);
+  }
+
   /** Accepts a Google Maps link or a plain "lat, lng" pair. */
   function applyPasted() {
     const v = pasted.trim();
@@ -430,11 +491,42 @@ function SetupTab() {
           <label className="block"><span className="text-xs text-muted">Longitude</span><input value={f.shop_lng ?? ""} onChange={(e) => setF({ ...f, shop_lng: e.target.value === "" ? null : e.target.value })} className="inp mt-1" placeholder="Not set" /></label>
           <label className="block"><span className="text-xs text-muted">Radius (metres)</span><input type="number" value={f.geofence_radius_m} onChange={(e) => setF({ ...f, geofence_radius_m: e.target.value })} className="inp mt-1" /></label>
         </div>
-        <div className="flex flex-wrap items-center gap-2 mt-3">
+        {/* Search by address first: it's the one route that works whatever the
+            browser or device decides about sharing a location. */}
+        <div className="mt-4">
+          <span className="text-xs font-medium text-navy">Find your shop</span>
+          <div className="flex gap-2 mt-1.5">
+            <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && searchAddress()}
+              placeholder="Shop name, or address with city" className="inp flex-1" />
+            <button onClick={searchAddress} disabled={searching || !query.trim()}
+              className="flex items-center gap-1.5 text-sm font-medium bg-navy text-white px-4 rounded-xl disabled:opacity-50">
+              {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />} Search
+            </button>
+          </div>
+          {results.length > 0 && (
+            <div className="mt-2 border border-navy-line rounded-xl overflow-hidden">
+              {results.map((r, i) => (
+                <button key={i} onClick={() => { setF({ ...f, shop_lat: Number(r.lat.toFixed(6)), shop_lng: Number(r.lng.toFixed(6)) }); setResults([]); setQuery(""); toast("Location set — remember to save"); }}
+                  className="w-full text-left px-3 py-2.5 text-sm text-navy hover:bg-surface border-b border-navy-line/40 last:border-0">
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {Number(f.geofence_radius_m) > 0 && Number(f.geofence_radius_m) < 100 && (
+          <p className="text-xs text-amber-deep mt-2 flex items-start gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            Under 100m is tight. Phone positions drift by 30–100m indoors, so a small radius flags people who are actually at the shop. 150m is a safer starting point.
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-navy-line/60">
           <button onClick={useMyLocation} disabled={locating} className="flex items-center gap-1.5 text-sm font-medium text-amber-deep border border-amber/40 px-3 py-2 rounded-xl hover:bg-amber/5 disabled:opacity-60">
             {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crosshair className="w-4 h-4" />} Use my current location
           </button>
-          <span className="text-[11px] text-muted">Best done on your phone, standing at the shop.</span>
+          <span className="text-[11px] text-muted">Only accurate if you&apos;re at the shop right now.</span>
         </div>
         {locHelp && <p className="text-xs text-amber-deep mt-2 flex items-start gap-1.5"><AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {locHelp}</p>}
 
@@ -448,6 +540,12 @@ function SetupTab() {
           <p className="text-[11px] text-muted mt-1">
             In Google Maps, right-click your shop (or long-press on a phone) — the coordinates appear at the top of the menu.
           </p>
+          {hasShop && (
+            <a href={`https://www.google.com/maps?q=${f.shop_lat},${f.shop_lng}`} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-deep underline mt-2">
+              <MapPin className="w-3.5 h-3.5" /> Check this spot on a map before saving
+            </a>
+          )}
         </div>
         <label className={`flex items-start gap-2 text-sm mt-4 ${hasShop ? "text-navy" : "text-navy/40"}`}>
           <input type="checkbox" disabled={!hasShop} checked={!!f.enforce_geofence && hasShop}
@@ -458,7 +556,7 @@ function SetupTab() {
               {!hasShop
                 ? "Set the shop location first — with no location to compare against, blocking would do nothing."
                 : f.enforce_geofence
-                  ? "On. Someone away from the shop can't mark attendance at all — if they genuinely worked, there'll be no record until you fix it by hand."
+                  ? "On. Staff must be at the shop, and must allow location access. If their phone can't get a fix, they can't punch — they'll have to send you a fix request instead."
                   : "Off. Punches from elsewhere are still recorded, and flagged for you to see."}
             </span>
           </span>
