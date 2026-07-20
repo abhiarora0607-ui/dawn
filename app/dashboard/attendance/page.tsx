@@ -682,4 +682,4 @@ function StatusPill({ c, onShift }: { c: string; onShift?: boolean }) {
 }
 
 function Loading() { return <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>; }
-function Empty({ children }: { children: React.ReactNode }) { return <p className="text-sm text-muted py-10 text-center">{children}</p>; }
+function Empty({ children }: { children: React.ReactNode }) { return <p className="dawn-empty">{children}</p>; }

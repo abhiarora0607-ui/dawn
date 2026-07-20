@@ -86,9 +86,9 @@ export function TeamAttendance() {
   }
 
   if (!d) return <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
-  if (d.error) return <p className="text-sm text-muted py-8 text-center">{d.error}</p>;
-  if (d.exempt) return <p className="text-sm text-muted py-8 text-center">You&apos;re not required to mark attendance.</p>;
-  if (!d.enabled) return <p className="text-sm text-muted py-8 text-center">Attendance isn&apos;t switched on for this business yet.</p>;
+  if (d.error) return <p className="dawn-empty">{d.error}</p>;
+  if (d.exempt) return <p className="dawn-empty">You&apos;re not required to mark attendance.</p>;
+  if (!d.enabled) return <p className="dawn-empty">Attendance isn&apos;t switched on for this business yet.</p>;
 
   const openMins = d.openSince ? Math.max(0, Math.round((Date.now() - new Date(d.openSince).getTime()) / 60000)) : 0;
   const totalToday = d.todayMinutes + (d.punchedIn ? openMins : 0);
@@ -295,7 +295,7 @@ function FixDay({ onDone }: { onDone: () => void }) {
                   <input type="time" value={r.in} onChange={(e) => setRows(rows.map((x, j) => j === i ? { ...x, in: e.target.value } : x))} className="inp flex-1" />
                   <span className="text-muted text-sm">to</span>
                   <input type="time" value={r.out} onChange={(e) => setRows(rows.map((x, j) => j === i ? { ...x, out: e.target.value } : x))} className="inp flex-1" />
-                  {rows.length > 1 && <button onClick={() => setRows(rows.filter((_, j) => j !== i))} className="btn-icon p-1.5 text-navy/30 hover:text-red-500"><X className="w-4 h-4" /></button>}
+                  {rows.length > 1 && <button aria-label="Close" onClick={() => setRows(rows.filter((_, j) => j !== i))} className="btn-icon p-1.5 text-navy/30 hover:text-red-500"><X className="w-4 h-4" /></button>}
                 </div>
               ))}
             </div>

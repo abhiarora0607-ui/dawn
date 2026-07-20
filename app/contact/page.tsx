@@ -12,7 +12,7 @@ export default function Contact() {
   const email = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "support@dawn.app";
   return (
     <>
-      <main className="max-w-2xl mx-auto px-6 py-16">
+      <main className="max-w-2xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
         <Link href="/"><DawnLogo className="h-10 mb-10" /></Link>
         <h1 className="text-3xl font-bold text-navy mb-2">Contact &amp; support</h1>
         <p className="text-navy/60 mb-8">Real people, quick replies. Tell us the business name and what happened.</p>

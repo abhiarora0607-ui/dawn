@@ -72,7 +72,7 @@ function QuickAdd({ onClose, onAdded }: { onClose: () => void; onAdded: () => vo
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-5 animate-rise max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-navy text-lg">Add lead</h3>
-          <button onClick={onClose} className="btn-icon text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
+          <button aria-label="Close" onClick={onClose} className="btn-icon text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-3">
           <input autoFocus value={f.name} onChange={(e) => { setF({ ...f, name: e.target.value }); setErr(""); }} placeholder="Name *" className="inp" />
@@ -118,8 +118,8 @@ function ContactCard({ c, stageNames, onDragStart, onConvert, onMove }: { c: Con
         {c.instagram_handle && <p className="text-xs text-muted">@{c.instagram_handle}</p>}
         <span className="inline-block text-[12px] text-muted mt-1">{c.source}</span>
       </Link>
-      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-navy-line/60">        {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="btn-icon text-emerald-600 hover:bg-emerald-50 rounded-lg"><MessageCircle className="w-3.5 h-3.5" /></a>}
-        {c.phone && <a href={`tel:${c.phone}`} className="btn-icon text-navy/50 hover:bg-navy/5 rounded-lg"><Phone className="w-3.5 h-3.5" /></a>}
+      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-navy-line/60">        {wa && <a href={`https://wa.me/${wa}`} target="_blank" aria-label="WhatsApp" className="btn-icon text-emerald-600 hover:bg-emerald-50 rounded-lg"><MessageCircle className="w-3.5 h-3.5" /></a>}
+        {c.phone && <a href={`tel:${c.phone}`} aria-label="Call" className="btn-icon text-navy/50 hover:bg-navy/5 rounded-lg"><Phone className="w-3.5 h-3.5" /></a>}
         {c.stage !== "Customer (Won)" && (
           <button onClick={() => onConvert(c)} className="ml-auto text-[12px] font-semibold text-amber-deep bg-amber/10 px-2 py-1 rounded-lg hover:bg-amber/20">Convert →</button>
         )}

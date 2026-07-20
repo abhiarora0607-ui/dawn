@@ -104,7 +104,7 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
             <h3 className="font-semibold text-navy">Record sale</h3>
             <p className="text-xs text-muted">Convert {contact.name} to a customer</p>
           </div>
-          <button onClick={onClose} className="btn-icon p-1.5 text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
+          <button aria-label="Close" onClick={onClose} className="btn-icon p-1.5 text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="p-5 space-y-4">
@@ -134,7 +134,7 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
                       <input type="number" min="1" value={l.qty} onChange={(e) => setLine(i, "qty", Number(e.target.value))} className="w-14 inp-sm" title="Qty" />
                       <span className="text-xs text-muted">×</span>
                       <input type="number" min="0" value={l.unitPrice} onChange={(e) => setLine(i, "unitPrice", Number(e.target.value))} className="w-20 inp-sm" title="Price" />
-                      <button onClick={() => setLines(lines.filter((_, x) => x !== i))} className="btn-icon p-1 text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                      <button aria-label="Delete" onClick={() => setLines(lines.filter((_, x) => x !== i))} className="btn-icon p-1 text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   ))}
                 </div>

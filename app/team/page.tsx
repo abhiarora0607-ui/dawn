@@ -463,7 +463,7 @@ function Tasks({ contacts }: { contacts: any[] }) {
                   <p className="text-sm text-navy">{t.title}</p>
                   {t.due_date && <p className={`text-[12px] ${overdue(t) ? "text-red-600 font-semibold" : "text-muted"}`}>{overdue(t) ? "Overdue · " : "Due "}{new Date(t.due_date).toLocaleDateString()}</p>}
                 </div>
-                <button onClick={() => remove(t.id)} className="btn-icon p-1.5 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                <button aria-label="Delete" onClick={() => remove(t.id)} className="btn-icon p-1.5 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
             ))}
           </div>
@@ -475,7 +475,7 @@ function Tasks({ contacts }: { contacts: any[] }) {
                   <div key={t.id} className="bg-white/60 rounded-xl border border-navy-line p-3 flex items-center gap-3">
                     <input type="checkbox" checked onChange={() => toggle(t)} className="w-4 h-4 accent-amber-deep shrink-0" />
                     <p className="text-sm text-navy/50 line-through flex-1">{t.title}</p>
-                    <button onClick={() => remove(t.id)} className="btn-icon p-1.5 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button aria-label="Delete" onClick={() => remove(t.id)} className="btn-icon p-1.5 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 ))}
               </div>
@@ -553,7 +553,7 @@ function Notes() {
             <p className="text-sm text-navy whitespace-pre-wrap">{n.body}</p>
             <div className="flex items-center justify-between mt-2 pt-2 border-t border-navy-line">
               <span className="text-[12px] text-muted">{new Date(n.updated_at).toLocaleString()}</span>
-              <button onClick={() => remove(n.id)} className="btn-icon p-1 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+              <button aria-label="Delete" onClick={() => remove(n.id)} className="btn-icon p-1 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
             </div>
           </div>
         ))}
@@ -575,7 +575,7 @@ function Reports() {
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h2 className="font-display font-semibold text-lg text-navy">My reports</h2>
-        <div className="btn-icon flex gap-1 bg-white p-1 rounded-xl border border-navy-line">
+        <div className="flex gap-1 bg-white p-1 rounded-xl border border-navy-line">
           {WINDOWS.map((w) => <button key={w.id} onClick={() => setWin(w.id)} className={`text-xs font-medium px-2.5 py-1.5 rounded-lg ${win === w.id ? "bg-navy text-white" : "text-muted"}`}>{w.label}</button>)}
         </div>
       </div>
@@ -779,7 +779,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
       <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-5 animate-rise max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">{title}</h3><button onClick={onClose} className="btn-icon p-1.5 text-navy/40"><X className="w-5 h-5" /></button></div>
+        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">{title}</h3><button aria-label="Close" onClick={onClose} className="btn-icon p-1.5 text-navy/40"><X className="w-5 h-5" /></button></div>
         <div className="space-y-3">{children}</div>
       </div>
       <style jsx global>{`.tinp{width:100%;padding:0.6rem 0.75rem;border:1px solid #E4E8F0;border-radius:0.75rem;font-size:0.875rem;color:#16233F;outline:none;background:#fff}.tinp:focus{border-color:#FF9E43}`}</style>
@@ -816,14 +816,14 @@ function ContactDetail({ id, canEdit, onClose, onEdit }: { id: string; canEdit: 
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
       <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-5 animate-rise max-h-[92vh] overflow-y-auto">
-        {loading ? <Spinner /> : !c ? <p className="text-sm text-muted py-8 text-center">Couldn&apos;t load this contact.</p> : (
+        {loading ? <Spinner /> : !c ? <p className="dawn-empty">Couldn&apos;t load this contact.</p> : (
           <>
             <div className="flex items-start justify-between mb-3">
               <div>
                 <h3 className="font-semibold text-navy text-lg">{c.name}</h3>
                 <p className="text-xs text-muted">{c.stage} · {c.source}</p>
               </div>
-              <button onClick={onClose} className="btn-icon p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
+              <button aria-label="Close" onClick={onClose} className="btn-icon p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
             </div>
 
             <div className="flex flex-wrap gap-2 mb-4">

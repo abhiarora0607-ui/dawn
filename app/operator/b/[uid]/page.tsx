@@ -198,7 +198,7 @@ export default function BusinessDetail() {
             {d.notes.map((n: any) => (
               <div key={n.id} className="flex items-start justify-between gap-2 text-sm border-b border-navy-line/40 last:border-0 pb-2">
                 <div className="min-w-0"><p className="text-navy">{n.note}</p><p className="text-[12px] text-muted">{new Date(n.created_at).toLocaleString()}</p></div>
-                <button onClick={() => delNote(n.id)} className="btn-icon p-1 text-navy/30 hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
+                <button aria-label="Delete" onClick={() => delNote(n.id)} className="btn-icon p-1 text-navy/30 hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
               </div>
             ))}
           </div>

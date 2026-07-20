@@ -41,7 +41,7 @@ export function ActionRunner({ action, onClose }: { action: Action; onClose: () 
           <span className="flex items-center gap-2 text-sm font-semibold text-amber-deep">
             <Sparkles className="w-4 h-4" /> Ready to act
           </span>
-          <button onClick={onClose} className="btn-icon p-1.5 text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
+          <button aria-label="Close" onClick={onClose} className="btn-icon p-1.5 text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="p-5">

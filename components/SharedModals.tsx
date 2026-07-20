@@ -16,7 +16,7 @@ export function LostDialog({ name, onConfirm, onCancel }: { name: string; onConf
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm p-5 animate-rise">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-navy">Mark {name} as Lost?</h3>
-          <button onClick={onCancel} className="btn-icon p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
+          <button aria-label="Close" onClick={onCancel} className="btn-icon p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
         </div>
         <p className="text-sm text-muted mb-3">A short reason is required — it helps you spot patterns in why leads drop off.</p>
         <textarea autoFocus value={note} onChange={(e) => { setNote(e.target.value); setErr(""); }} rows={3} placeholder="Why was this lead lost? (required)" className="w-full px-3 py-2.5 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber resize-none" />
@@ -39,7 +39,7 @@ export function WonDialog({ name, onConfirm, onCancel }: { name: string; onConfi
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm p-5 animate-rise">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-navy">Mark {name} as won?</h3>
-          <button onClick={onCancel} className="btn-icon p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
+          <button aria-label="Close" onClick={onCancel} className="btn-icon p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
         </div>
         <p className="text-sm text-muted mb-3">The normal way to win a customer is recording their first order — that moves them automatically. To mark won <span className="font-medium text-navy">without</span> an order, a reason is required.</p>
         <textarea autoFocus value={note} onChange={(e) => { setNote(e.target.value); setErr(""); }} rows={3} placeholder="Why won without an order? (required)" className="w-full px-3 py-2.5 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber resize-none" />
@@ -75,7 +75,7 @@ export function PaymentModal({ balance, currency = "₹", onSubmit, onClose }: {
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm p-5 animate-rise">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-navy flex items-center gap-1.5"><IndianRupee className="w-4 h-4 text-amber-deep" /> Record payment</h3>
-          <button onClick={onClose} className="btn-icon p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
+          <button aria-label="Close" onClick={onClose} className="btn-icon p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
         </div>
         <p className="text-sm text-muted mb-3">Balance due: <span className="font-semibold text-navy">{currency}{balance}</span></p>
         <div className="space-y-3">

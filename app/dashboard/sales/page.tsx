@@ -72,7 +72,7 @@ function ExpenseModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
   return (
     <div className="dawn-scrim">
       <div className="dawn-sheet relative">
-        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">Add expense</h3><button onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button></div>
+        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">Add expense</h3><button aria-label="Close" onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button></div>
         <div className="space-y-3">
           <input type="number" min="0" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="Amount" className="inp" />
           <select value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} className="inp">{cats.map((c) => <option key={c}>{c}</option>)}</select>
@@ -164,7 +164,7 @@ function SalesInner() {
           </div>
         )}
 
-        <div className="btn-icon flex gap-2 bg-white  rounded-xl border border-navy-line w-fit">
+        <div className="flex gap-2 bg-white p-1 rounded-xl border border-navy-line w-fit">
           {(["overview", "sales", "expenses"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)} className={`text-sm font-medium px-4 py-2 rounded-lg capitalize transition-colors ${tab === t ? "bg-navy text-white" : "text-muted"}`}>{t}</button>
           ))}
@@ -294,7 +294,7 @@ function SalesInner() {
                         <div><p className="font-semibold text-navy text-sm">{e.category}{e.recurring ? <span className="ml-1.5 text-[12px] text-amber-deep">↻ monthly</span> : null}{e.source === "order" ? <span className="ml-1.5 text-[12px] text-navy/40">cost of goods</span> : null}</p><p className="text-xs text-muted">{e.note || ""}</p></div>
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-red-600">−{money(Number(e.amount), currency)}</span>
-                          {e.source !== "order" && e.source !== "salary" && <button onClick={() => delExpense(e.id)} className="btn-icon text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>}
+                          {e.source !== "order" && e.source !== "salary" && <button aria-label="Delete" onClick={() => delExpense(e.id)} className="btn-icon text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>}
                         </div>
                       </div>
                     ))}

@@ -67,7 +67,7 @@ function ItemModal({ item, onClose, onSaved }: { item: Item | null; onClose: () 
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto animate-rise">
         <div className="sticky top-0 bg-white border-b border-navy-line px-5 py-4 flex items-center justify-between">
           <h3 className="font-semibold text-navy">{item?.id ? "Edit item" : "Add item"}</h3>
-          <button onClick={onClose} className="btn-icon text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
+          <button aria-label="Close" onClick={onClose} className="btn-icon text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-4">
           <div className="flex gap-2">

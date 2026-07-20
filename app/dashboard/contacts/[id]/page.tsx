@@ -275,7 +275,7 @@ function EditContactModal({ contact, onClose, onSave }: { contact: any; onClose:
   return (
     <div className="dawn-scrim">
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-5 animate-rise max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">Edit contact</h3><button onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button></div>
+        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">Edit contact</h3><button aria-label="Close" onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button></div>
         <div className="space-y-3">
           <input value={f.name} onChange={(e) => { setF({ ...f, name: e.target.value }); setErr(""); }} placeholder="Name *" className="cinp" />
           <input value={f.phone} onChange={(e) => { setF({ ...f, phone: e.target.value }); setErr(""); }} placeholder="Phone" className="cinp" />

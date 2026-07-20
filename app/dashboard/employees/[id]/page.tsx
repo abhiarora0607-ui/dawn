@@ -111,7 +111,7 @@ export default function EmployeeHub() {
                   <p className="text-sm font-medium text-navy truncate">{c.name}</p>
                   <p className="text-[12px] text-muted">{c.stage}{c.follow_up_date ? <span className={overdue ? "text-red-600 font-medium" : ""}> · follow up {new Date(c.follow_up_date).toLocaleDateString()}</span> : ""}</p>
                 </Link>
-                {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="btn-icon text-emerald-600 shrink-0"><MessageCircle className="w-4 h-4" /></a>}
+                {wa && <a href={`https://wa.me/${wa}`} target="_blank" aria-label="WhatsApp" className="btn-icon text-emerald-600 shrink-0"><MessageCircle className="w-4 h-4" /></a>}
               </div>
             );
           })}

@@ -45,7 +45,7 @@ function Inner() {
       <DashTopbar pageTitle="Team work" />
       <div className="p-4 sm:p-6 space-y-4 max-w-4xl">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="btn-icon flex gap-1 bg-white  rounded-xl border border-navy-line">
+          <div className="flex gap-1 bg-white p-1 rounded-xl border border-navy-line">
             {(["tasks", "notes"] as const).map((t) => (
               <button key={t} onClick={() => setTab(t)} className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg capitalize ${tab === t ? "bg-navy text-white" : "text-muted"}`}>
                 {t === "tasks" ? <CheckSquare className="w-4 h-4" /> : <StickyNote className="w-4 h-4" />} {t}
@@ -79,7 +79,7 @@ function Inner() {
                       {x.assigned_by === "admin" && <span className="text-[12px] bg-amber/10 text-amber-deep px-1.5 py-0.5 rounded">assigned by you</span>}
                     </div>
                   </div>
-                  <button onClick={() => remove(x.id)} className="btn-icon text-navy/30 hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
+                  <button aria-label="Delete" onClick={() => remove(x.id)} className="btn-icon text-navy/30 hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
                 </div>
               );
             })}
@@ -116,7 +116,7 @@ function AssignModal({ kind, employees, contacts, onClose, onSaved }: { kind: "t
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-5 animate-rise max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-1">
           <h3 className="font-semibold text-navy">Assign {kind === "tasks" ? "a task" : "a note"}</h3>
-          <button onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button>
+          <button aria-label="Close" onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button>
         </div>
         <p className="text-xs text-muted mb-4">It appears in their portal like one of their own.</p>
         <div className="space-y-3">

@@ -109,6 +109,39 @@ console.log("\n[5] Icon buttons are thumb-sized");
   else pass("every icon button has a 44px hit area");
 }
 
+// ---- 6. .btn-icon BELONGS TO BUTTONS ---------------------------------------
+// The V35/V36 tap-target sweep matched any element with tight padding, which
+// caught the wrapper <div>s of segmented controls. A container is not a tap
+// target — giving it a 44px min-height and a hover background is simply wrong.
+// Cheap to check, and it caught five real cases.
+console.log("\n[6] .btn-icon only on interactive elements");
+{
+  const bad = [];
+  for (const f of files) {
+    for (const m of read(f).match(/<(\w+)[^>]*className="[^"]*btn-icon[^"]*"/g) || []) {
+      const tag = m.match(/<(\w+)/)[1];
+      if (!["button", "a", "Link"].includes(tag)) bad.push(`${f} → <${tag}>`);
+    }
+  }
+  if (bad.length) bad.slice(0, 6).forEach((b) => fail(`btn-icon on a non-interactive element: ${b}`));
+  else pass("btn-icon is only used on buttons and links");
+}
+
+// ---- 7. ICON-ONLY CONTROLS HAVE NAMES ---------------------------------------
+// A button with no text is announced as just "button". Reported rather than
+// fatal: a handful legitimately sit beside visible text.
+console.log("\n[7] Icon-only controls have accessible names");
+{
+  let unlabelled = 0;
+  for (const f of files) {
+    for (const m of read(f).match(/<(?:button|a)\b(?:(?!<\/(?:button|a)>).)*?btn-icon(?:(?!<\/(?:button|a)>).)*?<\/(?:button|a)>/gs) || []) {
+      if (!/aria-label|title=/.test(m) && !/>[A-Za-z]{2,}/.test(m.replace(/<[^>]+>/g, ""))) unlabelled++;
+    }
+  }
+  if (unlabelled > 0) console.log(`  ${DIM}· ${unlabelled} icon-only control(s) without an aria-label${RESET}`);
+  else pass("every icon-only control has an accessible name");
+}
+
 console.log("\n================================================");
 console.log(failures === 0 ? `  ${GREEN}*** LAYOUT CHECKS PASS ***${RESET}` : `  ${RED}*** ${failures} LAYOUT FAILURE(S) ***${RESET}`);
 console.log("================================================\n");

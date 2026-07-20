@@ -88,5 +88,5 @@ export function Hero({ line, sub }: { line: string; sub?: string }) {
 }
 
 export function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm text-muted py-8 text-center">{children}</p>;
+  return <p className="dawn-empty">{children}</p>;
 }

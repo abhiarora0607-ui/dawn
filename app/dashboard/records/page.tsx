@@ -165,7 +165,7 @@ function EditRow({ object, row, editable, employees, onClose, onSaved }: { objec
         <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg p-5 animate-rise max-h-[92vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-navy">Edit record</h3>
-            <button onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button>
+            <button aria-label="Close" onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button>
           </div>
           <div className="space-y-3">
             {editable.map((k) => (

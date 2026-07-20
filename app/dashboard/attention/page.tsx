@@ -191,7 +191,7 @@ function Inner() {
           <div className="dawn-sheet relative">
             <div className="flex items-center justify-between mb-1">
               <h3 className="font-semibold text-navy">Follow up with {snooze.name}</h3>
-              <button onClick={() => setSnooze(null)} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button>
+              <button aria-label="Close" onClick={() => setSnooze(null)} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button>
             </div>
             <p className="text-sm text-muted mb-4">Commit to a date and it leaves this list.</p>
             <div className="grid grid-cols-2 gap-2">

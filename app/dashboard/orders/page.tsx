@@ -195,7 +195,7 @@ function CancelOrderModal({ order, currency, onClose, onDone }: { order: any; cu
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm p-5 animate-rise max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-1">
           <h3 className="font-semibold text-navy flex items-center gap-1.5"><Ban className="w-4 h-4 text-amber-deep" /> Cancel order</h3>
-          <button onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button>
+          <button aria-label="Close" onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button>
         </div>
         <p className="text-sm text-muted mb-3">The order stays on record, marked cancelled. Its cost is reversed and it leaves your revenue and reports.</p>
 

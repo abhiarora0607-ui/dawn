@@ -329,7 +329,7 @@ function Row({ main, meta, phone, urgent, href }: any) {
   return (
     <div className="flex items-center justify-between gap-2 py-1 border-b border-navy-line/40 last:border-0">
       {href ? <Link href={href} className="flex items-center justify-between flex-1 min-w-0 hover:opacity-70">{body}</Link> : <div className="flex items-center justify-between flex-1 min-w-0">{body}</div>}
-      {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="btn-icon text-emerald-600 shrink-0"><MessageCircle className="w-3.5 h-3.5" /></a>}
+      {wa && <a href={`https://wa.me/${wa}`} target="_blank" aria-label="WhatsApp" className="btn-icon text-emerald-600 shrink-0"><MessageCircle className="w-3.5 h-3.5" /></a>}
     </div>
   );
 }

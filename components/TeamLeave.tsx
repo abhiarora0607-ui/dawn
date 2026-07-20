@@ -22,8 +22,8 @@ export function TeamLeave() {
   useEffect(() => { load(); }, []);
 
   if (!d) return <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
-  if (d.error) return <p className="text-sm text-muted py-8 text-center">{d.error}</p>;
-  if (!d.enabled) return <p className="text-sm text-muted py-8 text-center">Leave isn&apos;t switched on for this business yet.</p>;
+  if (d.error) return <p className="dawn-empty">{d.error}</p>;
+  if (!d.enabled) return <p className="dawn-empty">Leave isn&apos;t switched on for this business yet.</p>;
 
   const pending = (d.requests || []).filter((r: any) => r.status === "pending");
 

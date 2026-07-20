@@ -56,7 +56,7 @@ function IdeaModal({ idea, onClose }: { idea: Idea; onClose: () => void }) {
                 {savedOk ? <><Check className="w-3.5 h-3.5" /> Saved</> : <><Bookmark className="w-3.5 h-3.5" /> Save</>}
               </button>
             )}
-            <button onClick={onClose} className="btn-icon text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
+            <button aria-label="Close" onClick={onClose} className="btn-icon text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
           </div>
         </div>
 
