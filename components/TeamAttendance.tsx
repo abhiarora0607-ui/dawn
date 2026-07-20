@@ -133,11 +133,11 @@ export function TeamAttendance() {
         )}
 
         {d.shopSet && !d.remote && (
-          <p className="text-[11px] text-muted mt-3 flex items-center justify-center gap-1">
+          <p className="text-[12px] text-muted mt-3 flex items-center justify-center gap-1">
             <MapPin className="w-3 h-3" /> {d.enforceGeofence ? "You need to be at the shop to mark attendance." : "Marked from outside the shop? It still records, and your manager sees it."}
           </p>
         )}
-        {d.remote && <p className="text-[11px] text-muted mt-3">You&apos;re set up to work remotely — punch from anywhere.</p>}
+        {d.remote && <p className="text-[12px] text-muted mt-3">You&apos;re set up to work remotely — punch from anywhere.</p>}
       </div>
 
       {/* today's sessions */}
@@ -186,12 +186,12 @@ function History30({ days }: { days: any[] }) {
           <div key={day.work_date} className={`flex items-center justify-between gap-2 px-4 py-2.5 border-b border-navy-line/40 last:border-0 ${isOff ? "bg-surface/40" : ""}`}>
             <span className="text-sm text-navy font-medium min-w-0">
               {new Date(`${day.work_date}T00:00:00Z`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
-              {day.holiday_name && <span className="text-[10px] text-sky-600 ml-1.5">{day.holiday_name}</span>}
+              {day.holiday_name && <span className="text-[12px] text-sky-600 ml-1.5">{day.holiday_name}</span>}
             </span>
             <span className="flex items-center gap-2 shrink-0">
               {day.worked_minutes > 0 && <span className="text-xs text-muted">{fmtDuration(day.worked_minutes)}</span>}
-              {day.late_minutes > 0 && <span className="text-[11px] text-amber-deep">{fmtDuration(day.late_minutes)} late</span>}
-              <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${
+              {day.late_minutes > 0 && <span className="text-[12px] text-amber-deep">{fmtDuration(day.late_minutes)} late</span>}
+              <span className={`text-[12px] font-bold uppercase px-2 py-0.5 rounded border ${
                 c === "full" ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                 : c === "half" ? "bg-amber/15 text-amber-deep border-amber/30"
                 : c === "absent" ? "bg-red-50 text-red-600 border-red-200"
@@ -268,7 +268,7 @@ function FixDay({ onDone }: { onDone: () => void }) {
     <div className="dawn-card p-5 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <p className="font-semibold text-navy text-sm">Fix a day you missed</p>
-        <span className={`text-[11px] font-medium px-2 py-1 rounded-full ${noneLeft ? "bg-red-50 text-red-600" : "bg-surface text-muted"}`}>
+        <span className={`text-[12px] font-medium px-2 py-1 rounded-full ${noneLeft ? "bg-red-50 text-red-600" : "bg-surface text-muted"}`}>
           {meta.remaining} of {meta.allowed} left this month
         </span>
       </div>
@@ -281,7 +281,7 @@ function FixDay({ onDone }: { onDone: () => void }) {
             <span className="text-xs text-muted">Which day?</span>
             <input type="date" value={date} min={meta.earliestDate} max={istDate()} onChange={(e) => setDate(e.target.value)} className="inp mt-1" />
           </label>
-          <p className="text-[11px] text-muted -mt-1">You can fix anything back to {new Date(meta.earliestDate).toLocaleDateString()}.</p>
+          <p className="text-[12px] text-muted -mt-1">You can fix anything back to {new Date(meta.earliestDate).toLocaleDateString()}.</p>
 
           <div>
             <span className="text-xs text-muted">

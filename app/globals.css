@@ -154,3 +154,258 @@ input[type="checkbox"] { cursor: pointer; }
 .dawn-scroll::-webkit-scrollbar-track { background: transparent; }
 .dawn-scroll::-webkit-scrollbar-thumb { background: #C9D0DE; border-radius: 999px; }
 .dawn-scroll::-webkit-scrollbar-thumb:hover { background: #A9B3C6; }
+
+/* ============================================================================
+   V34 — THE DESIGN FOUNDATION
+   ----------------------------------------------------------------------------
+   Written after an audit that measured, rather than guessed:
+
+     · 110 hand-rolled card styles against 74 uses of .dawn-card
+     · 246 arbitrary font sizes, 219 of them at 10–11px
+     ·  68 tap targets under 40px
+     ·  95 uses of a .inp class that was never defined anywhere
+     ·   5 tables with no mobile treatment at all
+
+   The pattern behind all of it: the system didn't offer enough, so every screen
+   invented its own. So this layer is deliberately generous — a variant for each
+   real need, sized for a thumb, readable on a phone. Later versions migrate the
+   ad-hoc styling onto these; nothing here changes behaviour on its own.
+   ========================================================================== */
+
+/* ---- 1. TYPE SCALE -------------------------------------------------------
+   The floor is 12px. Below that, text stops being comfortably readable on a
+   phone, and 219 instances of 10–11px grey text is the single biggest reason
+   the interface felt cramped rather than calm. Line heights are generous
+   because dense text is what made screens feel busy, not the amount of it. */
+.t-micro   { font-size: 0.75rem;  line-height: 1.45; letter-spacing: 0.005em; }  /* 12px — labels, meta */
+.t-small   { font-size: 0.8125rem; line-height: 1.5; }                           /* 13px — secondary */
+.t-body    { font-size: 0.9375rem; line-height: 1.6; }                           /* 15px — reading */
+.t-lead    { font-size: 1.0625rem; line-height: 1.55; }                          /* 17px — intros */
+.t-title   { font-size: 1.25rem;  line-height: 1.35; font-weight: 600; letter-spacing: -0.011em; }
+.t-display { font-size: 1.75rem;  line-height: 1.2;  font-weight: 600; letter-spacing: -0.021em; }
+@media (min-width: 640px) {
+  .t-title   { font-size: 1.375rem; }
+  .t-display { font-size: 2rem; }
+}
+/* An uppercase label that stays legible: tracking does the work, not smallness. */
+.t-label {
+  font-size: 0.6875rem; line-height: 1.4; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em; color: #5B6478;
+}
+
+/* ---- 2. CARD VARIANTS ----------------------------------------------------
+   There was exactly one card class, so anything that needed to look slightly
+   different got hand-rolled. Three variants covers what the app actually does. */
+.dawn-card-flat {
+  background: #fff;
+  border: 1px solid #EBEEF5;
+  border-radius: 1rem;
+}
+/* Recessed panel — for a card sitting inside another card. */
+.dawn-card-inset {
+  background: #FAFBFD;
+  border: 1px solid #EEF1F7;
+  border-radius: 0.75rem;
+}
+/* A row inside a list-style card, with hairline separators handled for you. */
+.dawn-row {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(235, 238, 245, 0.7);
+}
+.dawn-row:last-child { border-bottom: 0; }
+
+/* ---- 3. TOUCH TARGETS ----------------------------------------------------
+   68 icon buttons were around 28px. Fine with a mouse, a nuisance with a
+   thumb. The icon keeps its size; the *hit area* grows to 44px, which is
+   Apple's minimum and close to Android's 48dp. Nothing looks bigger. */
+.btn-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 2.75rem; min-height: 2.75rem;
+  border-radius: 0.625rem;
+  color: #5B6478;
+}
+.btn-icon:hover { background: rgba(22, 35, 63, 0.05); color: #16233F; }
+/* Where a 44px box would break a tight row, keep the visual small but extend
+   the tappable area past the border with a pseudo-element. */
+.btn-icon-tight { position: relative; }
+.btn-icon-tight::after {
+  content: ""; position: absolute; top: 50%; left: 50%;
+  width: 2.75rem; height: 2.75rem; transform: translate(-50%, -50%);
+}
+
+/* ---- 4. INPUTS -----------------------------------------------------------
+   `.inp` is used 95 times across the app and was never defined — every one of
+   those fields has been rendering as an unstyled browser default. Defining it
+   here is the largest single visual correction in this version.
+   16px on mobile is not a style choice: iOS Safari zooms the viewport when a
+   focused field is smaller, which is jarring and hard to undo. */
+.inp {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #16233F;
+  background: #fff;
+  border: 1px solid #E4E8F0;
+  border-radius: 0.75rem;
+  min-height: 2.75rem;
+  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+@media (min-width: 640px) {
+  .inp { font-size: 0.9375rem; padding: 0.5rem 0.75rem; min-height: 2.5rem; }
+}
+.inp::placeholder { color: #9AA3B5; }
+.inp:hover:not(:disabled) { border-color: #D3DAE7; }
+.inp:focus {
+  outline: none;
+  border-color: #FF9E43;
+  box-shadow: 0 0 0 3px rgba(255, 158, 67, 0.15);
+}
+.inp:disabled { background: #F6F8FB; color: #9AA3B5; cursor: not-allowed; }
+textarea.inp { min-height: 4.5rem; resize: vertical; }
+select.inp {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%235B6478' stroke-width='1.5'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 0.75rem;
+  padding-right: 2rem;
+}
+
+/* ---- 5. BUTTONS ----------------------------------------------------------
+   Named intents, so a primary action looks the same on every screen. */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 2.75rem; padding: 0 1.125rem;
+  font-size: 0.9375rem; font-weight: 600;
+  border-radius: 0.75rem;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-primary { background: #16233F; color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #243356; }
+.btn-accent { background: #FF9E43; color: #16233F; }
+.btn-accent:hover:not(:disabled) { background: #F97316; color: #fff; }
+.btn-quiet { border: 1px solid #E4E8F0; color: #16233F; background: #fff; }
+.btn-quiet:hover:not(:disabled) { border-color: #C9D2E2; background: #FAFBFD; }
+.btn-danger { border: 1px solid #FECACA; color: #DC2626; background: #fff; }
+.btn-danger:hover:not(:disabled) { background: #FEF2F2; }
+.btn-sm { min-height: 2.25rem; padding: 0 0.75rem; font-size: 0.8125rem; border-radius: 0.625rem; }
+
+/* ---- 6. SHEETS -----------------------------------------------------------
+   29 modals were centred dialogs at every width. On a phone that means a small
+   box floating mid-screen with its actions out of thumb reach. Under 640px
+   these become bottom sheets — anchored, thumb-reachable, and what a phone
+   user expects. Above 640px, nothing changes. */
+.dawn-scrim {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(22, 35, 63, 0.42);
+  backdrop-filter: blur(2px);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.dawn-sheet {
+  width: 100%;
+  max-height: 92vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 1.25rem 1.25rem 0 0;
+  padding: 1.25rem;
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  animation: sheet-up 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* The grab handle is what tells someone this panel belongs to the bottom edge. */
+.dawn-sheet::before {
+  content: "";
+  display: block;
+  width: 2.25rem; height: 0.25rem;
+  margin: -0.25rem auto 0.9rem;
+  border-radius: 999px;
+  background: #DCE2EE;
+}
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@media (min-width: 640px) {
+  .dawn-scrim { align-items: center; padding: 1.5rem; }
+  .dawn-sheet {
+    max-width: 30rem;
+    border-radius: 1.25rem;
+    max-height: 86vh;
+    padding: 1.5rem;
+    animation: sheet-in 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .dawn-sheet::before { display: none; }
+  @keyframes sheet-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+}
+.dawn-sheet-wide { }
+@media (min-width: 640px) { .dawn-sheet-wide { max-width: 42rem; } }
+
+/* ---- 7. TABLES -----------------------------------------------------------
+   Five tables had no mobile treatment. A table that overflows silently just
+   looks broken — the fades signal there's more, and the momentum scroll makes
+   getting there feel deliberate rather than accidental. */
+.dawn-table-wrap {
+  position: relative;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #C9D0DE transparent;
+}
+.dawn-table-wrap::-webkit-scrollbar { height: 8px; }
+.dawn-table-wrap::-webkit-scrollbar-thumb { background: #C9D0DE; border-radius: 999px; }
+.dawn-table-wrap::-webkit-scrollbar-track { background: transparent; }
+/* Sticky first column keeps the row's identity visible while scrolling wide
+   data — without it, a month grid is anonymous columns of colour. */
+.dawn-table-wrap .sticky-col {
+  position: sticky; left: 0; z-index: 2;
+  background: #fff;
+  box-shadow: 1px 0 0 rgba(235, 238, 245, 1);
+}
+
+/* ---- 8. LAYOUT -----------------------------------------------------------
+   One page container, so gutters stop drifting from screen to screen. */
+.dawn-page {
+  width: 100%;
+  max-width: 1400px;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+  padding-block: 1.5rem;
+}
+@media (min-width: 640px) { .dawn-page { padding-inline: 2rem; padding-block: 2rem; } }
+@media (min-width: 1024px) { .dawn-page { padding-inline: 2.5rem; } }
+.dawn-stack > * + * { margin-top: 1rem; }
+.dawn-stack-tight > * + * { margin-top: 0.5rem; }
+
+/* ---- 9. STATUS PILLS -----------------------------------------------------
+   These were rebuilt from scratch on attendance, leave, billing and the
+   operator console, each slightly different. */
+.pill {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.6875rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  border-radius: 0.375rem; border: 1px solid;
+  white-space: nowrap;
+}
+.pill-green { background: #ECFDF5; color: #047857; border-color: #A7F3D0; }
+.pill-amber { background: rgba(255,158,67,0.12); color: #C2410C; border-color: rgba(255,158,67,0.35); }
+.pill-red   { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
+.pill-sky   { background: #F0F9FF; color: #0369A1; border-color: #BAE6FD; }
+.pill-grey  { background: #F1F5F9; color: #64748B; border-color: #E2E8F0; }
+.pill-navy  { background: rgba(22,35,63,0.05); color: #16233F; border-color: rgba(22,35,63,0.15); }
+
+/* ---- 10. EMPTY STATES ---------------------------------------------------- */
+.dawn-empty {
+  text-align: center;
+  padding: 2.5rem 1.25rem;
+  color: #5B6478;
+  font-size: 0.9375rem;
+}
+
+/* ---- 11. SAFE AREA -------------------------------------------------------
+   Phones with a home indicator otherwise clip the last row of a fixed bar. */
+.pb-safe { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+.dawn-bottom-nav {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  background: rgba(255,255,255,0.94);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid #EBEEF5;
+}

@@ -53,7 +53,7 @@ function Inner() {
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium border-b-2 -mb-px whitespace-nowrap ${tab === t.id ? "border-amber-deep text-navy" : "border-transparent text-muted hover:text-navy"}`}>
             <t.icon className="w-4 h-4" /> {t.label}
-            {t.id === "requests" && pending > 0 && <span className="text-[10px] font-bold bg-amber text-navy px-1.5 py-0.5 rounded-full">{pending}</span>}
+            {t.id === "requests" && pending > 0 && <span className="text-[12px] font-bold bg-amber text-navy px-1.5 py-0.5 rounded-full">{pending}</span>}
           </button>
         ))}
       </div>
@@ -117,7 +117,7 @@ function Requests({ onChange }: { onChange: () => void }) {
                     <AlertTriangle className="w-3.5 h-3.5" /> Their balance won&apos;t cover all of this — the rest will be unpaid.
                   </p>
                 )}
-                <p className="text-[11px] text-muted mt-1.5">Asked {new Date(r.created_at).toLocaleDateString()}</p>
+                <p className="text-[12px] text-muted mt-1.5">Asked {new Date(r.created_at).toLocaleDateString()}</p>
               </div>
               {r.status === "pending" ? (
                 <div className="flex items-center gap-2 shrink-0">
@@ -129,7 +129,7 @@ function Requests({ onChange }: { onChange: () => void }) {
                   </button>
                 </div>
               ) : (
-                <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded shrink-0 ${
+                <span className={`text-[12px] font-bold uppercase px-2 py-1 rounded shrink-0 ${
                   r.status === "approved" ? "bg-emerald-50 text-emerald-700"
                   : r.status === "rejected" ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"}`}>{r.status}</span>
               )}
@@ -175,7 +175,7 @@ function BalancesTab() {
                     <span className={`font-semibold ${b.infinite ? "text-navy/40" : b.available === 0 ? "text-navy/30" : "text-navy"}`}>
                       {b.infinite ? "∞" : b.available}
                     </span>
-                    {b.carried_in > 0 && <span className="text-[10px] text-sky-600 block">+{b.carried_in} carried</span>}
+                    {b.carried_in > 0 && <span className="text-[12px] text-sky-600 block">+{b.carried_in} carried</span>}
                   </td>
                 );
               })}
@@ -183,7 +183,7 @@ function BalancesTab() {
           ))}
         </tbody>
       </table>
-      <p className="text-[11px] text-muted px-4 py-3 border-t border-navy-line">Balances for {d.year}. Carried-over days are shown separately.</p>
+      <p className="text-[12px] text-muted px-4 py-3 border-t border-navy-line">Balances for {d.year}. Carried-over days are shown separately.</p>
     </div>
   );
 }
@@ -224,7 +224,7 @@ function EncashTab() {
               </p>
               {r.amount ? <p className="text-sm text-navy mt-0.5">₹{Number(r.amount).toLocaleString()}</p> : null}
               {r.note && <p className="text-sm text-muted mt-1">&ldquo;{r.note}&rdquo;</p>}
-              <p className="text-[11px] text-muted mt-1.5">
+              <p className="text-[12px] text-muted mt-1.5">
                 Asked {new Date(r.created_at).toLocaleDateString()}
                 {r.paid_in_month && ` · paid in ${r.paid_in_month}`}
               </p>
@@ -239,7 +239,7 @@ function EncashTab() {
                 </button>
               </div>
             ) : (
-              <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded shrink-0 ${
+              <span className={`text-[12px] font-bold uppercase px-2 py-1 rounded shrink-0 ${
                 r.status === "paid" ? "bg-emerald-50 text-emerald-700"
                 : r.status === "approved" ? "bg-sky-50 text-sky-600"
                 : "bg-slate-100 text-slate-500"}`}>
@@ -298,7 +298,7 @@ function PolicyTab() {
           <label className="block"><span className="text-xs text-muted">Days that can be encashed</span>
             <input type="number" value={caps.encash_cap} onChange={(e) => setCaps({ ...caps, encash_cap: e.target.value })} className="inp mt-1" /></label>
         </div>
-        <p className="text-[11px] text-muted">
+        <p className="text-[12px] text-muted">
           On 1 January, each person&apos;s unused days carry forward up to the cap, then whatever&apos;s left on encashable types can be cashed in up to the second cap. Anything beyond that lapses.
         </p>
         <button onClick={saveCaps} disabled={saving === "caps"} className="bg-navy text-white text-sm font-semibold px-5 py-2.5 rounded-xl disabled:opacity-60">
@@ -312,7 +312,7 @@ function PolicyTab() {
             <div className="flex items-start justify-between gap-3 mb-2">
               <div className="min-w-0">
                 <p className="font-semibold text-navy text-sm">{t.label}</p>
-                <p className="text-[11px] text-muted mt-0.5">{t.hint}</p>
+                <p className="text-[12px] text-muted mt-0.5">{t.hint}</p>
               </div>
               {t.code !== "unpaid" && (
                 <label className="flex items-center gap-1.5 text-xs text-navy shrink-0">
@@ -324,12 +324,12 @@ function PolicyTab() {
             {t.code !== "unpaid" && t.enabled && (
               <div className="flex flex-wrap items-end gap-3">
                 <label className="block">
-                  <span className="text-[11px] text-muted">Gives</span>
+                  <span className="text-[12px] text-muted">Gives</span>
                   <input type="number" step="0.5" min="0" defaultValue={t.amount} onBlur={(e) => Number(e.target.value) !== t.amount && saveType(t, { amount: e.target.value })}
                     className="inp mt-1 w-20" />
                 </label>
                 <label className="block">
-                  <span className="text-[11px] text-muted">Every</span>
+                  <span className="text-[12px] text-muted">Every</span>
                   <select defaultValue={t.accrual} onChange={(e) => saveType(t, { accrual: e.target.value })} className="inp mt-1 w-28">
                     <option value="monthly">Month</option>
                     <option value="yearly">Year</option>
@@ -347,7 +347,7 @@ function PolicyTab() {
           </div>
         ))}
       </div>
-      <p className="text-[11px] text-muted">
+      <p className="text-[12px] text-muted">
         Type names are fixed so they mean the same thing everywhere. What each one gives, and what happens to unused days, is yours to set.
       </p>
     </div>

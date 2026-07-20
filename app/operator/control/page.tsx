@@ -54,7 +54,7 @@ function Control() {
 
       <div className="dawn-card p-5">
         <p className="font-semibold text-navy text-sm mb-1">Trial length</p>
-        <p className="text-[11px] text-muted mb-3">Applies to every new business. Existing trials keep their own clock.</p>
+        <p className="text-[12px] text-muted mb-3">Applies to every new business. Existing trials keep their own clock.</p>
         <div className="flex flex-wrap items-end gap-3">
           <label className="block text-xs text-muted">Free days<input type="number" value={cfgTrial} onChange={(e) => setCfgTrial(e.target.value)} className="inp mt-1 w-28" /></label>
           <label className="block text-xs text-muted">Grace after<input type="number" value={cfgGrace} onChange={(e) => setCfgGrace(e.target.value)} className="inp mt-1 w-28" /></label>
@@ -65,7 +65,7 @@ function Control() {
 
       <div className="dawn-card p-5">
         <p className="font-semibold text-navy text-sm mb-1 flex items-center gap-1.5"><Megaphone className="w-4 h-4 text-amber-deep" /> Tell everyone what&apos;s new</p>
-        <p className="text-[11px] text-muted mb-3">Appears on every owner&apos;s dashboard for 60 days.</p>
+        <p className="text-[12px] text-muted mb-3">Appears on every owner&apos;s dashboard for 60 days.</p>
         <input value={annTitle} onChange={(e) => setAnnTitle(e.target.value)} placeholder="Title — e.g. Public menu cards are here" className="inp mb-2" />
         <div className="flex gap-2">
           <input value={annBody} onChange={(e) => setAnnBody(e.target.value)} placeholder="One-line detail (optional)" className="inp flex-1" />
@@ -91,7 +91,7 @@ function Control() {
         </button>
       </div>
 
-      <p className="text-center text-[11px] text-muted">
+      <p className="text-center text-[12px] text-muted">
         Dawn&apos;s privacy wall applies to you too: this console shows usage shape and money — never anything inside a business&apos;s CRM.
       </p>
     </>

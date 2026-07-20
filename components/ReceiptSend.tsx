@@ -40,7 +40,7 @@ export function ReceiptSend({ receiptUrl, customerName, customerPhone, total, cu
         <a href={`mailto:?subject=${encodeURIComponent("Your receipt")}&body=${encodeURIComponent(msg)}`} className={`${btn} bg-navy text-white hover:bg-navy-soft`}>Email</a>
         <button onClick={() => { navigator.clipboard.writeText(msg); alert("Message copied — paste into Instagram DM"); }} className={`${btn} bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90`}>Instagram</button>
       </div>
-      <p className="text-[11px] text-muted mt-2">Instagram doesn&apos;t allow direct links from web — we copy the message so you can paste it into the DM.</p>
+      <p className="text-[12px] text-muted mt-2">Instagram doesn&apos;t allow direct links from web — we copy the message so you can paste it into the DM.</p>
     </div>
   );
 }

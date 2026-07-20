@@ -86,11 +86,11 @@ export default function PerformancePage() {
                   {sc.scores.map((row: any) => (
                     <Link key={row.employeeId} href={`/dashboard/employees/${row.employeeId}`} className="flex items-center justify-between gap-2 py-1.5 border-b border-navy-line/40 last:border-0 hover:bg-surface px-1 rounded">
                       <span className="text-sm text-navy flex items-center gap-2 min-w-0">
-                        <span className="text-[10px] font-bold text-muted w-4 shrink-0">{row.rank ?? "—"}</span>
+                        <span className="text-[12px] font-bold text-muted w-4 shrink-0">{row.rank ?? "—"}</span>
                         <span className="truncate">{row.name}</span>
                         {(row.isTop || sc.top?.employeeId === row.employeeId) && <Trophy className="w-3.5 h-3.5 text-amber-deep shrink-0" />}
-                        {(row.isBottom || sc.bottom?.employeeId === row.employeeId) && <span className="text-[9px] font-bold uppercase bg-red-50 text-red-600 px-1.5 py-0.5 rounded shrink-0">needs support</span>}
-                        {row.tooNew && <span className="text-[9px] text-muted shrink-0">too new to score</span>}
+                        {(row.isBottom || sc.bottom?.employeeId === row.employeeId) && <span className="text-[12px] font-bold uppercase bg-red-50 text-red-600 px-1.5 py-0.5 rounded shrink-0">needs support</span>}
+                        {row.tooNew && <span className="text-[12px] text-muted shrink-0">too new to score</span>}
                       </span>
                       <span className={`text-sm font-bold shrink-0 ${row.score >= 70 ? "text-emerald-600" : row.score >= 40 ? "text-navy" : "text-red-600"}`}>{row.eligible || row.rank != null ? `${row.score}/100` : "—"}</span>
                     </Link>
@@ -127,7 +127,7 @@ export default function PerformancePage() {
                         <span className="inline-flex items-center gap-2">
                           {i === 0 && r.revenue > 0 && <Trophy className="w-3.5 h-3.5 text-amber-deep" />}
                           <Link href={`/dashboard/employees/${r.id}`} className="hover:text-amber-deep hover:underline">{r.name}</Link>
-                          {r.status !== "active" && <span className="text-[10px] text-muted">(inactive)</span>}
+                          {r.status !== "active" && <span className="text-[12px] text-muted">(inactive)</span>}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-navy">{money(r.revenue)}</td>
@@ -185,7 +185,7 @@ function TotalCard({ label, value, icon: Icon, accent }: { label: string; value:
 }
 
 function Mini({ label, value }: { label: string; value: any }) {
-  return <div><p className="font-bold text-navy text-sm">{value}</p><p className="text-[10px] text-muted">{label}</p></div>;
+  return <div><p className="font-bold text-navy text-sm">{value}</p><p className="text-[12px] text-muted">{label}</p></div>;
 }
 
 function TeamActivity() {
@@ -212,7 +212,7 @@ function TeamActivity() {
           </div>
         ))}
       </div>
-      <p className="text-[11px] text-muted mt-3">Every employee action is logged automatically — this is your accountability trail.</p>
+      <p className="text-[12px] text-muted mt-3">Every employee action is logged automatically — this is your accountability trail.</p>
     </div>
   );
 }

@@ -117,12 +117,12 @@ export default function BrandVoice() {
               {persona.themes?.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {persona.themes.map((t: string, i: number) => (
-                    <span key={i} className="text-[11px] bg-white/10 px-2 py-0.5 rounded-full text-white/80">{t}</span>
+                    <span key={i} className="text-[12px] bg-white/10 px-2 py-0.5 rounded-full text-white/80">{t}</span>
                   ))}
                 </div>
               )}
               {persona.audienceProfile && <p className="text-white/60 text-xs">Audience: {persona.audienceProfile}</p>}
-              <p className="text-white/40 text-[11px] pt-1">This shapes every AI output — briefings, captions, replies, and ideas are tailored to you.</p>
+              <p className="text-white/40 text-[12px] pt-1">This shapes every AI output — briefings, captions, replies, and ideas are tailored to you.</p>
             </div>
           ) : (
             <p className="text-white/60 text-sm">Let Dawn analyze your Instagram to deeply understand your voice, themes, and audience — then personalize everything it does.</p>

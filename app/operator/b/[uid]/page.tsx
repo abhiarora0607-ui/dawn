@@ -106,7 +106,7 @@ export default function BusinessDetail() {
         {[["Contacts", d.counts.contacts], ["Orders", d.counts.orders], ["Employees", d.counts.employees], ["Tasks", d.counts.tasks]].map(([l, v]: any) => (
           <div key={l} className="bg-white rounded-2xl border border-navy-line p-4 shadow-card text-center">
             <p className="text-xl font-bold text-navy">{v}</p>
-            <p className="text-[10px] text-muted uppercase tracking-wide">{l}</p>
+            <p className="text-[12px] text-muted uppercase tracking-wide">{l}</p>
           </div>
         ))}
       </div>
@@ -119,7 +119,7 @@ export default function BusinessDetail() {
             <div key={i} className="flex-1 bg-amber/70 rounded-t" style={{ height: `${(n / maxWeek) * 100}%`, minHeight: n > 0 ? 3 : 0 }} title={`${n} events`} />
           ))}
         </div>
-        <p className="text-[10px] text-muted mt-1">Event volume only — never what the events were.</p>
+        <p className="text-[12px] text-muted mt-1">Event volume only — never what the events were.</p>
       </div>
 
       {/* Instagram */}
@@ -150,7 +150,7 @@ export default function BusinessDetail() {
               <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${t.done ? "bg-amber-deep" : "bg-navy-line"}`} />
               <div className="min-w-0">
                 <p className={`text-sm ${t.done ? "text-navy" : "text-navy/35"}`}>{t.label}</p>
-                {t.when && <p className="text-[11px] text-muted">{t.when}</p>}
+                {t.when && <p className="text-[12px] text-muted">{t.when}</p>}
               </div>
             </div>
           ))}
@@ -197,7 +197,7 @@ export default function BusinessDetail() {
           <div className="space-y-2">
             {d.notes.map((n: any) => (
               <div key={n.id} className="flex items-start justify-between gap-2 text-sm border-b border-navy-line/40 last:border-0 pb-2">
-                <div className="min-w-0"><p className="text-navy">{n.note}</p><p className="text-[10px] text-muted">{new Date(n.created_at).toLocaleString()}</p></div>
+                <div className="min-w-0"><p className="text-navy">{n.note}</p><p className="text-[12px] text-muted">{new Date(n.created_at).toLocaleString()}</p></div>
                 <button onClick={() => delNote(n.id)} className="p-1 text-navy/30 hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
               </div>
             ))}
@@ -205,7 +205,7 @@ export default function BusinessDetail() {
         )}
       </div>
 
-      <p className="text-[11px] text-muted text-center mt-6 pb-6">Counts, dates and your notes only — their customers&apos; data never reaches this screen.</p>
+      <p className="text-[12px] text-muted text-center mt-6 pb-6">Counts, dates and your notes only — their customers&apos; data never reaches this screen.</p>
     </Wrap>
   );
 }

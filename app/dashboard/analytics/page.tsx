@@ -12,10 +12,10 @@ function Bar({ label, value, max, sub }: { label: string; value: number; max: nu
       <span className="text-xs text-navy/60 w-28 shrink-0 truncate">{label}</span>
       <div className="flex-1 bg-navy/5 rounded-full h-6 overflow-hidden">
         <div className="h-full bg-gradient-to-r from-amber to-amber-deep rounded-full flex items-center justify-end pr-2" style={{ width: `${pct}%` }}>
-          <span className="text-[10px] font-semibold text-white">{fmt(value)}</span>
+          <span className="text-[12px] font-semibold text-white">{fmt(value)}</span>
         </div>
       </div>
-      {sub && <span className="text-[10px] text-navy/40 w-14 shrink-0">{sub}</span>}
+      {sub && <span className="text-[12px] text-navy/40 w-14 shrink-0">{sub}</span>}
     </div>
   );
 }

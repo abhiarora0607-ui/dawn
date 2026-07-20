@@ -74,9 +74,9 @@ function Inner() {
                   <div className="min-w-0 flex-1">
                     <p className={`text-sm ${x.done ? "text-navy/40 line-through" : "text-navy"} ${tab === "notes" ? "whitespace-pre-wrap" : ""}`}>{tab === "tasks" ? x.title : x.body}</p>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <span className="text-[10px] text-muted flex items-center gap-1"><UserCheck className="w-3 h-3" /> {empName(x.employee_id)}</span>
-                      {x.due_date && <span className={`text-[10px] ${overdue ? "text-red-600 font-semibold" : "text-muted"}`}>{overdue ? "Overdue · " : "Due "}{new Date(x.due_date).toLocaleDateString()}</span>}
-                      {x.assigned_by === "admin" && <span className="text-[10px] bg-amber/10 text-amber-deep px-1.5 py-0.5 rounded">assigned by you</span>}
+                      <span className="text-[12px] text-muted flex items-center gap-1"><UserCheck className="w-3 h-3" /> {empName(x.employee_id)}</span>
+                      {x.due_date && <span className={`text-[12px] ${overdue ? "text-red-600 font-semibold" : "text-muted"}`}>{overdue ? "Overdue · " : "Due "}{new Date(x.due_date).toLocaleDateString()}</span>}
+                      {x.assigned_by === "admin" && <span className="text-[12px] bg-amber/10 text-amber-deep px-1.5 py-0.5 rounded">assigned by you</span>}
                     </div>
                   </div>
                   <button onClick={() => remove(x.id)} className="p-1.5 text-navy/30 hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>

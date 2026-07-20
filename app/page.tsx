@@ -125,7 +125,7 @@ export default function Home() {
 
       {/* Waitlist CTA */}
       <section id="start" className="relative bg-navy py-20 sm:py-24 overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-amber/10 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[600px] h-[300px] bg-amber/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative max-w-2xl mx-auto px-5 sm:px-6 text-center">
           <Sunrise className="w-10 h-10 text-amber mx-auto mb-6 animate-float" />
           <h2 className="font-display font-semibold text-white text-3xl sm:text-[2.5rem]">Start every day ahead.</h2>

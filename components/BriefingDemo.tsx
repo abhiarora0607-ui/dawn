@@ -79,7 +79,7 @@ export default function BriefingDemo() {
           </p>
         </div>
         {data && (
-          <span className="flex items-center gap-1 text-[10px] font-medium text-amber bg-amber/10 px-2 py-1 rounded-full">
+          <span className="flex items-center gap-1 text-[12px] font-medium text-amber bg-amber/10 px-2 py-1 rounded-full">
             <Sparkles className="w-3 h-3" />
             {data.brief.source === "ai" ? "AI" : "Live"}
           </span>
@@ -111,7 +111,7 @@ export default function BriefingDemo() {
                 key={i}
                 className="flex items-start gap-3 p-3 rounded-xl border border-navy/5 hover:border-amber/40 hover:bg-surface transition-colors group"
               >
-                <span className={`mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase ${priorityStyles[a.priority]}`}>
+                <span className={`mt-0.5 text-[12px] font-bold px-1.5 py-0.5 rounded border uppercase ${priorityStyles[a.priority]}`}>
                   {a.priority}
                 </span>
                 <div className="flex-1 min-w-0">

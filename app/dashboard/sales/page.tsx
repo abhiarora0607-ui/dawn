@@ -16,7 +16,7 @@ function Card({ label, value, icon: Icon, tone = "navy", trend }: { label: strin
       <div className="flex items-center gap-1.5 mb-1.5"><Icon className="w-4 h-4 text-amber-deep" /><span className="text-xs text-muted font-medium">{label}</span></div>
       <p className={`text-2xl font-bold leading-none ${tone === "red" ? "text-red-600" : tone === "green" ? "text-emerald-600" : "text-navy"}`}>{value}</p>
       {trend != null && (
-        <p className={`text-[11px] font-medium mt-1.5 ${trend >= 0 ? "text-emerald-600" : "text-red-600"}`}>{trend >= 0 ? "▲" : "▼"} {Math.abs(trend)}% vs prev</p>
+        <p className={`text-[12px] font-medium mt-1.5 ${trend >= 0 ? "text-emerald-600" : "text-red-600"}`}>{trend >= 0 ? "▲" : "▼"} {Math.abs(trend)}% vs prev</p>
       )}
     </div>
   );
@@ -31,7 +31,7 @@ function CashFlowChart({ data, currency }: { data: { label: string; in: number; 
     <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm font-semibold text-navy">Money in vs out</p>
-        <div className="flex gap-3 text-[10px]">
+        <div className="flex gap-3 text-[12px]">
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" /> In</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-400" /> Out</span>
         </div>
@@ -43,8 +43,8 @@ function CashFlowChart({ data, currency }: { data: { label: string; in: number; 
               <div className="w-1/2 bg-emerald-500 rounded-t" style={{ height: `${(d.in / max) * 100}%` }} />
               <div className="w-1/2 bg-red-400 rounded-t" style={{ height: `${(d.out / max) * 100}%` }} />
             </div>
-            <span className="text-[9px] text-muted whitespace-nowrap">{d.label}</span>
-            <div className="absolute bottom-full mb-1 hidden group-hover:block bg-navy text-white text-[10px] rounded px-2 py-1 whitespace-nowrap z-10">
+            <span className="text-[12px] text-muted whitespace-nowrap">{d.label}</span>
+            <div className="absolute bottom-full mb-1 hidden group-hover:block bg-navy text-white text-[12px] rounded px-2 py-1 whitespace-nowrap z-10">
               in {currency}{d.in} · out {currency}{d.out}
             </div>
           </div>
@@ -183,7 +183,7 @@ function SalesInner() {
                 <p className="text-xs text-muted mt-1">Margin and profit are incomplete until these have a cost.</p>
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {fin.missingCost.slice(0, 6).map((it: any) => (
-                    <Link key={it.id} href="/dashboard/price-list" className="text-[11px] font-medium bg-white border border-amber/40 text-navy px-2 py-1 rounded-lg hover:border-amber">{it.name}</Link>
+                    <Link key={it.id} href="/dashboard/price-list" className="text-[12px] font-medium bg-white border border-amber/40 text-navy px-2 py-1 rounded-lg hover:border-amber">{it.name}</Link>
                   ))}
                 </div>
               </div>
@@ -214,11 +214,11 @@ function SalesInner() {
                   {[["0–7 days", fin.aging.d0_7, "text-navy"], ["8–30", fin.aging.d8_30, "text-amber-deep"], ["31–60", fin.aging.d31_60, "text-orange-600"], ["60+", fin.aging.d60plus, "text-red-600"]].map(([lab, val, col]: any) => (
                     <div key={lab} className="text-center bg-surface rounded-xl p-2">
                       <p className={`text-sm font-bold ${col}`}>{money(val, currency)}</p>
-                      <p className="text-[10px] text-muted">{lab}</p>
+                      <p className="text-[12px] text-muted">{lab}</p>
                     </div>
                   ))}
                 </div>
-                {fin.aging.d60plus > 0 && <p className="text-[11px] text-red-500 mt-2">{money(fin.aging.d60plus, currency)} is over 60 days old — chase it or write it off.</p>}
+                {fin.aging.d60plus > 0 && <p className="text-[12px] text-red-500 mt-2">{money(fin.aging.d60plus, currency)} is over 60 days old — chase it or write it off.</p>}
               </div>
             )}
 
@@ -229,8 +229,8 @@ function SalesInner() {
                   <div className="space-y-2">
                     {fin.charts.topItems.map((it: any, i: number) => (
                       <div key={i} className="flex items-center justify-between text-sm">
-                        <span className="text-navy/75 truncate">{it.name} <span className="text-[10px] text-muted">×{it.units}</span></span>
-                        <span className="font-semibold text-navy shrink-0 ml-2">{money(it.value, currency)}{it.marginPct != null && <span className="text-[10px] font-normal text-emerald-600 ml-1">{it.marginPct}%</span>}</span>
+                        <span className="text-navy/75 truncate">{it.name} <span className="text-[12px] text-muted">×{it.units}</span></span>
+                        <span className="font-semibold text-navy shrink-0 ml-2">{money(it.value, currency)}{it.marginPct != null && <span className="text-[12px] font-normal text-emerald-600 ml-1">{it.marginPct}%</span>}</span>
                       </div>
                     ))}
                   </div>
@@ -266,7 +266,7 @@ function SalesInner() {
                             <p className="text-xs text-muted">{s.payment_method || "—"}</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${s.status === "paid" ? "bg-emerald-50 text-emerald-700" : s.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{s.status}</span>
+                            <span className={`text-[12px] font-bold uppercase px-2 py-1 rounded ${s.status === "paid" ? "bg-emerald-50 text-emerald-700" : s.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{s.status}</span>
                             <a href={`/receipt/${s.share_token || s.id}?owner=1`} target="_blank" className="p-1.5 text-navy/40 hover:text-navy" title="Receipt"><Receipt className="w-4 h-4" /></a>
                           </div>
                         </div>
@@ -292,7 +292,7 @@ function SalesInner() {
                   <div className="grid gap-2">
                     {g.rows.map((e: any) => (
                       <div key={e.id} className="bg-white rounded-xl border border-navy-line p-3 shadow-card flex items-center justify-between">
-                        <div><p className="font-semibold text-navy text-sm">{e.category}{e.recurring ? <span className="ml-1.5 text-[10px] text-amber-deep">↻ monthly</span> : null}{e.source === "order" ? <span className="ml-1.5 text-[10px] text-navy/40">cost of goods</span> : null}</p><p className="text-xs text-muted">{e.note || ""}</p></div>
+                        <div><p className="font-semibold text-navy text-sm">{e.category}{e.recurring ? <span className="ml-1.5 text-[12px] text-amber-deep">↻ monthly</span> : null}{e.source === "order" ? <span className="ml-1.5 text-[12px] text-navy/40">cost of goods</span> : null}</p><p className="text-xs text-muted">{e.note || ""}</p></div>
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-red-600">−{money(Number(e.amount), currency)}</span>
                           {e.source !== "order" && e.source !== "salary" && <button onClick={() => delExpense(e.id)} className="p-1.5 text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>}

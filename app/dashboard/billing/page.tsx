@@ -69,7 +69,7 @@ function Inner() {
           <h1 className="font-display font-semibold text-2xl text-navy">Billing</h1>
           <p className="text-muted text-sm mt-1">Your plan, payments and upgrades.</p>
         </div>
-        {e.testMode && <span className="text-[10px] font-bold tracking-widest text-amber-deep bg-amber/10 border border-amber/30 px-2.5 py-1 rounded-full">TEST MODE — no real money</span>}
+        {e.testMode && <span className="text-[12px] font-bold tracking-widest text-amber-deep bg-amber/10 border border-amber/30 px-2.5 py-1 rounded-full">TEST MODE — no real money</span>}
       </div>
 
       {/* Current state */}
@@ -113,11 +113,11 @@ function Inner() {
           const popular = i === 1;
           return (
             <div key={p.id} className={`dawn-card p-5 flex flex-col ${popular ? "border-amber/50 relative" : ""}`}>
-              {popular && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold tracking-wide text-white bg-amber-deep px-3 py-0.5 rounded-full">POPULAR</span>}
+              {popular && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[12px] font-bold tracking-wide text-white bg-amber-deep px-3 py-0.5 rounded-full">POPULAR</span>}
               <p className="font-display font-semibold text-lg text-navy">{p.name}</p>
               <p className="text-xs text-muted">{p.tagline}</p>
               <p className="mt-3 mb-1"><span className="text-3xl font-bold text-navy">₹{price}</span><span className="text-sm text-muted">/{cycle === "yearly" ? "yr" : "mo"}</span></p>
-              <p className="text-[11px] text-muted mb-3">{p.max_seats ? `Up to ${p.max_seats} seat${p.max_seats > 1 ? "s" : ""}` : "Unlimited seats"}</p>
+              <p className="text-[12px] text-muted mb-3">{p.max_seats ? `Up to ${p.max_seats} seat${p.max_seats > 1 ? "s" : ""}` : "Unlimited seats"}</p>
               <div className="space-y-1.5 flex-1">
                 {Object.entries(FEATURE_LABELS).map(([k, label]) => {
                   const on = !!p.features?.[k];
@@ -149,9 +149,9 @@ function Inner() {
               <div>
                 <p className="font-medium text-navy">
                   {p.plan_name} · {p.billing_cycle}
-                  {!d.plans.some((pl: any) => pl.name === p.plan_name) && <span className="text-[10px] text-muted font-normal"> · plan no longer offered</span>}
+                  {!d.plans.some((pl: any) => pl.name === p.plan_name) && <span className="text-[12px] text-muted font-normal"> · plan no longer offered</span>}
                 </p>
-                <p className="text-[11px] text-muted">{new Date(p.created_at).toLocaleDateString()} · {p.invoice_no || p.reference}{p.gateway === "mock" && " · test"}</p>
+                <p className="text-[12px] text-muted">{new Date(p.created_at).toLocaleDateString()} · {p.invoice_no || p.reference}{p.gateway === "mock" && " · test"}</p>
               </div>
               <span className="font-semibold text-navy">₹{Number(p.amount)}</span>
             </div>
@@ -188,15 +188,15 @@ function Inner() {
                 <span className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3"><Check className="w-7 h-7 text-emerald-600" /></span>
                 <p className="font-display font-semibold text-lg text-navy">Payment successful</p>
                 <p className="text-sm text-muted mt-1">{paid.planName} is active.</p>
-                <p className="text-[11px] text-muted mt-1">{paid.invoiceNo ? `Invoice ${paid.invoiceNo} · ` : ""}Ref {paid.reference}</p>
-                {paid.discount > 0 && <p className="text-[11px] text-emerald-600 mt-0.5">Coupon applied — ₹{Number(paid.discount).toLocaleString()} off</p>}
+                <p className="text-[12px] text-muted mt-1">{paid.invoiceNo ? `Invoice ${paid.invoiceNo} · ` : ""}Ref {paid.reference}</p>
+                {paid.discount > 0 && <p className="text-[12px] text-emerald-600 mt-0.5">Coupon applied — ₹{Number(paid.discount).toLocaleString()} off</p>}
                 <button onClick={() => { setCheckout(null); setPaid(null); }} className="mt-5 bg-navy text-white px-6 py-2.5 rounded-xl font-medium w-full">Done</button>
               </div>
             ) : (
               <>
                 <div className="flex items-center justify-between mb-3">
                   <p className="font-display font-semibold text-lg text-navy">Checkout</p>
-                  {d.ent.testMode && <span className="text-[9px] font-bold tracking-widest text-amber-deep bg-amber/10 border border-amber/30 px-2 py-0.5 rounded-full">TEST MODE</span>}
+                  {d.ent.testMode && <span className="text-[12px] font-bold tracking-widest text-amber-deep bg-amber/10 border border-amber/30 px-2 py-0.5 rounded-full">TEST MODE</span>}
                 </div>
                 <div className="bg-surface rounded-xl p-4 text-sm space-y-1.5">
                   <div className="flex justify-between"><span className="text-muted">Plan</span><span className="font-medium text-navy">{checkout.name}</span></div>
@@ -205,12 +205,12 @@ function Inner() {
                 </div>
                 <div className="mt-3">
                   <input value={coupon} onChange={(e) => { setCoupon(e.target.value.toUpperCase()); setCouponErr(""); }} placeholder="Coupon code (optional)" className="inp text-sm" />
-                  {couponErr && <p className="text-[11px] text-red-600 mt-1">{couponErr}</p>}
+                  {couponErr && <p className="text-[12px] text-red-600 mt-1">{couponErr}</p>}
                 </div>
                 <button onClick={pay} disabled={paying} className="mt-3 w-full flex items-center justify-center gap-2 bg-navy text-white font-semibold py-3 rounded-xl hover:bg-navy-soft disabled:opacity-60">
                   {paying ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing…</> : <><Sparkles className="w-4 h-4 text-amber" /> Proceed to pay</>}
                 </button>
-                <p className="text-[10px] text-muted text-center mt-2.5">Test gateway — no real money moves. Real payments arrive with Razorpay.</p>
+                <p className="text-[12px] text-muted text-center mt-2.5">Test gateway — no real money moves. Real payments arrive with Razorpay.</p>
               </>
             )}
           </div>

@@ -56,7 +56,7 @@ export default function RecoveryPage() {
                     <span className="w-9 h-9 rounded-xl bg-surface flex items-center justify-center shrink-0"><Icon className="w-4 h-4 text-navy/40" /></span>
                     <div className="min-w-0">
                       <p className="font-medium text-navy text-sm truncate">{it.label}</p>
-                      <p className="text-[11px] text-muted capitalize">{it.kind} · {daysLeft}d left to restore</p>
+                      <p className="text-[12px] text-muted capitalize">{it.kind} · {daysLeft}d left to restore</p>
                     </div>
                   </div>
                   <button onClick={() => restore(it.kind, it.id)} disabled={restoring === it.id} className="flex items-center gap-1.5 text-sm font-medium text-amber-deep border border-amber/40 px-3 py-1.5 rounded-lg hover:bg-amber/5 shrink-0 disabled:opacity-50">

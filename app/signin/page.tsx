@@ -26,7 +26,7 @@ export default function SignIn() {
         <SignInBody />
       </Suspense>
       <footer className="py-8 px-5">
-        <p className="text-center text-[11px] text-muted">
+        <p className="text-center text-[12px] text-muted">
           <Link href="/privacy" className="hover:text-navy">Privacy</Link>
           <span className="mx-2">·</span>
           <Link href="/terms" className="hover:text-navy">Terms</Link>
@@ -90,12 +90,12 @@ function SignInBody() {
           <div className="bg-white/70 border border-navy-line rounded-xl px-3 py-2.5">
             <Sparkles className="w-4 h-4 text-amber-deep mb-1" />
             <p className="text-[13px] font-semibold text-navy leading-tight">Instagram &amp; AI</p>
-            <p className="text-[11px] text-muted leading-snug mt-0.5">Briefings, ideas, captions</p>
+            <p className="text-[12px] text-muted leading-snug mt-0.5">Briefings, ideas, captions</p>
           </div>
           <div className="bg-white/70 border border-navy-line rounded-xl px-3 py-2.5">
             <Contact className="w-4 h-4 text-amber-deep mb-1" />
             <p className="text-[13px] font-semibold text-navy leading-tight">CRM &amp; Business</p>
-            <p className="text-[11px] text-muted leading-snug mt-0.5">Leads, orders, money, team</p>
+            <p className="text-[12px] text-muted leading-snug mt-0.5">Leads, orders, money, team</p>
           </div>
         </div>
 
@@ -140,14 +140,14 @@ function SignInBody() {
               >
                 <Instagram className="w-[18px] h-[18px] text-amber" /> Continue with Instagram
               </a>
-              <p className="text-[11px] text-muted text-center mt-2">
+              <p className="text-[12px] text-muted text-center mt-2">
                 Uses Instagram&apos;s own login — we never see your password.
               </p>
 
               {/* Honest about the permission moment */}
               <div className="flex items-start gap-2 bg-surface rounded-xl px-3 py-2.5 mt-3">
                 <ShieldCheck className="w-4 h-4 text-navy/40 mt-0.5 shrink-0" />
-                <p className="text-[11px] text-navy/60 leading-relaxed">
+                <p className="text-[12px] text-navy/60 leading-relaxed">
                   Dawn reads your professional account&apos;s profile, posts and insights to build your daily briefing. Your CRM data stays private to your business, and you can export or delete everything at any time.
                 </p>
               </div>
@@ -178,7 +178,7 @@ function SignInBody() {
                   <button onClick={submit} disabled={state === "loading"} className="w-full flex items-center justify-center gap-2 border border-navy-line text-navy font-medium py-3 rounded-2xl hover:border-navy/30 transition-colors disabled:opacity-60">
                     {state === "loading" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Email me a sign-in link"}
                   </button>
-                  <p className="text-[11px] text-muted text-center mt-2">No password — we email you a one-tap link.</p>
+                  <p className="text-[12px] text-muted text-center mt-2">No password — we email you a one-tap link.</p>
                 </>
               )}
             </>

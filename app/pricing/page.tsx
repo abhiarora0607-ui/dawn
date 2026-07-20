@@ -66,14 +66,14 @@ export default function Pricing() {
                 const best = Object.values(p.features || {}).filter(Boolean).length > 1;
                 return (
                   <div key={p.id} className={`relative bg-white rounded-2xl border p-6 flex flex-col ${best ? "border-amber shadow-[0_8px_30px_rgba(255,158,67,0.15)]" : "border-navy-line shadow-[0_2px_10px_rgba(22,35,63,0.04)]"}`}>
-                    {best && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold tracking-wide text-white bg-amber-deep px-3 py-0.5 rounded-full">BEST VALUE</span>}
+                    {best && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[12px] font-bold tracking-wide text-white bg-amber-deep px-3 py-0.5 rounded-full">BEST VALUE</span>}
                     <p className="font-display font-semibold text-xl text-navy">{p.name}</p>
                     <p className="text-sm text-navy/50 mt-0.5 min-h-[40px]">{p.tagline}</p>
                     <p className="mt-4 mb-1">
                       <span className="text-4xl font-bold text-navy">₹{price.toLocaleString()}</span>
                       <span className="text-sm text-navy/50">/{cycle === "yearly" ? "year" : "month"}</span>
                     </p>
-                    <p className="text-[11px] text-navy/40 mb-5">{p.max_seats ? `Up to ${p.max_seats} seat${p.max_seats > 1 ? "s" : ""}` : "Unlimited team members"}</p>
+                    <p className="text-[12px] text-navy/40 mb-5">{p.max_seats ? `Up to ${p.max_seats} seat${p.max_seats > 1 ? "s" : ""}` : "Unlimited team members"}</p>
 
                     <div className="space-y-3 flex-1">
                       {AREA_ROWS.map((a) => {
@@ -83,7 +83,7 @@ export default function Pricing() {
                             <p className={`text-sm font-semibold flex items-center gap-2 ${on ? "text-navy" : "text-navy/50 line-through"}`}>
                               {on ? <Check className="w-4 h-4 text-emerald-500 shrink-0" /> : <X className="w-4 h-4 shrink-0" />} {a.label}
                             </p>
-                            {on && <p className="text-[11px] text-navy/45 leading-relaxed mt-1 pl-6">{a.detail}</p>}
+                            {on && <p className="text-[12px] text-navy/45 leading-relaxed mt-1 pl-6">{a.detail}</p>}
                           </div>
                         );
                       })}

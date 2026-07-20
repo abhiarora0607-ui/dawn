@@ -110,8 +110,8 @@ function Money() {
             return (
               <div key={p.id} className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 ${p.is_active ? "border-navy-line bg-white" : "border-navy-line/50 bg-surface opacity-60"}`}>
                 <div className="min-w-0">
-                  <p className="font-semibold text-navy text-sm">{p.name} <span className="font-normal text-muted">· ₹{p.price_monthly}/mo · ₹{p.price_yearly}/yr</span>{!p.is_active && <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded ml-1.5">RETIRED</span>}</p>
-                  <p className="text-[11px] text-muted mt-0.5">
+                  <p className="font-semibold text-navy text-sm">{p.name} <span className="font-normal text-muted">· ₹{p.price_monthly}/mo · ₹{p.price_yearly}/yr</span>{!p.is_active && <span className="text-[12px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded ml-1.5">RETIRED</span>}</p>
+                  <p className="text-[12px] text-muted mt-0.5">
                     {FEATURES.filter((f) => p.features?.[f]).map((f) => FEATURE_SHORT[f]).join(" + ") || "No areas"}
                     {counts ? ` — ${counts.active} paying, ${counts.trialing} trialing` : ""}
                   </p>
@@ -121,7 +121,7 @@ function Money() {
             );
           })}
         </div>
-        <p className="text-[11px] text-muted mt-3">Editing a price never changes what existing subscribers pay.</p>
+        <p className="text-[12px] text-muted mt-3">Editing a price never changes what existing subscribers pay.</p>
       </div>
 
       {/* Coupons */}
@@ -161,7 +161,7 @@ function Money() {
           <div key={p.id} className="flex items-center justify-between px-4 py-2.5 border-t border-navy-line/40 text-sm">
             <div className="min-w-0">
               <p className="font-medium text-navy truncate">{p.name || p.uid.slice(0, 14)} <span className="text-muted font-normal">· {p.planName}</span></p>
-              <p className="text-[11px] text-muted">{new Date(p.at).toLocaleDateString()} · {p.invoice_no || p.reference}{p.gateway === "mock" && " · test"}</p>
+              <p className="text-[12px] text-muted">{new Date(p.at).toLocaleDateString()} · {p.invoice_no || p.reference}{p.gateway === "mock" && " · test"}</p>
             </div>
             <span className="font-semibold text-navy shrink-0">₹{p.amount.toLocaleString()}</span>
           </div>

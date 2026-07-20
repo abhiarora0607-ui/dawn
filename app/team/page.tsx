@@ -110,7 +110,7 @@ export default function TeamDashboard() {
             {myScore && !myScore.tooNew && (
               <div className="bg-navy rounded-2xl p-4 text-white flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-[11px] uppercase tracking-wide text-white/50">My score this month</p>
+                  <p className="text-[12px] uppercase tracking-wide text-white/50">My score this month</p>
                   <p className="text-xs text-white/60 mt-0.5">{myScore.isTop ? "🏆 Top of the team right now" : myScore.rank ? `Ranked #${myScore.rank}` : "Keep going"}</p>
                 </div>
                 <p className="text-3xl font-bold text-amber">{myScore.score}<span className="text-sm text-white/40 font-normal">/100</span></p>
@@ -141,7 +141,7 @@ export default function TeamDashboard() {
                       <div key={l.id} className="flex items-center justify-between text-sm">
                         <span className="min-w-0">
                           <span className="text-navy">{l.name}</span>
-                          <span className={`ml-2 text-[10px] ${overdue ? "text-red-600 font-semibold" : "text-muted"}`}>{overdue ? "Overdue · " : "Today · "}{new Date(l.follow_up_date).toLocaleDateString()}</span>
+                          <span className={`ml-2 text-[12px] ${overdue ? "text-red-600 font-semibold" : "text-muted"}`}>{overdue ? "Overdue · " : "Today · "}{new Date(l.follow_up_date).toLocaleDateString()}</span>
                         </span>
                         {l.phone && <a href={`https://wa.me/${(l.phone || "").replace(/[^0-9]/g, "")}`} target="_blank" className="text-emerald-600 text-xs font-medium shrink-0 ml-2">Message →</a>}
                       </div>
@@ -185,12 +185,12 @@ export default function TeamDashboard() {
       <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-navy-line flex items-center justify-around h-16 z-20">
         {mainTabs.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)} className={`flex flex-col items-center gap-0.5 flex-1 py-1 ${tab === t.id ? "text-amber-deep" : "text-navy/50"}`}>
-            <t.icon className="w-5 h-5" /><span className="text-[10px] font-medium">{t.label}</span>
+            <t.icon className="w-5 h-5" /><span className="text-[12px] font-medium">{t.label}</span>
           </button>
         ))}
         {moreTabs.length > 0 && (
           <button onClick={() => setMoreOpen(true)} className={`flex flex-col items-center gap-0.5 flex-1 py-1 ${moreTabs.some((t) => t.id === tab) ? "text-amber-deep" : "text-navy/50"}`}>
-            <MoreHorizontal className="w-5 h-5" /><span className="text-[10px] font-medium">More</span>
+            <MoreHorizontal className="w-5 h-5" /><span className="text-[12px] font-medium">More</span>
           </button>
         )}
       </nav>
@@ -313,7 +313,7 @@ function ContactList({ title, items, canEdit, isLeads, onAdd, onEdit, onQuickSta
                   <button onClick={() => onOpen(c)} className="min-w-0 text-left flex-1">
                     <p className="font-semibold text-navy text-sm">{c.name}</p>
                     <p className="text-xs text-muted">{c.phone || (c.instagram_handle ? "@" + c.instagram_handle : c.source)}</p>
-                    {c.follow_up_date && <p className={`text-[10px] mt-0.5 ${new Date(c.follow_up_date) <= today ? "text-red-600 font-semibold" : "text-amber-deep"}`}>Follow up: {new Date(c.follow_up_date).toLocaleDateString()}</p>}
+                    {c.follow_up_date && <p className={`text-[12px] mt-0.5 ${new Date(c.follow_up_date) <= today ? "text-red-600 font-semibold" : "text-amber-deep"}`}>Follow up: {new Date(c.follow_up_date).toLocaleDateString()}</p>}
                   </button>
                   <div className="flex items-center gap-1 shrink-0">
                     {canEdit && <button onClick={() => onEdit(c)} className="p-2 text-navy/40 hover:text-navy rounded-lg" title="Edit"><Pencil className="w-4 h-4" /></button>}
@@ -322,7 +322,7 @@ function ContactList({ title, items, canEdit, isLeads, onAdd, onEdit, onQuickSta
                   </div>
                 </div>
                 {canEdit && (
-                  <select value={c.stage} onChange={(e) => onQuickStage(c, e.target.value)} className="mt-2.5 w-full text-[11px] text-navy/70 border border-navy-line rounded-lg px-2 py-1.5 bg-surface focus:outline-none focus:border-amber" aria-label={`Move ${c.name} to another stage`}>
+                  <select value={c.stage} onChange={(e) => onQuickStage(c, e.target.value)} className="mt-2.5 w-full text-[12px] text-navy/70 border border-navy-line rounded-lg px-2 py-1.5 bg-surface focus:outline-none focus:border-amber" aria-label={`Move ${c.name} to another stage`}>
                     {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                 )}
@@ -400,17 +400,17 @@ function OrderList({ orders, canEdit, onAdd, onChanged, onPay }: { orders: any[]
             <div key={o.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card">
               <div className="flex items-center justify-between">
                 <div><p className="font-semibold text-navy text-sm">₹{o.total} <span className="text-xs font-normal text-muted">· {(o.items || []).length} item(s)</span></p><p className="text-xs text-muted">{new Date(o.date).toLocaleDateString()}</p></div>
-                <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${o.status === "paid" ? "bg-emerald-50 text-emerald-700" : o.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{o.status}</span>
+                <span className={`text-[12px] font-bold uppercase px-2 py-1 rounded ${o.status === "paid" ? "bg-emerald-50 text-emerald-700" : o.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{o.status}</span>
               </div>
               {canEdit && (
                 <div className="flex gap-1 mt-3 pt-3 border-t border-navy-line flex-wrap">
-                  {STATUSES.map((s) => <button key={s} onClick={() => setStatus(o.id, s)} className={`text-[11px] font-medium px-2 py-1 rounded-lg ${(o.order_status || "Placed") === s ? "bg-navy text-white" : "text-navy/40 hover:bg-surface"}`}>{s}</button>)}
+                  {STATUSES.map((s) => <button key={s} onClick={() => setStatus(o.id, s)} className={`text-[12px] font-medium px-2 py-1 rounded-lg ${(o.order_status || "Placed") === s ? "bg-navy text-white" : "text-navy/40 hover:bg-surface"}`}>{s}</button>)}
                 </div>
               )}
               {Number(o.balance) > 0 && (
                 <div className="flex items-center justify-between mt-2">
                   <p className="text-xs text-amber-deep">Balance: ₹{o.balance}</p>
-                  {canEdit && <button onClick={() => onPay(o)} className="text-[11px] font-semibold text-white bg-amber-deep px-2.5 py-1 rounded-lg">Record payment</button>}
+                  {canEdit && <button onClick={() => onPay(o)} className="text-[12px] font-semibold text-white bg-amber-deep px-2.5 py-1 rounded-lg">Record payment</button>}
                 </div>
               )}
             </div>
@@ -462,7 +462,7 @@ function Tasks({ contacts }: { contacts: any[] }) {
                 <input type="checkbox" checked={false} onChange={() => toggle(t)} className="w-4 h-4 accent-amber-deep shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-navy">{t.title}</p>
-                  {t.due_date && <p className={`text-[10px] ${overdue(t) ? "text-red-600 font-semibold" : "text-muted"}`}>{overdue(t) ? "Overdue · " : "Due "}{new Date(t.due_date).toLocaleDateString()}</p>}
+                  {t.due_date && <p className={`text-[12px] ${overdue(t) ? "text-red-600 font-semibold" : "text-muted"}`}>{overdue(t) ? "Overdue · " : "Due "}{new Date(t.due_date).toLocaleDateString()}</p>}
                 </div>
                 <button onClick={() => remove(t.id)} className="p-1.5 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
@@ -516,7 +516,7 @@ function CalendarView({ leads }: { leads: any[] }) {
                 {groups[d].map((e, i) => (
                   <div key={i} className="flex items-center justify-between text-sm">
                     <span className="text-navy">{e.label}</span>
-                    <span className="text-[10px] text-muted bg-surface px-2 py-0.5 rounded">{e.kind}</span>
+                    <span className="text-[12px] text-muted bg-surface px-2 py-0.5 rounded">{e.kind}</span>
                   </div>
                 ))}
               </div>
@@ -553,7 +553,7 @@ function Notes() {
           <div key={n.id} className="bg-white rounded-xl border border-navy-line p-3 shadow-card">
             <p className="text-sm text-navy whitespace-pre-wrap">{n.body}</p>
             <div className="flex items-center justify-between mt-2 pt-2 border-t border-navy-line">
-              <span className="text-[10px] text-muted">{new Date(n.updated_at).toLocaleString()}</span>
+              <span className="text-[12px] text-muted">{new Date(n.updated_at).toLocaleString()}</span>
               <button onClick={() => remove(n.id)} className="p-1 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
             </div>
           </div>
@@ -745,7 +745,7 @@ function Messages() {
         <p className="font-semibold text-navy text-sm mb-3">{active.external_username || "Customer"}</p>
         <div className="flex-1 space-y-2 overflow-y-auto max-h-[50vh]">
           {msgs.map((m) => (
-            <div key={m.id} className={`max-w-[75%] px-3 py-2 rounded-xl text-sm ${m.direction === "out" ? "ml-auto bg-navy text-white" : "bg-surface text-navy"}`}>{m.body}{m.direction === "out" && m.delivered === false && <span className="block text-[10px] text-amber mt-0.5">not delivered</span>}</div>
+            <div key={m.id} className={`max-w-[75%] px-3 py-2 rounded-xl text-sm ${m.direction === "out" ? "ml-auto bg-navy text-white" : "bg-surface text-navy"}`}>{m.body}{m.direction === "out" && m.delivered === false && <span className="block text-[12px] text-amber mt-0.5">not delivered</span>}</div>
           ))}
           {msgs.length === 0 && <p className="text-sm text-muted text-center py-8">No messages yet.</p>}
         </div>
@@ -766,7 +766,7 @@ function Messages() {
           {convs.map((c) => (
             <button key={c.id} onClick={() => open(c)} className="bg-white rounded-xl border border-navy-line p-4 shadow-card text-left flex items-center justify-between w-full">
               <div className="min-w-0"><p className="font-semibold text-navy text-sm">{c.external_username || "Customer"}</p><p className="text-xs text-muted truncate">{c.last_message_preview || "…"}</p></div>
-              {c.unread_count > 0 && <span className="text-[10px] font-bold bg-amber text-navy px-2 py-0.5 rounded-full">{c.unread_count}</span>}
+              {c.unread_count > 0 && <span className="text-[12px] font-bold bg-amber text-navy px-2 py-0.5 rounded-full">{c.unread_count}</span>}
             </button>
           ))}
         </div>
@@ -841,8 +841,8 @@ function ContactDetail({ id, canEdit, onClose, onEdit }: { id: string; canEdit: 
               {d.outstanding != null && d.outstanding > 0 && <Field label="Outstanding" value={`₹${d.outstanding}`} />}
             </div>
 
-            {c.notes && <div className="bg-surface rounded-xl p-3 mb-4"><p className="text-[10px] uppercase tracking-wide text-muted mb-1">Notes</p><p className="text-sm text-navy whitespace-pre-wrap">{c.notes}</p></div>}
-            {c.lost_reason && <div className="bg-red-50 rounded-xl p-3 mb-4"><p className="text-[10px] uppercase tracking-wide text-red-500 mb-1">Lost reason</p><p className="text-sm text-navy">{c.lost_reason}</p></div>}
+            {c.notes && <div className="bg-surface rounded-xl p-3 mb-4"><p className="text-[12px] uppercase tracking-wide text-muted mb-1">Notes</p><p className="text-sm text-navy whitespace-pre-wrap">{c.notes}</p></div>}
+            {c.lost_reason && <div className="bg-red-50 rounded-xl p-3 mb-4"><p className="text-[12px] uppercase tracking-wide text-red-500 mb-1">Lost reason</p><p className="text-sm text-navy">{c.lost_reason}</p></div>}
 
             {d.orders?.length > 0 && (
               <div className="mb-4">
@@ -851,7 +851,7 @@ function ContactDetail({ id, canEdit, onClose, onEdit }: { id: string; canEdit: 
                   {d.orders.map((o: any) => (
                     <div key={o.id} className="flex items-center justify-between bg-surface rounded-lg px-3 py-2">
                       <span className="text-xs text-navy">{new Date(o.date).toLocaleDateString()} · {(o.items || []).length} item(s)</span>
-                      <span className="text-[10px] font-bold uppercase text-muted">{o.order_status || "Placed"}</span>
+                      <span className="text-[12px] font-bold uppercase text-muted">{o.order_status || "Placed"}</span>
                     </div>
                   ))}
                 </div>
@@ -865,7 +865,7 @@ function ContactDetail({ id, canEdit, onClose, onEdit }: { id: string; canEdit: 
                   {d.activities.map((a: any) => (
                     <div key={a.id} className="border-l-2 border-navy-line pl-3">
                       <p className="text-sm text-navy">{a.content}</p>
-                      <p className="text-[10px] text-muted">{new Date(a.created_at).toLocaleString()}</p>
+                      <p className="text-[12px] text-muted">{new Date(a.created_at).toLocaleString()}</p>
                     </div>
                   ))}
                 </div>
@@ -879,5 +879,5 @@ function ContactDetail({ id, canEdit, onClose, onEdit }: { id: string; canEdit: 
 }
 
 function Field({ label, value }: { label: string; value: string }) {
-  return <div className="bg-surface rounded-lg px-3 py-2"><p className="text-[10px] uppercase tracking-wide text-muted">{label}</p><p className="text-sm text-navy truncate">{value}</p></div>;
+  return <div className="bg-surface rounded-lg px-3 py-2"><p className="text-[12px] uppercase tracking-wide text-muted">{label}</p><p className="text-sm text-navy truncate">{value}</p></div>;
 }

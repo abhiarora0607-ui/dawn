@@ -89,7 +89,7 @@ export default async function PublicList({ params }: { params: { slug: string } 
             <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white/10 ring-4 ring-white/20 mx-auto flex items-center justify-center text-4xl font-display text-amber">{(bizName || "•").slice(0, 1)}</div>
           )}
           <h1 className="font-display font-semibold text-[32px] sm:text-4xl mt-5 tracking-tight">{bizName}</h1>
-          <div className="mt-2.5 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-amber/90 font-semibold">
+          <div className="mt-2.5 inline-flex items-center gap-2 text-[12px] uppercase tracking-[0.22em] text-amber/90 font-semibold">
             <span className="w-7 h-px bg-amber/60" /> Menu &amp; Prices <span className="w-7 h-px bg-amber/60" />
           </div>
           {(sf.phone || sf.whatsapp || settings?.phone) && <p className="text-white/50 text-sm mt-3.5">{sf.whatsapp || sf.phone || settings?.phone}</p>}
@@ -119,7 +119,7 @@ export default async function PublicList({ params }: { params: { slug: string } 
               <div className="flex items-center gap-3 mb-4">
                 <h2 className="font-display font-semibold text-navy text-[22px]">{cat}</h2>
                 <span className="flex-1 h-px bg-navy/10" />
-                <span className="text-[10px] font-semibold text-navy/45 bg-white border border-navy/10 px-2.5 py-1 rounded-full">{list.length} item{list.length > 1 ? "s" : ""}</span>
+                <span className="text-[12px] font-semibold text-navy/45 bg-white border border-navy/10 px-2.5 py-1 rounded-full">{list.length} item{list.length > 1 ? "s" : ""}</span>
               </div>
               <div className="space-y-3">
                 {list.map((it) => {
@@ -138,14 +138,14 @@ export default async function PublicList({ params }: { params: { slug: string } 
                             <div className="text-right shrink-0">
                               {it.price != null && <p className="text-[19px] font-bold text-navy leading-none">{currency}{it.price}</p>}
                               {it.compare_at_price != null && <p className="text-xs text-navy/35 line-through mt-1">{currency}{it.compare_at_price}</p>}
-                              {it.unit && <p className="text-[10px] text-navy/40 mt-1">{it.unit}</p>}
+                              {it.unit && <p className="text-[12px] text-navy/40 mt-1">{it.unit}</p>}
                             </div>
                           </div>
                           {it.description && <p className="text-xs text-navy/50 leading-relaxed mt-1 line-clamp-2">{it.description}</p>}
                           {it.variants?.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mt-2">
                               {it.variants.map((v: any, i: number) => (
-                                <span key={i} className="text-[11px] font-medium bg-[#F7F5F0] text-navy/60 border border-navy/[0.06] px-2.5 py-1 rounded-full">{v.name} · {currency}{v.price}</span>
+                                <span key={i} className="text-[12px] font-medium bg-[#F7F5F0] text-navy/60 border border-navy/[0.06] px-2.5 py-1 rounded-full">{v.name} · {currency}{v.price}</span>
                               ))}
                             </div>
                           )}
@@ -167,8 +167,8 @@ export default async function PublicList({ params }: { params: { slug: string } 
         )}
 
         <footer className="pt-2 text-center space-y-3">
-          {gst && <p className="text-[11px] text-navy/35">GSTIN: {gst}</p>}
-          <a href="/" className="inline-flex items-center gap-1.5 text-[11px] text-navy/30 hover:text-navy/50">
+          {gst && <p className="text-[12px] text-navy/35">GSTIN: {gst}</p>}
+          <a href="/" className="inline-flex items-center gap-1.5 text-[12px] text-navy/30 hover:text-navy/50">
             <a href={`/?ref=${encodeURIComponent(sf.slug || "")}`} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 hover:opacity-100 opacity-70 transition-opacity">
               <DawnLogo className="h-5" /> <span>Powered by Dawn</span>
             </a>

@@ -117,19 +117,19 @@ function ContactCard({ c, stageNames, onDragStart, onConvert, onMove }: { c: Con
         <p className="font-semibold text-navy text-sm">{c.name}</p>
         {c.phone && <p className="text-xs text-muted">{c.phone}</p>}
         {c.instagram_handle && <p className="text-xs text-muted">@{c.instagram_handle}</p>}
-        <span className="inline-block text-[10px] text-muted mt-1">{c.source}</span>
+        <span className="inline-block text-[12px] text-muted mt-1">{c.source}</span>
       </Link>
       <div className="flex items-center gap-1 mt-2 pt-2 border-t border-navy-line/60">        {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"><MessageCircle className="w-3.5 h-3.5" /></a>}
         {c.phone && <a href={`tel:${c.phone}`} className="p-1.5 text-navy/50 hover:bg-navy/5 rounded-lg"><Phone className="w-3.5 h-3.5" /></a>}
         {c.stage !== "Customer (Won)" && (
-          <button onClick={() => onConvert(c)} className="ml-auto text-[11px] font-semibold text-amber-deep bg-amber/10 px-2 py-1 rounded-lg hover:bg-amber/20">Convert →</button>
+          <button onClick={() => onConvert(c)} className="ml-auto text-[12px] font-semibold text-amber-deep bg-amber/10 px-2 py-1 rounded-lg hover:bg-amber/20">Convert →</button>
         )}
       </div>
       <select
         value={c.stage}
         onChange={(e) => onMove(c.id, e.target.value)}
         onClick={(e) => e.stopPropagation()}
-        className="mt-2 w-full text-[11px] text-navy/70 border border-navy-line rounded-lg px-2 py-1.5 bg-surface focus:outline-none focus:border-amber"
+        className="mt-2 w-full text-[12px] text-navy/70 border border-navy-line rounded-lg px-2 py-1.5 bg-surface focus:outline-none focus:border-amber"
         aria-label={`Move ${c.name} to another stage`}
       >
         {STAGE_VALUES.map((s, i) => <option key={s} value={s}>{stageNames[i] || s}</option>)}
@@ -268,7 +268,7 @@ function ContactsInner() {
                 <select
                   value={c.stage}
                   onChange={(e) => moveStage(c.id, e.target.value)}
-                  className={`text-[11px] font-semibold px-2 py-1.5 rounded-lg border shrink-0 focus:outline-none ${stageColor[c.stage] || "border-navy-line text-navy/70"}`}
+                  className={`text-[12px] font-semibold px-2 py-1.5 rounded-lg border shrink-0 focus:outline-none ${stageColor[c.stage] || "border-navy-line text-navy/70"}`}
                   aria-label={`Move ${c.name} to another stage`}
                 >
                   {STAGE_VALUES.map((s, i) => <option key={s} value={s}>{stageNames[i] || s}</option>)}

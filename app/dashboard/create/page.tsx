@@ -225,7 +225,7 @@ export default function Create() {
                         <div className="w-9 h-9 rounded-lg bg-amber/10 flex items-center justify-center mx-auto mb-1">
                           <a.icon className="w-4 h-4 text-amber-deep" />
                         </div>
-                        <p className="text-[10px] text-navy/50">{a.label}</p>
+                        <p className="text-[12px] text-navy/50">{a.label}</p>
                         <p className={`text-xs font-semibold ${a.val > 0 ? "text-emerald-600" : a.val < 0 ? "text-red-500" : "text-navy/40"}`}>{a.val > 0 ? "+" : ""}{a.val}</p>
                       </div>
                     ))}
@@ -295,7 +295,7 @@ export default function Create() {
                           onClick={() => setSelectedCaption(c.text)}
                           className={`w-full text-left p-3 rounded-xl border transition-colors ${selectedCaption === c.text ? "border-amber bg-amber/5" : "border-navy/8 hover:border-navy/20"}`}
                         >
-                          <span className="text-[10px] font-bold text-amber-deep uppercase">{c.style}</span>
+                          <span className="text-[12px] font-bold text-amber-deep uppercase">{c.style}</span>
                           <p className="text-sm text-navy leading-snug mt-1">{c.text}</p>
                         </button>
                       ))}
@@ -318,7 +318,7 @@ export default function Create() {
                     ].map(([label, tags, color]: any) => (
                       tags?.length > 0 && (
                         <div key={label} className="mb-3 last:mb-0">
-                          <p className={`text-[10px] font-bold uppercase mb-1.5 ${color}`}>{label} <span className="text-navy/30">· est. relevance</span></p>
+                          <p className={`text-[12px] font-bold uppercase mb-1.5 ${color}`}>{label} <span className="text-navy/30">· est. relevance</span></p>
                           <div className="flex flex-wrap gap-1.5">
                             {tags.map((t: string, i: number) => (
                               <span key={i} className="text-xs bg-navy/5 text-navy/70 px-2 py-1 rounded">{t}</span>

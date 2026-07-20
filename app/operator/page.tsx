@@ -64,7 +64,7 @@ function Today() {
               <div key={w.uid} className="dawn-card p-4 flex items-center justify-between gap-3 flex-wrap">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border ${u.cls}`}>{u.label}</span>
+                    <span className={`text-[12px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border ${u.cls}`}>{u.label}</span>
                     <Link href={`/operator/b/${encodeURIComponent(w.uid)}`} className="font-semibold text-navy hover:text-amber-deep truncate">
                       {w.name || "Unnamed business"}
                     </Link>
@@ -92,7 +92,7 @@ function Today() {
         </div>
       )}
 
-      <p className="text-center text-[11px] text-muted pt-2">
+      <p className="text-center text-[12px] text-muted pt-2">
         {d.countsLive === false && d.countsAsOf
           ? `Counts summarised ${new Date(d.countsAsOf).toLocaleString()} · `
           : ""}

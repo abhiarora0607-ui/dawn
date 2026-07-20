@@ -22,11 +22,11 @@ function TrendPill({ label, t, icon: Icon }: { label: string; t: Trend; icon: an
     <div className="flex items-center gap-2.5 bg-white/5 rounded-xl px-3 py-2.5">
       <Icon className="w-4 h-4 text-amber shrink-0" />
       <div className="min-w-0">
-        <p className="text-[11px] text-white/50 leading-none">{label}</p>
+        <p className="text-[12px] text-white/50 leading-none">{label}</p>
         <div className="flex items-baseline gap-1.5 mt-1">
           <span className="text-sm font-semibold text-white">{fmt(t.now)}</span>
           {!flat && (
-            <span className={`text-[11px] font-medium flex items-center gap-0.5 ${up ? "text-emerald-400" : "text-red-400"}`}>
+            <span className={`text-[12px] font-medium flex items-center gap-0.5 ${up ? "text-emerald-400" : "text-red-400"}`}>
               {up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
               {up ? "+" : ""}{t.pct}%
             </span>
@@ -58,7 +58,7 @@ export function ValueSummary() {
 
       <div className="grid sm:grid-cols-3 gap-3 mb-4">
         <div className="bg-amber rounded-xl px-4 py-3 text-navy">
-          <div className="flex items-center gap-1.5 mb-1"><Clock className="w-4 h-4" /><span className="text-[11px] font-semibold uppercase">Time saved</span></div>
+          <div className="flex items-center gap-1.5 mb-1"><Clock className="w-4 h-4" /><span className="text-[12px] font-semibold uppercase">Time saved</span></div>
           <p className="text-2xl font-bold">~{v.hoursSaved}h</p>
         </div>
         <div className="bg-white/5 rounded-xl px-4 py-3 sm:col-span-2 flex items-center">
@@ -70,7 +70,7 @@ export function ValueSummary() {
 
       {hasTrends && v.trends && (
         <div>
-          <p className="text-[11px] text-white/40 uppercase tracking-wide mb-2">This week vs last</p>
+          <p className="text-[12px] text-white/40 uppercase tracking-wide mb-2">This week vs last</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <TrendPill label="Link clicks" t={v.trends.websiteClicks} icon={MousePointerClick} />
             <TrendPill label="Saves" t={v.trends.saves} icon={Bookmark} />

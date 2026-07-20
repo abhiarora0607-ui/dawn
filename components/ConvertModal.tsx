@@ -171,9 +171,9 @@ export function ConvertModal({ contact, onClose, onDone }: { contact: Contact; o
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-surface rounded-xl p-3">
-                  <p className="text-[11px] text-muted uppercase tracking-wide">Item cost</p>
+                  <p className="text-[12px] text-muted uppercase tracking-wide">Item cost</p>
                   <p className="text-sm font-semibold text-navy">{currency}{orderCost}</p>
-                  <p className="text-[11px] text-muted">Auto-added to expenses</p>
+                  <p className="text-[12px] text-muted">Auto-added to expenses</p>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-navy mb-1.5">Handled by</label>

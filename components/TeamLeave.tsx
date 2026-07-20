@@ -63,12 +63,12 @@ function Balances({ d, onChange }: { d: any; onChange: () => void }) {
               {t.available}
               <span className="text-sm font-normal text-muted"> {t.available === 1 ? "day" : "days"}</span>
             </p>
-            {t.carriedIn > 0 && <p className="text-[11px] text-sky-600 mt-0.5">{t.carriedIn} carried over</p>}
-            {!t.bookable && <p className="text-[11px] text-amber-deep mt-0.5">Needs your date of birth</p>}
+            {t.carriedIn > 0 && <p className="text-[12px] text-sky-600 mt-0.5">{t.carriedIn} carried over</p>}
+            {!t.bookable && <p className="text-[12px] text-amber-deep mt-0.5">Needs your date of birth</p>}
           </div>
         ))}
       </div>
-      <p className="text-[11px] text-muted text-center">Unpaid leave is always available if you run out.</p>
+      <p className="text-[12px] text-muted text-center">Unpaid leave is always available if you run out.</p>
 
       {d.requests?.length > 0 && (
         <div className="dawn-card overflow-hidden">
@@ -80,14 +80,14 @@ function Balances({ d, onChange }: { d: any; onChange: () => void }) {
                   {r.code === "unpaid" ? "Unpaid Leave" : (d.types.find((t: any) => t.code === r.code)?.label || r.code)}
                   <span className="font-normal text-muted"> · {r.days} {r.days === 1 ? "day" : "days"}</span>
                 </p>
-                <p className="text-[11px] text-muted">
+                <p className="text-[12px] text-muted">
                   {new Date(r.from_date).toLocaleDateString()}
                   {r.to_date !== r.from_date && ` – ${new Date(r.to_date).toLocaleDateString()}`}
                   {r.is_unpaid_fallback && <span className="text-amber-deep"> · partly unpaid</span>}
                 </p>
               </div>
               <span className="flex items-center gap-2 shrink-0">
-                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                <span className={`text-[12px] font-bold uppercase px-2 py-0.5 rounded ${
                   r.status === "approved" ? "bg-emerald-50 text-emerald-700"
                   : r.status === "rejected" ? "bg-red-50 text-red-600"
                   : r.status === "cancelled" ? "bg-slate-100 text-slate-400"
@@ -172,7 +172,7 @@ function Apply({ d, onDone }: { d: any; onDone: () => void }) {
           </label>
         )}
       </div>
-      <p className="text-[11px] text-muted -mt-1">Weekly offs and holidays in between don&apos;t count.</p>
+      <p className="text-[12px] text-muted -mt-1">Weekly offs and holidays in between don&apos;t count.</p>
 
       <label className="block">
         <span className="text-xs text-muted">Type of leave</span>

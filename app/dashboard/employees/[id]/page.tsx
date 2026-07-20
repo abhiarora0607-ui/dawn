@@ -52,13 +52,13 @@ export default function EmployeeHub() {
             <div>
               <h1 className="font-display font-semibold text-2xl text-navy flex items-center gap-2">
                 {e.name}
-                {e.is_owner && <span className="text-[9px] font-bold uppercase bg-amber/15 text-amber-deep px-1.5 py-0.5 rounded">You</span>}
+                {e.is_owner && <span className="text-[12px] font-bold uppercase bg-amber/15 text-amber-deep px-1.5 py-0.5 rounded">You</span>}
               </h1>
               <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-sm text-muted">
                 {e.role && <span>{e.role}</span>}
                 {e.phone && <span>{e.phone}</span>}
                 {!e.is_owner && <span>· {currency}{e.monthly_salary}/mo</span>}
-                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${e.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-navy/5 text-navy/50"}`}>{e.status}</span>
+                <span className={`text-[12px] font-bold uppercase px-1.5 py-0.5 rounded ${e.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-navy/5 text-navy/50"}`}>{e.status}</span>
               </div>
             </div>
           </div>
@@ -79,7 +79,7 @@ export default function EmployeeHub() {
                 : <span className={`text-2xl font-bold ${live.score >= 70 ? "text-emerald-600" : live.score >= 40 ? "text-navy" : "text-red-600"}`}>{live.score}<span className="text-sm font-normal text-muted">/100</span></span>}
             </div>
             {!live.tooNew && live.breakdown && (
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted">
                 <span>Revenue +{live.breakdown.revenuePts}</span>
                 <span>Close rate +{live.breakdown.closeRatePts}</span>
                 <span>Won +{live.breakdown.wonPts}</span>
@@ -109,7 +109,7 @@ export default function EmployeeHub() {
               <div key={c.id} className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-navy-line/40 last:border-0 hover:bg-surface">
                 <Link href={`/dashboard/contacts/${c.id}`} className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-navy truncate">{c.name}</p>
-                  <p className="text-[11px] text-muted">{c.stage}{c.follow_up_date ? <span className={overdue ? "text-red-600 font-medium" : ""}> · follow up {new Date(c.follow_up_date).toLocaleDateString()}</span> : ""}</p>
+                  <p className="text-[12px] text-muted">{c.stage}{c.follow_up_date ? <span className={overdue ? "text-red-600 font-medium" : ""}> · follow up {new Date(c.follow_up_date).toLocaleDateString()}</span> : ""}</p>
                 </Link>
                 {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="p-1.5 text-emerald-600 shrink-0"><MessageCircle className="w-4 h-4" /></a>}
               </div>
@@ -123,11 +123,11 @@ export default function EmployeeHub() {
             <Link key={o.id} href={o.contact_id ? `/dashboard/contacts/${o.contact_id}` : "/dashboard/orders"} className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-navy-line/40 last:border-0 hover:bg-surface">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-navy truncate">{o.customerName}</p>
-                <p className="text-[11px] text-muted">{new Date(o.date).toLocaleDateString()} · {o.order_status || "Placed"}</p>
+                <p className="text-[12px] text-muted">{new Date(o.date).toLocaleDateString()} · {o.order_status || "Placed"}</p>
               </div>
               <div className="text-right shrink-0">
                 <p className="text-sm font-semibold text-navy">{money(Number(o.total), currency)}</p>
-                <p className={`text-[10px] font-bold uppercase ${o.status === "paid" ? "text-emerald-600" : o.status === "partial" ? "text-amber-deep" : "text-red-500"}`}>{o.status}</p>
+                <p className={`text-[12px] font-bold uppercase ${o.status === "paid" ? "text-emerald-600" : o.status === "partial" ? "text-amber-deep" : "text-red-500"}`}>{o.status}</p>
               </div>
             </Link>
           ))}
@@ -140,7 +140,7 @@ export default function EmployeeHub() {
             return (
               <div key={t.id} className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-navy-line/40 last:border-0">
                 <p className="text-sm text-navy min-w-0 truncate">{t.title}</p>
-                {t.due_date && <span className={`text-[11px] shrink-0 ${overdue ? "text-red-600 font-medium" : "text-muted"}`}>{overdue ? "overdue · " : ""}{new Date(t.due_date).toLocaleDateString()}</span>}
+                {t.due_date && <span className={`text-[12px] shrink-0 ${overdue ? "text-red-600 font-medium" : "text-muted"}`}>{overdue ? "overdue · " : ""}{new Date(t.due_date).toLocaleDateString()}</span>}
               </div>
             );
           })}
@@ -150,7 +150,7 @@ export default function EmployeeHub() {
         {d.scoreHistory?.length > 0 && (
           <Section title="Score history" count={d.scoreHistory.length} icon={TrendingUp}>
             {d.yearSummary && (
-              <p className="px-4 pb-2 text-[11px] text-muted">
+              <p className="px-4 pb-2 text-[12px] text-muted">
                 This year: avg <span className="font-semibold text-navy">{d.yearSummary.avgScore}</span> over {d.yearSummary.months} month(s)
                 {d.yearSummary.timesTop > 0 ? <> · top performer <span className="font-semibold text-navy">{d.yearSummary.timesTop}×</span></> : null}
                 {d.yearSummary.bestMonth ? <> · best month {d.yearSummary.bestMonth}</> : null}
@@ -160,10 +160,10 @@ export default function EmployeeHub() {
               <div key={r.month} className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-navy-line/40 last:border-0">
                 <p className="text-sm text-navy flex items-center gap-2">
                   {r.month}
-                  {r.is_top && <span className="text-[9px] font-bold uppercase bg-amber/15 text-amber-deep px-1.5 py-0.5 rounded">top</span>}
-                  {r.is_bottom && <span className="text-[9px] font-bold uppercase bg-red-50 text-red-600 px-1.5 py-0.5 rounded">needs support</span>}
+                  {r.is_top && <span className="text-[12px] font-bold uppercase bg-amber/15 text-amber-deep px-1.5 py-0.5 rounded">top</span>}
+                  {r.is_bottom && <span className="text-[12px] font-bold uppercase bg-red-50 text-red-600 px-1.5 py-0.5 rounded">needs support</span>}
                 </p>
-                <span className="text-sm font-semibold text-navy">{r.score}/100{r.rank ? <span className="text-[10px] font-normal text-muted"> · #{r.rank}</span> : null}</span>
+                <span className="text-sm font-semibold text-navy">{r.score}/100{r.rank ? <span className="text-[12px] font-normal text-muted"> · #{r.rank}</span> : null}</span>
               </div>
             ))}
           </Section>
@@ -174,7 +174,7 @@ export default function EmployeeHub() {
           <Section title="Salary history" count={d.salaryHistory.length} icon={Wallet}>
             {d.salaryHistory.length === 0 ? <EmptyRow msg="No salary posted yet." /> : d.salaryHistory.map((sal: any, i: number) => (
               <div key={i} className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-navy-line/40 last:border-0">
-                <p className="text-sm text-navy">{new Date(sal.date).toLocaleDateString(undefined, { month: "long", year: "numeric" })}{sal.recurring ? <span className="ml-1.5 text-[10px] text-amber-deep">↻ monthly</span> : ""}</p>
+                <p className="text-sm text-navy">{new Date(sal.date).toLocaleDateString(undefined, { month: "long", year: "numeric" })}{sal.recurring ? <span className="ml-1.5 text-[12px] text-amber-deep">↻ monthly</span> : ""}</p>
                 <span className="text-sm font-semibold text-navy">{money(Number(sal.amount), currency)}</span>
               </div>
             ))}
@@ -190,7 +190,7 @@ function Stat({ label, value, icon: Icon, tone }: { label: string; value: string
     <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
       <Icon className="w-4 h-4 text-amber-deep mb-1" />
       <p className={`text-lg font-bold ${tone === "green" ? "text-emerald-600" : "text-navy"}`}>{value}</p>
-      <p className="text-[10px] text-muted uppercase tracking-wide">{label}</p>
+      <p className="text-[12px] text-muted uppercase tracking-wide">{label}</p>
     </div>
   );
 }
@@ -200,7 +200,7 @@ function Section({ title, count, icon: Icon, children }: { title: string; count:
     <div className="bg-white rounded-2xl border border-navy-line shadow-card overflow-hidden">
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <p className="text-sm font-semibold text-navy flex items-center gap-1.5"><Icon className="w-4 h-4 text-navy/40" /> {title}</p>
-        <span className="text-[10px] font-bold text-navy/40 bg-surface px-2 py-0.5 rounded-full">{count}</span>
+        <span className="text-[12px] font-bold text-navy/40 bg-surface px-2 py-0.5 rounded-full">{count}</span>
       </div>
       <div>{children}</div>
     </div>

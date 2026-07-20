@@ -44,7 +44,7 @@ function Product() {
       <Hero line={line} sub={sub} />
 
       {d.countsLive === false && d.countsAsOf && (
-        <p className="text-[11px] text-muted">Counts summarised {new Date(d.countsAsOf).toLocaleString()} — not live.</p>
+        <p className="text-[12px] text-muted">Counts summarised {new Date(d.countsAsOf).toLocaleString()} — not live.</p>
       )}
 
       {/* Funnel — bars, not a number soup */}
@@ -69,7 +69,7 @@ function Product() {
         {/* Locked-feature demand */}
         <div className="dawn-card p-5">
           <p className="font-semibold text-navy text-sm mb-1">What people reach for and can&apos;t have</p>
-          <p className="text-[11px] text-muted mb-3">Clicks on a locked area, last 30 days — live pricing research.</p>
+          <p className="text-[12px] text-muted mb-3">Clicks on a locked area, last 30 days — live pricing research.</p>
           {!bill || Object.keys(bill.gateHits || {}).length === 0 ? <p className="text-xs text-muted">Nobody has hit a locked area yet.</p> : (
             Object.entries(bill.gateHits).sort((a: any, b: any) => b[1] - a[1]).map(([a, n]: any) => (
               <p key={a} className="text-sm text-navy flex justify-between py-1 border-b border-navy-line/40 last:border-0">
@@ -109,7 +109,7 @@ function Product() {
         {/* Referrals */}
         <div className="dawn-card p-5">
           <p className="font-semibold text-navy text-sm mb-1">Word of mouth</p>
-          <p className="text-[11px] text-muted mb-3">Signups that arrived through a &ldquo;Powered by Dawn&rdquo; link.</p>
+          <p className="text-[12px] text-muted mb-3">Signups that arrived through a &ldquo;Powered by Dawn&rdquo; link.</p>
           {!bill || Object.keys(bill.referrals || {}).length === 0 ? <p className="text-xs text-muted">No referred signups yet.</p> : (
             Object.entries(bill.referrals).sort((a: any, b: any) => b[1] - a[1]).slice(0, 8).map(([r, n]: any) => (
               <p key={r} className="text-sm text-navy flex justify-between py-1 border-b border-navy-line/40 last:border-0"><span className="truncate">{r}</span><span className="font-semibold">{n}</span></p>

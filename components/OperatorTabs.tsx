@@ -29,7 +29,7 @@ export function OperatorTabs({ testMode }: { testMode?: boolean }) {
         <div className="flex items-center justify-between h-14 gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-display font-semibold text-navy text-lg shrink-0">Operator</span>
-            {testMode && <span className="text-[9px] font-bold tracking-widest text-amber-deep bg-amber/10 border border-amber/30 px-2 py-0.5 rounded-full shrink-0">TEST MODE</span>}
+            {testMode && <span className="text-[12px] font-bold tracking-widest text-amber-deep bg-amber/10 border border-amber/30 px-2 py-0.5 rounded-full shrink-0">TEST MODE</span>}
           </div>
           <Link href="/dashboard/business" className="text-xs text-muted hover:text-navy shrink-0">Back to app</Link>
         </div>
@@ -61,7 +61,7 @@ export function HealthPill({ label, tone }: { label: string; tone: string }) {
     red: "bg-red-50 text-red-600 border-red-200",
     grey: "bg-slate-100 text-slate-500 border-slate-200",
   };
-  return <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border ${styles[tone] || styles.grey}`}>{label}</span>;
+  return <span className={`text-[12px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border ${styles[tone] || styles.grey}`}>{label}</span>;
 }
 
 export function PlanPill({ status, plan }: { status?: string; plan?: string | null }) {
@@ -74,7 +74,7 @@ export function PlanPill({ status, plan }: { status?: string; plan?: string | nu
   };
   const m = map[status];
   if (!m) return null;
-  return <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${m.cls}`}>{m.text}</span>;
+  return <span className={`text-[12px] font-semibold px-2 py-0.5 rounded border ${m.cls}`}>{m.text}</span>;
 }
 
 // The one big number a tab is allowed. Everything else is a list.

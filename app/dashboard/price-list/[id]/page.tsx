@@ -70,7 +70,7 @@ export default function ItemDetail() {
             <p className="dawn-section-title text-sm px-4 pt-4 pb-2"><Users className="w-4 h-4 text-navy/40" /> Top buyers</p>
             {d.topBuyers.map((b: any, i: number) => (
               <div key={i} className="flex items-center justify-between px-4 py-2.5 border-b border-navy-line/40 last:border-0 text-sm">
-                <span className="text-navy">{b.name} <span className="text-[11px] text-muted">×{b.units}</span></span>
+                <span className="text-navy">{b.name} <span className="text-[12px] text-muted">×{b.units}</span></span>
                 <span className="font-semibold text-navy">{money(b.spent, currency)}</span>
               </div>
             ))}
@@ -78,14 +78,14 @@ export default function ItemDetail() {
         )}
 
         <div className="dawn-card overflow-hidden">
-          <p className="dawn-section-title text-sm px-4 pt-4 pb-2"><ShoppingBag className="w-4 h-4 text-navy/40" /> Orders with this item <span className="text-[10px] font-bold text-navy/40 bg-surface px-2 py-0.5 rounded-full ml-auto">{d.orders.length}</span></p>
+          <p className="dawn-section-title text-sm px-4 pt-4 pb-2"><ShoppingBag className="w-4 h-4 text-navy/40" /> Orders with this item <span className="text-[12px] font-bold text-navy/40 bg-surface px-2 py-0.5 rounded-full ml-auto">{d.orders.length}</span></p>
           {d.orders.length === 0 ? (
             <p className="px-4 py-6 text-sm text-muted">This item hasn&apos;t sold yet.</p>
           ) : d.orders.map((o: any, i: number) => (
             <Link key={i} href={o.contactId ? `/dashboard/contacts/${o.contactId}` : "/dashboard/orders"} className="flex items-center justify-between px-4 py-2.5 border-b border-navy-line/40 last:border-0 hover:bg-surface">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-navy truncate">{o.customerName}</p>
-                <p className="text-[11px] text-muted">{new Date(o.date).toLocaleDateString()} · {o.status} · ×{o.qty}</p>
+                <p className="text-[12px] text-muted">{new Date(o.date).toLocaleDateString()} · {o.status} · ×{o.qty}</p>
               </div>
               <span className="text-sm font-semibold text-navy shrink-0">{money(o.lineTotal, currency)}</span>
             </Link>
@@ -101,7 +101,7 @@ function Stat({ label, value, icon: Icon, tone }: { label: string; value: string
     <div className="dawn-stat">
       <Icon className="w-4 h-4 text-amber-deep mb-1" />
       <p className={`text-lg font-bold leading-none ${tone === "green" ? "text-emerald-600" : "text-navy"}`}>{value}</p>
-      <p className="text-[10px] text-muted uppercase tracking-wide mt-1.5">{label}</p>
+      <p className="text-[12px] text-muted uppercase tracking-wide mt-1.5">{label}</p>
     </div>
   );
 }

@@ -64,7 +64,7 @@ function Businesses() {
       <Hero line={total === 1 ? "One business on Dawn" : `${total} businesses on Dawn`} sub="Health is a word, not a score. Tap any row for the full story." />
 
       {d.countsLive === false && d.countsAsOf && (
-        <p className="text-[11px] text-muted">Counts summarised {new Date(d.countsAsOf).toLocaleString()} — not live.</p>
+        <p className="text-[12px] text-muted">Counts summarised {new Date(d.countsAsOf).toLocaleString()} — not live.</p>
       )}
 
       {/* views */}
@@ -98,7 +98,7 @@ function Businesses() {
       {/* table */}
       {rows.length === 0 ? <Empty>No businesses match.</Empty> : (
         <div className="dawn-card overflow-hidden">
-          <div className="hidden sm:grid grid-cols-12 gap-3 px-4 py-2.5 border-b border-navy-line bg-surface/60 text-[10px] font-bold uppercase tracking-wide text-muted">
+          <div className="hidden sm:grid grid-cols-12 gap-3 px-4 py-2.5 border-b border-navy-line bg-surface/60 text-[12px] font-bold uppercase tracking-wide text-muted">
             <span className="col-span-4">Business</span>
             <span className="col-span-2">Health</span>
             <span className="col-span-2">Plan</span>
@@ -110,12 +110,12 @@ function Businesses() {
               className="grid sm:grid-cols-12 gap-2 sm:gap-3 px-4 py-3 border-b border-navy-line/40 last:border-0 hover:bg-surface/60 items-center">
               <span className="sm:col-span-4 min-w-0">
                 <span className="font-medium text-navy truncate block">{b.name || "Unnamed business"}</span>
-                <span className="text-[11px] text-muted truncate block">{b.email || b.uid.slice(0, 18)}</span>
+                <span className="text-[12px] text-muted truncate block">{b.email || b.uid.slice(0, 18)}</span>
               </span>
               <span className="sm:col-span-2"><HealthPill label={b.healthLabel || "—"} tone={b.healthTone || "grey"} /></span>
               <span className="sm:col-span-2 flex items-center gap-1.5">
                 <PlanPill status={b.billingStatus} plan={b.billingPlan} />
-                {b.billingDaysLeft != null && <span className="text-[11px] text-muted">{b.billingDaysLeft}d</span>}
+                {b.billingDaysLeft != null && <span className="text-[12px] text-muted">{b.billingDaysLeft}d</span>}
               </span>
               <span className="sm:col-span-2 text-[13px] text-muted">{new Date(b.signedUp).toLocaleDateString()}</span>
               <span className="sm:col-span-2 text-[13px] text-muted">

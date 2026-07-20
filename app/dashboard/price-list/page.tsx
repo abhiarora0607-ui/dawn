@@ -216,10 +216,10 @@ function PriceListInner() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-bold uppercase bg-navy/5 text-navy/60 px-1.5 py-0.5 rounded flex items-center gap-1">
+                      <span className="text-[12px] font-bold uppercase bg-navy/5 text-navy/60 px-1.5 py-0.5 rounded flex items-center gap-1">
                         {item.type === "service" ? <Wrench className="w-3 h-3" /> : <Package className="w-3 h-3" />}{item.type}
                       </span>
-                      {item.category && <span className="text-[10px] text-muted">{item.category}</span>}
+                      {item.category && <span className="text-[12px] text-muted">{item.category}</span>}
                       
                     </div>
                     <Link href={`/dashboard/price-list/${item.id}`} className="font-semibold text-navy mt-1 hover:text-amber-deep hover:underline block">{item.name}</Link>
@@ -231,7 +231,7 @@ function PriceListInner() {
                     </div>
                     {item.variants?.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        {item.variants.map((v, i) => <span key={i} className="text-[11px] bg-navy/5 text-navy/60 px-2 py-0.5 rounded-full">{v.name} {currency}{v.price}</span>)}
+                        {item.variants.map((v, i) => <span key={i} className="text-[12px] bg-navy/5 text-navy/60 px-2 py-0.5 rounded-full">{v.name} {currency}{v.price}</span>)}
                       </div>
                     )}
                   </div>

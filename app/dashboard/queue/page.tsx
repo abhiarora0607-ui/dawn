@@ -59,7 +59,7 @@ export default function Queue() {
                 {active.map((item) => (
                   <div key={item.id} className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold text-amber-deep uppercase bg-amber/10 px-2 py-0.5 rounded">{item.kind}</span>
+                      <span className="text-[12px] font-bold text-amber-deep uppercase bg-amber/10 px-2 py-0.5 rounded">{item.kind}</span>
                       <div className="flex items-center gap-1">
                         <button onClick={() => copy(item)} className="p-1.5 text-navy/40 hover:text-navy" title="Copy">
                           {copiedId === item.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
@@ -71,7 +71,7 @@ export default function Queue() {
                     <p className="text-sm text-navy/70 leading-snug whitespace-pre-wrap">{item.body}</p>
                     {item.meta?.hashtags?.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {item.meta.hashtags.slice(0, 8).map((h: string, i: number) => <span key={i} className="text-[10px] bg-navy/5 text-navy/50 px-1.5 py-0.5 rounded">{h}</span>)}
+                        {item.meta.hashtags.slice(0, 8).map((h: string, i: number) => <span key={i} className="text-[12px] bg-navy/5 text-navy/50 px-1.5 py-0.5 rounded">{h}</span>)}
                       </div>
                     )}
                   </div>

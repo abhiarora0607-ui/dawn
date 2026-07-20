@@ -76,7 +76,7 @@ export default function EmployeeAttendancePage() {
             </div>
 
             <div className="dawn-card overflow-hidden">
-              <div className="hidden sm:grid grid-cols-12 gap-3 px-4 py-2.5 border-b border-navy-line bg-surface/60 text-[10px] font-bold uppercase tracking-wide text-muted">
+              <div className="hidden sm:grid grid-cols-12 gap-3 px-4 py-2.5 border-b border-navy-line bg-surface/60 text-[12px] font-bold uppercase tracking-wide text-muted">
                 <span className="col-span-3">Date</span>
                 <span className="col-span-3">When they worked</span>
                 <span className="col-span-2">Hours</span>
@@ -108,7 +108,7 @@ function DayRow({ day, shiftStart }: { day: any; shiftStart?: string | null }) {
     <div className={`grid sm:grid-cols-12 gap-2 sm:gap-3 px-4 py-2.5 border-b border-navy-line/40 last:border-0 items-center ${isOff ? "bg-surface/40" : ""}`}>
       <span className="sm:col-span-3 text-sm text-navy font-medium">
         {label}
-        {day.holiday_name && <span className="text-[10px] font-bold uppercase bg-sky-50 text-sky-600 border border-sky-200 px-1.5 py-0.5 rounded ml-2">{day.holiday_name}</span>}
+        {day.holiday_name && <span className="text-[12px] font-bold uppercase bg-sky-50 text-sky-600 border border-sky-200 px-1.5 py-0.5 rounded ml-2">{day.holiday_name}</span>}
       </span>
 
       <span className="sm:col-span-3">
@@ -150,7 +150,7 @@ function DayBar({ logs }: { logs: any[] }) {
             style={{ left: `${s.left}%`, width: `${s.width}%` }} />
         ))}
       </span>
-      <span className="text-[10px] text-muted mt-0.5 block">
+      <span className="text-[12px] text-muted mt-0.5 block">
         {first}{lastOut ? ` – ${minutesToLabel(istMinutes(lastOut.punch_out))}` : " – still in"}
         {logs.length > 1 && ` · ${logs.length} sessions`}
         {logs.some((l: any) => l.within_fence === false) && <span className="text-amber-deep"> · off-site</span>}
@@ -170,5 +170,5 @@ function Pill({ c }: { c: string }) {
     missing_punch_out: "bg-amber/15 text-amber-deep border-amber/30",
     not_joined: "bg-transparent text-navy/25 border-transparent",
   };
-  return <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border ${map[c] || map.absent}`}>{CLASS_LABEL[c] || c}</span>;
+  return <span className={`text-[12px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border ${map[c] || map.absent}`}>{CLASS_LABEL[c] || c}</span>;
 }

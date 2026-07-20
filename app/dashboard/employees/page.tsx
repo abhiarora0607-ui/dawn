@@ -54,10 +54,9 @@ function EmpModal({ emp, onClose, onSaved }: { emp: Employee | null; onClose: ()
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm p-5 animate-rise">
-        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">{emp ? "Edit employee" : "Add employee"}</h3><button onClick={onClose} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button></div>
+    <div className="dawn-scrim" onClick={onClose}>
+      <div className="dawn-sheet relative" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">{emp ? "Edit employee" : "Add employee"}</h3><button onClick={onClose} className="btn-icon -mr-2" aria-label="Close"><X className="w-5 h-5" /></button></div>
         <div className="space-y-3">
           <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Name *" className="inp" />
           <div className="grid grid-cols-2 gap-2">
@@ -85,7 +84,7 @@ function EmpModal({ emp, onClose, onSaved }: { emp: Employee | null; onClose: ()
                   <label className="block"><span className="text-xs text-muted">Shift starts</span><input type="time" value={f.shiftStart} onChange={(e) => setF({ ...f, shiftStart: e.target.value })} className="inp mt-1" /></label>
                   <label className="block"><span className="text-xs text-muted">Shift ends</span><input type="time" value={f.shiftEnd} onChange={(e) => setF({ ...f, shiftEnd: e.target.value })} className="inp mt-1" /></label>
                 </div>
-                <p className="text-[11px] text-muted -mt-1">Leave blank if hours are flexible — nobody is marked late without a shift.</p>
+                <p className="text-[12px] text-muted -mt-1">Leave blank if hours are flexible — nobody is marked late without a shift.</p>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="block"><span className="text-xs text-muted">Required hours/day</span><input type="number" step="0.5" min="1" max="24" value={f.requiredHours} onChange={(e) => setF({ ...f, requiredHours: e.target.value })} placeholder="Business default" className="inp mt-1" /></label>
                   <label className="block"><span className="text-xs text-muted">Extra fix requests/mo</span><input type="number" min="0" max="20" value={f.extraRegularizations} onChange={(e) => setF({ ...f, extraRegularizations: e.target.value })} className="inp mt-1" /></label>
@@ -102,7 +101,7 @@ function EmpModal({ emp, onClose, onSaved }: { emp: Employee | null; onClose: ()
                       );
                     })}
                   </div>
-                  <p className="text-[11px] text-muted mt-1">{f.weeklyOffs ? "Overrides the business default." : "Using the business default."}</p>
+                  <p className="text-[12px] text-muted mt-1">{f.weeklyOffs ? "Overrides the business default." : "Using the business default."}</p>
                 </div>
                 <label className="block"><span className="text-xs text-muted">Date of birth (for birthday leave)</span><input type="date" value={f.dateOfBirth} onChange={(e) => setF({ ...f, dateOfBirth: e.target.value })} className="inp mt-1" /></label>
                 <label className="flex items-start gap-2 text-sm text-navy">
@@ -202,7 +201,7 @@ function EmployeesInner() {
                       {e.is_owner ? " · You" : e.status === "active" ? " · Active" : " · Inactive"}
                     </p>
                   </div>
-                  {e.remote_permanent && <span className="text-[9px] font-bold uppercase bg-sky-50 text-sky-600 border border-sky-200 px-1.5 py-0.5 rounded shrink-0">Remote</span>}
+                  {e.remote_permanent && <span className="text-[12px] font-bold uppercase bg-sky-50 text-sky-600 border border-sky-200 px-1.5 py-0.5 rounded shrink-0">Remote</span>}
                 </div>
 
                 {/* what */}
@@ -212,7 +211,7 @@ function EmployeesInner() {
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-muted text-[13px]">Today</span>
                     {e.attendance_exempt ? (
-                      <span className="text-[11px] text-navy/30">Not tracked</span>
+                      <span className="text-[12px] text-navy/30">Not tracked</span>
                     ) : (
                       <AttendancePill att={att} />
                     )}
@@ -299,7 +298,7 @@ function Row({ label, value }: { label: string; value: string }) {
 // Today's status, as a word. "Present" isn't enough on its own — an owner
 // wants to know whether someone is still on shift and how long they've done.
 function AttendancePill({ att }: { att?: any }) {
-  if (!att) return <span className="text-[11px] text-navy/30">—</span>;
+  if (!att) return <span className="text-[12px] text-navy/30">—</span>;
   const map: Record<string, { label: string; cls: string }> = {
     full: { label: "Present", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
     half: { label: att.onShift ? "On shift" : "Half day", cls: "bg-amber/15 text-amber-deep border-amber/30" },
@@ -314,7 +313,7 @@ function AttendancePill({ att }: { att?: any }) {
   return (
     <span className="flex items-center gap-1.5">
       {att.flagged && <span className="w-1.5 h-1.5 rounded-full bg-amber-deep" title={att.flagReason || "Needs a look"} />}
-      <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border ${m.cls}`}>{m.label}</span>
+      <span className={`text-[12px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border ${m.cls}`}>{m.label}</span>
     </span>
   );
 }

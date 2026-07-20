@@ -154,11 +154,11 @@ function ProfileInner() {
           <div className="space-y-3">
             <div className="bg-navy rounded-2xl p-5 text-white">
               <div className="grid grid-cols-3 gap-3">
-                <div><p className="text-[10px] text-white/50 uppercase tracking-wide">Collected</p><p className="text-xl font-bold text-amber">{currency}{collected}</p></div>
-                <div><p className="text-[10px] text-white/50 uppercase tracking-wide">Ordered</p><p className="text-xl font-bold">{currency}{ordered}</p></div>
-                <div><p className="text-[10px] text-white/50 uppercase tracking-wide">Outstanding</p><p className={`text-xl font-bold ${outstanding > 0 ? "text-red-300" : "text-white/60"}`}>{currency}{outstanding}</p></div>
+                <div><p className="text-[12px] text-white/50 uppercase tracking-wide">Collected</p><p className="text-xl font-bold text-amber">{currency}{collected}</p></div>
+                <div><p className="text-[12px] text-white/50 uppercase tracking-wide">Ordered</p><p className="text-xl font-bold">{currency}{ordered}</p></div>
+                <div><p className="text-[12px] text-white/50 uppercase tracking-wide">Outstanding</p><p className={`text-xl font-bold ${outstanding > 0 ? "text-red-300" : "text-white/60"}`}>{currency}{outstanding}</p></div>
               </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3 border-t border-white/10 text-[11px] text-white/50">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3 border-t border-white/10 text-[12px] text-white/50">
                 <span>{sales.length} order(s)</span>
                 <span>avg {currency}{Math.round(ordered / sales.length)}</span>
                 {firstOrder && <span>since {firstOrder.toLocaleDateString()}</span>}
@@ -178,11 +178,11 @@ function ProfileInner() {
                     <Link key={o.id} href={`/dashboard/orders?highlight=${o.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-surface">
                       <div className="min-w-0">
                         <p className={`text-sm font-medium text-navy truncate ${cancelled ? "line-through opacity-60" : ""}`}>{itemLabel}</p>
-                        <p className="text-[11px] text-muted">{new Date(o.date).toLocaleDateString()} · {cancelled ? "Cancelled" : (o.order_status || "Placed")}</p>
+                        <p className="text-[12px] text-muted">{new Date(o.date).toLocaleDateString()} · {cancelled ? "Cancelled" : (o.order_status || "Placed")}</p>
                       </div>
                       <div className="text-right shrink-0">
                         <p className={`text-sm font-semibold text-navy ${cancelled ? "line-through opacity-60" : ""}`}>{currency}{o.total}</p>
-                        {!cancelled && <p className={`text-[10px] font-bold uppercase ${o.status === "paid" ? "text-emerald-600" : o.status === "partial" ? "text-amber-deep" : "text-red-500"}`}>
+                        {!cancelled && <p className={`text-[12px] font-bold uppercase ${o.status === "paid" ? "text-emerald-600" : o.status === "partial" ? "text-amber-deep" : "text-red-500"}`}>
                           {o.status === "paid" ? "Paid" : `${currency}${bal} due`}
                         </p>}
                       </div>

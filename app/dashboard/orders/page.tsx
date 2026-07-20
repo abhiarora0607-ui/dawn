@@ -117,7 +117,7 @@ function OrdersInner() {
                     {cancelled && o.cancel_reason && <p className="text-xs text-red-500 mt-1">Cancelled — {o.cancel_reason}{o.payment_disposition && o.payment_disposition !== "none" ? ` (payment ${o.payment_disposition})` : ""}</p>}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${cancelled ? "bg-navy/10 text-navy/50" : o.status === "paid" ? "bg-emerald-50 text-emerald-700" : o.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{cancelled ? "Cancelled" : o.status}</span>
+                    <span className={`text-[12px] font-bold uppercase px-2 py-1 rounded ${cancelled ? "bg-navy/10 text-navy/50" : o.status === "paid" ? "bg-emerald-50 text-emerald-700" : o.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{cancelled ? "Cancelled" : o.status}</span>
                     <a href={`/receipt/${o.share_token || o.id}?owner=1`} target="_blank" className="p-1.5 text-navy/40 hover:text-navy" title="Receipt"><Receipt className="w-4 h-4" /></a>
                     {!cancelled && <button onClick={() => setCancelFor(o)} className="p-1.5 text-navy/40 hover:text-amber-deep" title="Cancel order"><Ban className="w-4 h-4" /></button>}
                     <button onClick={() => setConfirmDel(o.id)} className="p-1.5 text-navy/40 hover:text-red-500" title="Delete permanently"><Trash2 className="w-4 h-4" /></button>
@@ -128,14 +128,14 @@ function OrdersInner() {
                   <Truck className="w-3.5 h-3.5 text-navy/40" />
                   <div className="flex gap-1 flex-wrap">
                     {ORDER_STATUSES.map((st) => (
-                      <button key={st} onClick={() => { if ((o.order_status || "Placed") !== st) setPendingStatus({ id: o.id, status: st }); }} className={`text-[11px] font-medium px-2 py-1 rounded-lg ${(o.order_status || "Placed") === st ? statusStyle[st] : "text-navy/40 hover:bg-surface"}`}>{st}</button>
+                      <button key={st} onClick={() => { if ((o.order_status || "Placed") !== st) setPendingStatus({ id: o.id, status: st }); }} className={`text-[12px] font-medium px-2 py-1 rounded-lg ${(o.order_status || "Placed") === st ? statusStyle[st] : "text-navy/40 hover:bg-surface"}`}>{st}</button>
                     ))}
                   </div>
                 </div>
                 {Number(o.balance) > 0 && (
                   <div className="flex items-center justify-between mt-1">
                     <p className="text-xs text-amber-deep">Balance: {money(Number(o.balance), currency)}</p>
-                    <button onClick={() => setPayFor(o)} className="text-[11px] font-semibold text-white bg-amber-deep px-2.5 py-1 rounded-lg hover:opacity-90">Record payment</button>
+                    <button onClick={() => setPayFor(o)} className="text-[12px] font-semibold text-white bg-amber-deep px-2.5 py-1 rounded-lg hover:opacity-90">Record payment</button>
                   </div>
                 )}
                 </>}
@@ -206,10 +206,10 @@ function CancelOrderModal({ order, currency, onClose, onDone }: { order: any; cu
           <div className="mt-3">
             <p className="text-xs font-semibold text-navy mb-2">{currency}{paid} was already paid. What happened to it?</p>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => { setDisposition("refunded"); setErr(""); }} className={`text-xs font-medium py-2.5 rounded-xl border ${disposition === "refunded" ? "border-amber bg-amber/5 text-navy" : "border-navy-line text-navy/60"}`}>Refunded<br /><span className="text-[10px] font-normal">money returned</span></button>
-              <button onClick={() => { setDisposition("retained"); setErr(""); }} className={`text-xs font-medium py-2.5 rounded-xl border ${disposition === "retained" ? "border-amber bg-amber/5 text-navy" : "border-navy-line text-navy/60"}`}>Retained<br /><span className="text-[10px] font-normal">kept as credit</span></button>
+              <button onClick={() => { setDisposition("refunded"); setErr(""); }} className={`text-xs font-medium py-2.5 rounded-xl border ${disposition === "refunded" ? "border-amber bg-amber/5 text-navy" : "border-navy-line text-navy/60"}`}>Refunded<br /><span className="text-[12px] font-normal">money returned</span></button>
+              <button onClick={() => { setDisposition("retained"); setErr(""); }} className={`text-xs font-medium py-2.5 rounded-xl border ${disposition === "retained" ? "border-amber bg-amber/5 text-navy" : "border-navy-line text-navy/60"}`}>Retained<br /><span className="text-[12px] font-normal">kept as credit</span></button>
             </div>
-            <p className="text-[11px] text-muted mt-1.5">{disposition === "refunded" ? "A refund expense will be logged and revenue reduced." : disposition === "retained" ? "The payment stays counted as revenue." : ""}</p>
+            <p className="text-[12px] text-muted mt-1.5">{disposition === "refunded" ? "A refund expense will be logged and revenue reduced." : disposition === "retained" ? "The payment stays counted as revenue." : ""}</p>
           </div>
         )}
 

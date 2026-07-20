@@ -215,7 +215,7 @@ export default function Engage() {
                 {debug.firstPostWithComments && (
                   <div className="mt-2 text-white/60">
                     <p className="text-amber">Raw response (first post with comments):</p>
-                    <pre className="whitespace-pre-wrap break-all text-[10px] bg-black/30 rounded p-2 mt-1">{JSON.stringify(debug.firstPostWithComments.rawResponse, null, 1)}</pre>
+                    <pre className="whitespace-pre-wrap break-all text-[12px] bg-black/30 rounded p-2 mt-1">{JSON.stringify(debug.firstPostWithComments.rawResponse, null, 1)}</pre>
                   </div>
                 )}
                 <p className="mt-2 font-medium">DM conversations: {debug.conversations?.count ?? (debug.conversations?.error ? `error: ${debug.conversations.error}` : "0")}</p>

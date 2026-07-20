@@ -68,13 +68,13 @@ function NavItem({ item, pathname, onNavigate, badgeCount, locked }: { item: any
       <item.icon className="w-[18px] h-[18px]" />
       <span>{item.label}</span>
       {item.label === "Briefing" && <span className="ml-auto w-2 h-2 rounded-full bg-amber" />}
-      {item.badge && badgeCount ? <span className="ml-auto text-[10px] font-bold bg-amber text-navy px-1.5 py-0.5 rounded-full min-w-[18px] text-center">{badgeCount}</span> : null}
+      {item.badge && badgeCount ? <span className="ml-auto text-[12px] font-bold bg-amber text-navy px-1.5 py-0.5 rounded-full min-w-[18px] text-center">{badgeCount}</span> : null}
     </Link>
   );
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <p className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-navy/35">{children}</p>;
+  return <p className="px-3 pt-4 pb-1.5 text-[12px] font-bold uppercase tracking-wider text-navy/35">{children}</p>;
 }
 
 function NavLinks({ pathname, onNavigate, suggCount, ent }: { pathname: string; onNavigate?: () => void; suggCount?: number; ent?: any }) {
@@ -174,7 +174,7 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
           return (
             <Link key={item.href} href={item.href} className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1 ${active ? "text-amber-deep" : "text-navy/50"}`}>
               <item.icon className="w-[20px] h-[20px]" />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <span className="text-[12px] font-medium">{item.label}</span>
             </Link>
           );
         })}
@@ -225,8 +225,8 @@ function PlanChip({ ent, onNavigate }: { ent?: any; onNavigate?: () => void }) {
   return (
     <Link href="/dashboard/billing" onClick={onNavigate}
       className="mx-3 mt-2 mb-1 block rounded-lg border border-navy-line px-3 py-2 hover:bg-navy/5">
-      <p className={`text-[11px] font-semibold ${tone}`}>{label}</p>
-      {detail && <p className="text-[10px] text-navy/40 mt-0.5">{detail}</p>}
+      <p className={`text-[12px] font-semibold ${tone}`}>{label}</p>
+      {detail && <p className="text-[12px] text-navy/40 mt-0.5">{detail}</p>}
     </Link>
   );
 }

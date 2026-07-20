@@ -22,7 +22,7 @@ export function WhatsNew() {
       <div className="space-y-2">
         {items.slice(0, 3).map((a) => (
           <div key={a.id} className="text-sm">
-            <p className="font-medium text-navy">{a.title} <span className="text-[10px] text-muted font-normal">· {new Date(a.created_at).toLocaleDateString()}</span></p>
+            <p className="font-medium text-navy">{a.title} <span className="text-[12px] text-muted font-normal">· {new Date(a.created_at).toLocaleDateString()}</span></p>
             {a.body && <p className="text-xs text-muted mt-0.5">{a.body}</p>}
           </div>
         ))}

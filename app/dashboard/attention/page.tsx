@@ -76,7 +76,7 @@ function Inner() {
           {TABS.map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)} className={`shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl border ${tab === t.id ? "bg-navy text-white border-navy" : "bg-white text-navy/60 border-navy-line"}`}>
               <t.icon className="w-3.5 h-3.5" /> {t.label}
-              {t.count > 0 && <span className={`text-[10px] font-bold px-1.5 rounded-full ${tab === t.id ? "bg-white/20" : "bg-amber/15 text-amber-deep"}`}>{t.count}</span>}
+              {t.count > 0 && <span className={`text-[12px] font-bold px-1.5 rounded-full ${tab === t.id ? "bg-white/20" : "bg-amber/15 text-amber-deep"}`}>{t.count}</span>}
             </button>
           ))}
         </div>
@@ -123,7 +123,7 @@ function Inner() {
                   <p className="text-xs text-red-600 font-medium">Follow-up {f.daysLate} day(s) late · {f.owner}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={() => setFollowUp(f.id, 0)} className="text-[11px] font-medium border border-navy-line text-navy px-2.5 py-1.5 rounded-lg">Today</button>
+                  <button onClick={() => setFollowUp(f.id, 0)} className="text-[12px] font-medium border border-navy-line text-navy px-2.5 py-1.5 rounded-lg">Today</button>
                   {f.phone && <a href={`https://wa.me/${f.phone.replace(/[^0-9]/g, "")}`} target="_blank" className="p-2 text-emerald-600 rounded-lg"><MessageCircle className="w-4 h-4" /></a>}
                 </div>
               </div>
@@ -134,7 +134,7 @@ function Inner() {
                   <p className="font-semibold text-navy text-sm">{t.title}</p>
                   <p className="text-xs text-red-600 font-medium">Task {t.daysLate} day(s) late · {t.owner}</p>
                 </div>
-                <Link href="/dashboard/team-work" className="text-[11px] font-medium text-amber-deep shrink-0">Open</Link>
+                <Link href="/dashboard/team-work" className="text-[12px] font-medium text-amber-deep shrink-0">Open</Link>
               </div>
             ))}
           </div>
@@ -177,8 +177,8 @@ function Inner() {
                   <p className="text-xs text-muted">{o.owner} · {money(o.total, currency)}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className="text-[10px] font-bold uppercase bg-navy/5 text-navy/60 px-2 py-1 rounded">{o.status}</span>
-                  <p className={`text-[11px] mt-1 ${o.daysOld > 7 ? "text-red-600 font-semibold" : "text-muted"}`}>{o.daysOld} days</p>
+                  <span className="text-[12px] font-bold uppercase bg-navy/5 text-navy/60 px-2 py-1 rounded">{o.status}</span>
+                  <p className={`text-[12px] mt-1 ${o.daysOld > 7 ? "text-red-600 font-semibold" : "text-muted"}`}>{o.daysOld} days</p>
                 </div>
               </div>
             ))}

@@ -162,7 +162,7 @@ export default function BusinessDashboard() {
             <div className="grid sm:grid-cols-2 gap-3 mb-3">
               {sc?.top && (
                 <Link href={`/dashboard/employees/${sc.top.employeeId}`} className="block bg-navy rounded-2xl p-5 text-white hover:opacity-95">
-                  <p className="text-[10px] uppercase tracking-wide text-white/50 flex items-center gap-1.5 mb-1"><Trophy className="w-3.5 h-3.5 text-amber" /> Top performer · {sc.month}</p>
+                  <p className="text-[12px] uppercase tracking-wide text-white/50 flex items-center gap-1.5 mb-1"><Trophy className="w-3.5 h-3.5 text-amber" /> Top performer · {sc.month}</p>
                   <p className="text-lg font-semibold">{sc.top.name}</p>
                   <p className="text-sm text-amber font-bold">Score {sc.top.score}/100</p>
                   <p className="text-xs text-white/50 mt-1">{money(sc.top.breakdown?.revenue || 0, currency)} collected · {sc.top.breakdown?.won || 0} won this month</p>
@@ -170,7 +170,7 @@ export default function BusinessDashboard() {
               )}
               {sc?.bottom && (
                 <Link href={`/dashboard/employees/${sc.bottom.employeeId}`} className="block bg-white rounded-2xl border border-red-200 p-5 hover:bg-red-50/30">
-                  <p className="text-[10px] uppercase tracking-wide text-red-500 flex items-center gap-1.5 mb-1"><AlertTriangle className="w-3.5 h-3.5" /> Needs support</p>
+                  <p className="text-[12px] uppercase tracking-wide text-red-500 flex items-center gap-1.5 mb-1"><AlertTriangle className="w-3.5 h-3.5" /> Needs support</p>
                   <p className="text-lg font-semibold text-navy">{sc.bottom.name}</p>
                   <p className="text-sm text-red-600 font-medium">Score {sc.bottom.score}/100</p>
                   <p className="text-xs text-muted mt-1">{sc.bottom.breakdown?.coldLeads || 0} cold lead(s) · {(sc.bottom.breakdown?.overdueFollowUps || 0) + (sc.bottom.breakdown?.overdueTasks || 0)} overdue</p>
@@ -184,7 +184,7 @@ export default function BusinessDashboard() {
                   <thead className="bg-surface border-b border-navy-line">
                     <tr>
                       {["Person", "Score", "Collected", "Open leads", "Won", "Close rate", "Cold", "Overdue"].map((h) => (
-                        <th key={h} className="text-left font-semibold text-navy/70 text-[11px] uppercase tracking-wide px-4 py-2.5 whitespace-nowrap">{h}</th>
+                        <th key={h} className="text-left font-semibold text-navy/70 text-[12px] uppercase tracking-wide px-4 py-2.5 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -192,7 +192,7 @@ export default function BusinessDashboard() {
                     {t.all.map((e: any) => (
                       <tr key={e.id} className="border-b border-navy-line/60 last:border-0">
                         <td className="px-4 py-3 font-medium text-navy whitespace-nowrap"><Link href={`/dashboard/employees/${e.id}`} className="hover:text-amber-deep hover:underline">{e.name}</Link></td>
-                        <td className="px-4 py-3">{(() => { const row = sc?.scores?.find((x: any) => x.employeeId === e.id); if (!row) return <span className="text-navy/30">—</span>; if (row.tooNew) return <span className="text-[10px] text-muted">too new</span>; if (!row.eligible) return <span className="text-navy/30">—</span>; return <span className={`font-bold ${row.score >= 70 ? "text-emerald-600" : row.score >= 40 ? "text-navy" : "text-red-600"}`}>{row.score}</span>; })()}</td>
+                        <td className="px-4 py-3">{(() => { const row = sc?.scores?.find((x: any) => x.employeeId === e.id); if (!row) return <span className="text-navy/30">—</span>; if (row.tooNew) return <span className="text-[12px] text-muted">too new</span>; if (!row.eligible) return <span className="text-navy/30">—</span>; return <span className={`font-bold ${row.score >= 70 ? "text-emerald-600" : row.score >= 40 ? "text-navy" : "text-red-600"}`}>{row.score}</span>; })()}</td>
                         <td className="px-4 py-3 text-navy">{money(e.revenue, currency)}</td>
                         <td className="px-4 py-3 text-navy">{e.leads}</td>
                         <td className="px-4 py-3 text-navy">{e.won}</td>
@@ -218,10 +218,10 @@ export default function BusinessDashboard() {
                 {c.best.map((b: any, i: number) => (
                   <div key={b.id} className="flex items-center justify-between text-sm">
                     <span className="text-navy flex items-center gap-2 min-w-0">
-                      <span className="text-[10px] font-bold text-muted w-4">{i + 1}</span>
+                      <span className="text-[12px] font-bold text-muted w-4">{i + 1}</span>
                       <Link href={`/dashboard/contacts/${b.id}`} className="truncate hover:text-amber-deep">{b.name}</Link>
                     </span>
-                    <span className="text-navy font-semibold shrink-0 ml-2">{money(b.spend, currency)} <span className="text-[10px] font-normal text-muted">· {b.orders} order(s)</span></span>
+                    <span className="text-navy font-semibold shrink-0 ml-2">{money(b.spend, currency)} <span className="text-[12px] font-normal text-muted">· {b.orders} order(s)</span></span>
                   </div>
                 ))}
               </div>
@@ -262,7 +262,7 @@ export default function BusinessDashboard() {
             {p.stages.map((s: any) => (
               <div key={s.stage} className="bg-surface rounded-xl p-3 text-center">
                 <p className="text-xl font-bold text-navy">{s.count}</p>
-                <p className="text-[10px] text-muted uppercase tracking-wide">{s.stage}</p>
+                <p className="text-[12px] text-muted uppercase tracking-wide">{s.stage}</p>
               </div>
             ))}
           </div>
@@ -289,16 +289,16 @@ function Money({ label, value, trend, sub, accent, icon: Icon }: any) {
     <div className="dawn-stat h-full">
       <span className="absolute top-0 left-0 h-0.5 w-full bg-gradient-to-r from-amber-deep/50 to-amber/25" />
       <div className="flex items-start justify-between">
-        <p className="text-[10px] uppercase tracking-wide text-muted font-semibold">{label}</p>
+        <p className="text-[12px] uppercase tracking-wide text-muted font-semibold">{label}</p>
         <Icon className="w-4 h-4 text-navy/20" />
       </div>
       <p className={`text-2xl font-bold mt-1.5 leading-none ${color}`}>{value}</p>
       {trend != null && (
-        <p className={`text-[11px] font-medium mt-1.5 ${trend >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+        <p className={`text-[12px] font-medium mt-1.5 ${trend >= 0 ? "text-emerald-600" : "text-red-600"}`}>
           {trend >= 0 ? "▲" : "▼"} {Math.abs(trend)}% vs last month
         </p>
       )}
-      {sub && <p className="text-[11px] text-muted mt-1">{sub}</p>}
+      {sub && <p className="text-[12px] text-muted mt-1">{sub}</p>}
     </div>
   );
 }
@@ -310,10 +310,10 @@ function Panel({ title, count, icon: Icon, tone, href, children }: any) {
     <div className={`dawn-card ${border} p-5`}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-navy text-sm flex items-center gap-1.5"><Icon className="w-4 h-4 text-navy/40" /> {title}</h3>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${badge}`}>{count}</span>
+        <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full ${badge}`}>{count}</span>
       </div>
       <div className="space-y-1.5">{children}</div>
-      {href && count > 3 && <Link href={href} className="text-[11px] font-medium text-amber-deep mt-3 inline-flex items-center gap-1">See all <ArrowRight className="w-3 h-3" /></Link>}
+      {href && count > 3 && <Link href={href} className="text-[12px] font-medium text-amber-deep mt-3 inline-flex items-center gap-1">See all <ArrowRight className="w-3 h-3" /></Link>}
     </div>
   );
 }
@@ -323,7 +323,7 @@ function Row({ main, meta, phone, urgent, href }: any) {
   const body = (
     <>
       <span className={`text-sm truncate ${urgent ? "text-red-600 font-medium" : "text-navy"}`}>{main}</span>
-      <span className="text-[11px] text-muted shrink-0 ml-2">{meta}</span>
+      <span className="text-[12px] text-muted shrink-0 ml-2">{meta}</span>
     </>
   );
   return (
@@ -335,5 +335,5 @@ function Row({ main, meta, phone, urgent, href }: any) {
 }
 
 function Mini({ label, value }: { label: string; value: string }) {
-  return <div><p className="text-[10px] uppercase tracking-wide text-muted">{label}</p><p className="text-sm font-semibold text-navy">{value}</p></div>;
+  return <div><p className="text-[12px] uppercase tracking-wide text-muted">{label}</p><p className="text-sm font-semibold text-navy">{value}</p></div>;
 }

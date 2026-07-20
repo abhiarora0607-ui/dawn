@@ -61,7 +61,7 @@ function Inner() {
             className={`flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium border-b-2 -mb-px whitespace-nowrap ${tab === t.id ? "border-amber-deep text-navy" : "border-transparent text-muted hover:text-navy"}`}>
             <t.icon className="w-4 h-4" /> {t.label}
             {t.id === "requests" && pending > 0 && (
-              <span className="text-[10px] font-bold bg-amber text-navy px-1.5 py-0.5 rounded-full">{pending}</span>
+              <span className="text-[12px] font-bold bg-amber text-navy px-1.5 py-0.5 rounded-full">{pending}</span>
             )}
           </button>
         ))}
@@ -178,9 +178,9 @@ function MonthTab() {
                 {d.dates.map((dt: string) => {
                   const isToday = dt === d.today;
                   return (
-                    <th key={dt} className={`px-0.5 py-2.5 text-[10px] font-medium w-7 ${isToday ? "text-amber-deep" : "text-muted"}`}>
+                    <th key={dt} className={`px-0.5 py-2.5 text-[12px] font-medium w-7 ${isToday ? "text-amber-deep" : "text-muted"}`}>
                       {isToday ? <span className="block w-5 h-5 mx-auto rounded-full bg-amber/20 leading-5">{dt.slice(8)}</span> : dt.slice(8)}
-                      <span className="block text-[8px] text-navy/30">{DAY_LETTERS[new Date(`${dt}T00:00:00Z`).getUTCDay()]}</span>
+                      <span className="block text-[12px] text-navy/30">{DAY_LETTERS[new Date(`${dt}T00:00:00Z`).getUTCDay()]}</span>
                     </th>
                   );
                 })}
@@ -201,7 +201,7 @@ function MonthTab() {
               ))}
             </tbody>
           </table>
-          <div className="flex flex-wrap gap-3 px-3 py-3 border-t border-navy-line text-[11px] text-muted">
+          <div className="flex flex-wrap gap-3 px-3 py-3 border-t border-navy-line text-[12px] text-muted">
             <Legend cls="bg-emerald-500" label="Full day" />
             <Legend cls="bg-amber" label="Half day" />
             <Legend cls="bg-red-400" label="Absent" />
@@ -316,7 +316,7 @@ function RequestsTab({ onChange }: { onChange: () => void }) {
                       </span>
                     ))}
                   </div>
-                  <p className="text-[11px] text-muted mt-2">Asked {new Date(r.created_at).toLocaleString()}</p>
+                  <p className="text-[12px] text-muted mt-2">Asked {new Date(r.created_at).toLocaleString()}</p>
                 </div>
                 {r.status === "pending" ? (
                   <div className="flex items-center gap-2 shrink-0">
@@ -328,7 +328,7 @@ function RequestsTab({ onChange }: { onChange: () => void }) {
                     </button>
                   </div>
                 ) : (
-                  <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded shrink-0 ${r.status === "approved" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{r.status}</span>
+                  <span className={`text-[12px] font-bold uppercase px-2 py-1 rounded shrink-0 ${r.status === "approved" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>{r.status}</span>
                 )}
               </div>
             </div>
@@ -526,7 +526,7 @@ function SetupTab() {
           <button onClick={useMyLocation} disabled={locating} className="flex items-center gap-1.5 text-sm font-medium text-amber-deep border border-amber/40 px-3 py-2 rounded-xl hover:bg-amber/5 disabled:opacity-60">
             {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crosshair className="w-4 h-4" />} Use my current location
           </button>
-          <span className="text-[11px] text-muted">Only accurate if you&apos;re at the shop right now.</span>
+          <span className="text-[12px] text-muted">Only accurate if you&apos;re at the shop right now.</span>
         </div>
         {locHelp && <p className="text-xs text-amber-deep mt-2 flex items-start gap-1.5"><AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {locHelp}</p>}
 
@@ -537,7 +537,7 @@ function SetupTab() {
               placeholder="Paste a maps link, or 28.6812, 77.0654" className="inp flex-1" />
             <button onClick={applyPasted} className="text-sm font-medium text-navy border border-navy-line px-4 rounded-xl hover:bg-surface">Read</button>
           </div>
-          <p className="text-[11px] text-muted mt-1">
+          <p className="text-[12px] text-muted mt-1">
             In Google Maps, right-click your shop (or long-press on a phone) — the coordinates appear at the top of the menu.
           </p>
           {hasShop && (
@@ -570,7 +570,7 @@ function SetupTab() {
           <label className="block"><span className="text-xs text-muted">Half day from (%)</span><input type="number" value={f.half_day_pct} onChange={(e) => setF({ ...f, half_day_pct: e.target.value })} className="inp mt-1" /></label>
           <label className="block"><span className="text-xs text-muted">Full day from (%)</span><input type="number" value={f.full_day_pct} onChange={(e) => setF({ ...f, full_day_pct: e.target.value })} className="inp mt-1" /></label>
         </div>
-        <p className="text-[11px] text-muted mt-2">
+        <p className="text-[12px] text-muted mt-2">
           Under {f.half_day_pct}% of {f.required_hours}h counts as a full day&apos;s leave · {f.half_day_pct}–{f.full_day_pct}% is a half day · {f.full_day_pct}% or more is a full day.
         </p>
         <div className="mt-4">
@@ -593,7 +593,7 @@ function SetupTab() {
           <label className="block"><span className="text-xs text-muted">Requests per person per month</span><input type="number" value={f.regularization_quota} onChange={(e) => setF({ ...f, regularization_quota: e.target.value })} className="inp mt-1" /></label>
           <label className="block"><span className="text-xs text-muted">How far back they can fix (days)</span><input type="number" value={f.regularization_back_days} onChange={(e) => setF({ ...f, regularization_back_days: e.target.value })} className="inp mt-1" /></label>
         </div>
-        <p className="text-[11px] text-muted mt-2">Rejected requests don&apos;t count against the allowance. Individual people can be given extra on their employee record.</p>
+        <p className="text-[12px] text-muted mt-2">Rejected requests don&apos;t count against the allowance. Individual people can be given extra on their employee record.</p>
       </div>
 
       <button onClick={save} disabled={saving} className="w-full sm:w-auto bg-navy text-white font-semibold px-6 py-3 rounded-xl disabled:opacity-60">
@@ -636,7 +636,7 @@ function StatusPill({ c, onShift }: { c: string; onShift?: boolean }) {
     not_joined: "bg-slate-100 text-slate-400 border-slate-200",
   };
   const label = onShift ? "On shift" : CLASS_LABEL[c] || c;
-  return <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border shrink-0 ${map[c] || map.absent}`}>{label}</span>;
+  return <span className={`text-[12px] font-bold uppercase tracking-wide px-2 py-0.5 rounded border shrink-0 ${map[c] || map.absent}`}>{label}</span>;
 }
 
 function Loading() { return <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>; }

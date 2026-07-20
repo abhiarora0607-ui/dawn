@@ -179,7 +179,7 @@ export default function Dashboard() {
                 <div className="space-y-3">
                   {data.brief.actions.map((a, i) => (
                     <div key={i} className="flex items-start gap-3 p-4 rounded-xl border border-navy/8 hover:border-amber/40 hover:bg-surface transition-colors group">
-                      <span className={`mt-0.5 text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${priorityStyles[a.priority]}`}>{a.priority}</span>
+                      <span className={`mt-0.5 text-[12px] font-bold px-2 py-0.5 rounded border uppercase ${priorityStyles[a.priority]}`}>{a.priority}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-navy">{a.title}</p>
                         <p className="text-sm text-navy/55 leading-snug mt-1">{a.detail}</p>
@@ -229,7 +229,7 @@ export default function Dashboard() {
             <section className="bg-white rounded-2xl border border-navy/8 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold text-navy/50 uppercase tracking-wide">Competitor signals</h2>
-                <span className="text-[10px] text-navy/40 bg-navy/5 px-2 py-1 rounded">public data only</span>
+                <span className="text-[12px] text-navy/40 bg-navy/5 px-2 py-1 rounded">public data only</span>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 {data.competitors.map((c, i) => (

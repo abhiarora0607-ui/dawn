@@ -51,9 +51,9 @@ function Calendar7({ }: {}) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-bold uppercase bg-navy/5 text-navy/60 px-2 py-0.5 rounded">{d.format}</span>
-                    <span className="text-[10px] text-muted">{d.theme}</span>
-                    <span className="text-[10px] text-muted flex items-center gap-0.5"><Clock className="w-3 h-3" /> {d.bestTime}</span>
+                    <span className="text-[12px] font-bold uppercase bg-navy/5 text-navy/60 px-2 py-0.5 rounded">{d.format}</span>
+                    <span className="text-[12px] text-muted">{d.theme}</span>
+                    <span className="text-[12px] text-muted flex items-center gap-0.5"><Clock className="w-3 h-3" /> {d.bestTime}</span>
                   </div>
                   <p className="text-sm font-semibold text-navy mt-1 leading-snug">&ldquo;{d.hook}&rdquo;</p>
                   <p className="text-xs text-muted leading-snug mt-0.5">{d.idea}</p>
@@ -118,10 +118,10 @@ function CarouselGen() {
           <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
             {carousel.slides.map((s) => (
               <div key={s.n} className="shrink-0 w-40 aspect-[4/5] rounded-2xl bg-navy text-white p-4 flex flex-col justify-between shadow-card">
-                <span className="text-[10px] text-amber font-bold">{s.n === 1 ? "HOOK" : s.n === carousel.slides.length ? "CTA" : `SLIDE ${s.n}`}</span>
+                <span className="text-[12px] text-amber font-bold">{s.n === 1 ? "HOOK" : s.n === carousel.slides.length ? "CTA" : `SLIDE ${s.n}`}</span>
                 <div>
                   <p className="font-display font-semibold text-sm leading-tight">{s.headline}</p>
-                  {s.subtext && <p className="text-white/60 text-[11px] mt-1 leading-snug">{s.subtext}</p>}
+                  {s.subtext && <p className="text-white/60 text-[12px] mt-1 leading-snug">{s.subtext}</p>}
                 </div>
               </div>
             ))}

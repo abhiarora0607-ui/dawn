@@ -42,7 +42,7 @@ export function OnboardingCard() {
           <Link key={s.key} href={s.href} className={`flex items-center gap-2.5 py-2 px-2 rounded-lg text-sm ${s.done ? "text-muted" : "text-navy hover:bg-white"}`}>
             {s.done ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> : <Circle className="w-4 h-4 text-navy/25 shrink-0" />}
             <span className={s.done ? "line-through" : "font-medium"}>{s.label}</span>
-            {s.optional && !s.done && <span className="text-[10px] text-muted ml-auto">optional</span>}
+            {s.optional && !s.done && <span className="text-[12px] text-muted ml-auto">optional</span>}
             {!s.done && !s.optional && <span className="text-amber-deep ml-auto text-xs">Start →</span>}
           </Link>
         ))}
