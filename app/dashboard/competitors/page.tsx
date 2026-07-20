@@ -65,7 +65,7 @@ export default function Competitors() {
 
         {/* AI suggestions */}
         {(loadingSuggestions || suggestions.length > 0) && (
-          <div className="bg-white rounded-2xl border border-navy/8 p-5">
+          <div className="dawn-card p-5">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-4 h-4 text-amber-deep" />
               <p className="text-xs font-semibold text-navy/50 uppercase tracking-wide">AI-suggested competitors</p>
@@ -98,7 +98,7 @@ export default function Competitors() {
         )}
 
         {/* Add handles */}
-        <div className="bg-white rounded-2xl border border-navy/8 p-5">
+        <div className="dawn-card p-5">
           <p className="text-xs font-semibold text-navy/50 uppercase tracking-wide mb-3">Add competitors (up to 5)</p>
           <div className="flex gap-2">
             <div className="flex-1 flex items-center gap-2 border border-navy/12 rounded-xl px-3">
@@ -146,7 +146,7 @@ export default function Competitors() {
         {results && (
           <div className="grid md:grid-cols-2 gap-4">
             {results.map((c, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-navy/8 p-5">
+              <div key={i} className="dawn-card p-5">
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-semibold text-navy">@{c.handle}</span>
                   {c.followers != null && <span className="text-xs text-navy/50">{fmt(c.followers)} followers</span>}

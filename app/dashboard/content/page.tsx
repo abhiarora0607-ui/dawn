@@ -44,8 +44,7 @@ function IdeaModal({ idea, onClose }: { idea: Idea; onClose: () => void }) {
   const Icon = formatIcon[idea.format] || Film;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
+    <div className="dawn-scrim">
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto animate-rise">
         <div className="sticky top-0 bg-white border-b border-navy/8 px-5 py-4 flex items-center justify-between">
           <span className="flex items-center gap-2 text-sm font-semibold text-amber-deep bg-amber/10 px-3 py-1 rounded-full">
@@ -57,7 +56,7 @@ function IdeaModal({ idea, onClose }: { idea: Idea; onClose: () => void }) {
                 {savedOk ? <><Check className="w-3.5 h-3.5" /> Saved</> : <><Bookmark className="w-3.5 h-3.5" /> Save</>}
               </button>
             )}
-            <button onClick={onClose} className="p-1.5 text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
+            <button onClick={onClose} className="btn-icon text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
           </div>
         </div>
 
@@ -151,7 +150,7 @@ export default function Content() {
             {ideas.map((idea, i) => {
               const Icon = formatIcon[idea.format] || Film;
               return (
-                <button key={i} onClick={() => setSelected(idea)} className="text-left bg-white rounded-2xl border border-navy/8 p-5 hover:border-amber/40 hover:shadow-md transition-all group">
+                <button key={i} onClick={() => setSelected(idea)} className="text-left dawn-card p-5 hover:border-amber/40 hover:shadow-md transition-all group">
                   <div className="flex items-center justify-between mb-3">
                     <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-deep bg-amber/10 px-2.5 py-1 rounded-full">
                       <Icon className="w-3.5 h-3.5" /> {idea.format}

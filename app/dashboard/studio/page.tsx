@@ -42,7 +42,7 @@ function Calendar7({ }: {}) {
           {days.map((d, i) => {
             const Icon = fmtIcon[d.format] || Film;
             return (
-              <div key={i} className="bg-white rounded-2xl border border-navy-line p-4 shadow-card flex items-start gap-4">
+              <div key={i} className="dawn-card p-4 shadow-card flex items-start gap-4">
                 <div className="text-center shrink-0 w-14">
                   <p className="text-xs font-bold text-amber-deep uppercase">{d.day.slice(0, 3)}</p>
                   <div className="w-10 h-10 mx-auto mt-1 rounded-xl bg-amber/10 flex items-center justify-center">
@@ -126,7 +126,7 @@ function CarouselGen() {
               </div>
             ))}
           </div>
-          <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
+          <div className="dawn-card p-4 shadow-card">
             <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Caption</p>
             <p className="text-sm text-navy/80 leading-relaxed whitespace-pre-wrap">{carousel.caption}</p>
             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -152,7 +152,7 @@ export default function Studio() {
           <p className="text-muted text-sm mt-1">Plan your week and build carousels — all AI, all tailored to you.</p>
         </div>
 
-        <div className="flex gap-2 bg-white p-1 rounded-xl border border-navy-line w-fit">
+        <div className="btn-icon flex gap-2 bg-white  rounded-xl border border-navy-line w-fit">
           <button onClick={() => setTab("calendar")} className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors ${tab === "calendar" ? "bg-navy text-white" : "text-navy/60"}`}>Weekly calendar</button>
           <button onClick={() => setTab("carousel")} className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors ${tab === "carousel" ? "bg-navy text-white" : "text-navy/60"}`}>Carousel</button>
         </div>

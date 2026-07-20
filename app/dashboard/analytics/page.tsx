@@ -43,7 +43,7 @@ export default function Analytics() {
               { label: "Profile visits", value: fmt(data.account.profileVisits), icon: Target },
               { label: "Engagement", value: `${data.account.engagementRate}%`, icon: TrendingUp },
             ].map((k) => (
-              <div key={k.label} className="bg-white rounded-xl border border-navy/8 p-4">
+              <div key={k.label} className="dawn-card-flat p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-medium text-navy/50">{k.label}</span>
                   <k.icon className="w-4 h-4 text-navy/30" />
@@ -61,7 +61,7 @@ export default function Analytics() {
           </div>
 
           {/* Content performance */}
-          <section className="bg-white rounded-2xl border border-navy/8 p-6">
+          <section className="dawn-card p-6">
             <h2 className="text-sm font-semibold text-navy/50 uppercase tracking-wide mb-5">Content performance</h2>
             <div className="space-y-3">
               <Bar label="Top post" value={data.account.topPost.reach} max={data.account.topPost.reach} sub={data.account.topPost.format} />

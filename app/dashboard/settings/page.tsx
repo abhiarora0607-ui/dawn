@@ -91,7 +91,7 @@ function SettingsInner() {
       <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-5 pb-24">
         <h1 className="font-display font-semibold text-2xl text-navy">Settings</h1>
 
-        <section className="bg-white rounded-2xl border border-navy-line p-5 shadow-card space-y-4">
+        <section className="dawn-card p-5 shadow-card space-y-4">
           <div className="flex items-center gap-2"><Building2 className="w-4 h-4 text-amber-deep" /><h2 className="font-semibold text-navy">Business profile</h2></div>
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-surface border border-navy-line flex items-center justify-center overflow-hidden shrink-0">
@@ -120,7 +120,7 @@ function SettingsInner() {
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save settings
         </button>
 
-        <section className="bg-white rounded-2xl border border-navy-line p-5 shadow-card space-y-3">
+        <section className="dawn-card p-5 shadow-card space-y-3">
           <div className="flex items-center gap-2"><Database className="w-4 h-4 text-amber-deep" /><h2 className="font-semibold text-navy">Data</h2></div>
           <div className="flex flex-wrap gap-2">
             <button onClick={seed} disabled={seeding} className="flex items-center gap-2 text-sm font-medium border border-navy-line px-4 py-2 rounded-xl hover:bg-surface disabled:opacity-60">
@@ -152,7 +152,7 @@ function LoginLinksSection() {
     { key: "team", label: "Employee login", desc: "Share with your team members", url: `${origin}/team-login` },
   ];
   return (
-    <section className="bg-white rounded-2xl border border-navy-line p-5 sm:p-6">
+    <section className="dawn-card p-5 sm:p-6">
       <h2 className="font-display font-semibold text-lg text-navy mb-1">Login links</h2>
       <p className="text-muted text-sm mb-4">Quick access to share with your team. The employee link is where staff sign in with the login you create for them.</p>
       <div className="space-y-3">

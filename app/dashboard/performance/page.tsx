@@ -47,7 +47,7 @@ export default function PerformancePage() {
             <h1 className="font-display font-semibold text-2xl text-navy">Team Performance</h1>
             <p className="text-muted text-sm mt-0.5">Compare how each team member is performing.</p>
           </div>
-          <div className="flex gap-1 bg-white p-1 rounded-xl border border-navy-line overflow-x-auto">
+          <div className="btn-icon flex gap-1 bg-white  rounded-xl border border-navy-line overflow-x-auto">
             {WINDOWS.map((w) => (
               <button key={w.id} onClick={() => setWin(w.id)} className={`text-sm font-medium px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors ${win === w.id ? "bg-navy text-white" : "text-muted hover:text-navy"}`}>{w.label}</button>
             ))}
@@ -57,7 +57,7 @@ export default function PerformancePage() {
         {loading ? (
           <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/40" /></div>
         ) : rows.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-navy-line p-12 text-center">
+          <div className="dawn-card p-12 text-center">
             <Users className="w-10 h-10 text-navy/20 mx-auto mb-3" />
             <p className="text-navy font-medium">No employees yet</p>
             <p className="text-muted text-sm mt-1">Add employees and assign them leads and orders to see performance here.</p>
@@ -74,7 +74,7 @@ export default function PerformancePage() {
 
             {/* Monthly score ranking — the official record */}
             {sc?.scores?.length > 0 && (
-              <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+              <div className="dawn-card p-5 shadow-card">
                 <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
                   <p className="text-sm font-semibold text-navy">Monthly score {sc.live ? "(live)" : "(final)"} · {sc.month}</p>
                   <select value={scoreMonth} onChange={(e) => setScoreMonth(e.target.value)} className="text-xs px-2 py-1.5 rounded-lg border border-navy-line text-navy bg-white">
@@ -107,7 +107,7 @@ export default function PerformancePage() {
             )}
 
             {/* Comparison table (desktop) */}
-            <div className="hidden md:block bg-white rounded-2xl border border-navy-line overflow-hidden">
+            <div className="hidden md:block dawn-card overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-surface text-muted text-xs uppercase tracking-wide">
@@ -145,7 +145,7 @@ export default function PerformancePage() {
             {/* Cards (mobile) */}
             <div className="md:hidden grid gap-3">
               {rows.map((r, i) => (
-                <div key={r.id} className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
+                <div key={r.id} className="dawn-card p-4 shadow-card">
                   <div className="flex items-center justify-between mb-3">
                     <span className="inline-flex items-center gap-2 font-semibold text-navy">{i === 0 && r.revenue > 0 && <Trophy className="w-4 h-4 text-amber-deep" />}<Link href={`/dashboard/employees/${r.id}`} className="hover:text-amber-deep hover:underline">{r.name}</Link></span>
                     <span className="font-bold text-navy">{money(r.revenue)}</span>
@@ -202,7 +202,7 @@ function TeamActivity() {
   };
   if (!loaded || logs.length === 0) return null;
   return (
-    <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+    <div className="dawn-card p-5 shadow-card">
       <h2 className="font-semibold text-navy mb-3">Recent team activity</h2>
       <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
         {logs.map((l, i) => (

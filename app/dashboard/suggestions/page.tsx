@@ -73,7 +73,7 @@ function SuggestionsInner() {
         {loading ? (
           <div className="p-12 flex items-center justify-center text-muted"><Loader2 className="w-6 h-6 animate-spin mr-3" /> Checking your pipeline…</div>
         ) : suggestions.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-navy-line p-12 text-center shadow-card">
+          <div className="dawn-card p-12 text-center shadow-card">
             <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4"><Check className="w-7 h-7 text-emerald-600" /></div>
             <h2 className="text-lg font-semibold text-navy mb-2">You&apos;re all caught up</h2>
             <p className="text-muted text-sm max-w-sm mx-auto">No follow-ups, pending payments, or stale leads need your attention right now. Dawn will nudge you when something does.</p>
@@ -83,7 +83,7 @@ function SuggestionsInner() {
             {suggestions.map((s) => {
               const Icon = typeIcon[s.type] || Lightbulb;
               return (
-                <div key={s.id} className={`bg-white rounded-2xl border border-navy-line border-l-4 ${priColor[s.priority] || "border-l-navy/20"} p-4 shadow-card`}>
+                <div key={s.id} className={`dawn-card border-l-4 ${priColor[s.priority] || "border-l-navy/20"} p-4 shadow-card`}>
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-xl bg-amber/10 flex items-center justify-center shrink-0"><Icon className="w-4 h-4 text-amber-deep" /></div>
                     <div className="flex-1 min-w-0">

@@ -77,10 +77,10 @@ function Inner() {
         {readOnly && !loading && <p className="text-xs text-muted flex items-center gap-1.5"><Database className="w-3.5 h-3.5" /> This is a historical record — it can be read but never edited or deleted.</p>}
 
         {loading ? <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>
-        : rows.length === 0 ? <div className="bg-white rounded-2xl border border-navy-line p-12 text-center text-muted text-sm">No records here yet.</div>
+        : rows.length === 0 ? <div className="dawn-card p-12 text-center text-muted text-sm">No records here yet.</div>
         : (
-          <div className="bg-white rounded-2xl border border-navy-line shadow-card overflow-hidden">
-            <div className="overflow-x-auto dawn-scroll">
+          <div className="dawn-card shadow-card overflow-hidden">
+            <div className="dawn-table-wrap">
               <table className="w-full text-sm">
                 <thead className="bg-surface border-b border-navy-line">
                   <tr>
@@ -95,8 +95,8 @@ function Inner() {
                       <td className="px-4 py-3">
                         {!readOnly && (
                           <div className="flex items-center gap-1 justify-end">
-                            <button onClick={() => setEdit(r)} className="p-1.5 text-navy/40 hover:text-navy rounded-lg" title="Edit"><Pencil className="w-4 h-4" /></button>
-                            <button onClick={() => setDel(r)} className="p-1.5 text-navy/40 hover:text-red-600 rounded-lg" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                            <button onClick={() => setEdit(r)} className="btn-icon text-navy/40 hover:text-navy rounded-lg" title="Edit"><Pencil className="w-4 h-4" /></button>
+                            <button onClick={() => setDel(r)} className="btn-icon text-navy/40 hover:text-red-600 rounded-lg" title="Delete"><Trash2 className="w-4 h-4" /></button>
                           </div>
                         )}
                       </td>
@@ -161,12 +161,11 @@ function EditRow({ object, row, editable, employees, onClose, onSaved }: { objec
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-        <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="dawn-scrim">
         <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg p-5 animate-rise max-h-[92vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-navy">Edit record</h3>
-            <button onClick={onClose} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
+            <button onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button>
           </div>
           <div className="space-y-3">
             {editable.map((k) => (
@@ -211,9 +210,8 @@ function UnwonDialog({ name, onConfirm, onCancel }: { name: string; onConfirm: (
   const [note, setNote] = useState("");
   const [err, setErr] = useState("");
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm p-5 animate-rise">
+    <div className="dawn-scrim z-[60]">
+      <div className="dawn-sheet relative">
         <h3 className="font-semibold text-navy mb-2">Move {name} out of Customer (Won)?</h3>
         <p className="text-sm text-muted mb-3">This customer has real orders, so they&apos;re normally locked as won. Only you can reverse that — and only with a reason, which is logged. (e.g. &ldquo;order was recorded on the wrong contact&rdquo;, &ldquo;fully refunded&rdquo;.)</p>
         <textarea autoFocus value={note} onChange={(e) => { setNote(e.target.value); setErr(""); }} rows={3} placeholder="Reason (required)" className="w-full px-3 py-2.5 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber resize-none" />

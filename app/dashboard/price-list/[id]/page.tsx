@@ -31,7 +31,7 @@ export default function ItemDetail() {
   return (
     <DashboardShell>
       <DashTopbar pageTitle="Item" />
-      <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-5">
+      <div className="dawn-page space-y-5">
         <button onClick={() => router.push("/dashboard/price-list")} className="flex items-center gap-1.5 text-sm text-muted hover:text-navy"><ArrowLeft className="w-4 h-4" /> Price list</button>
 
         <div className="dawn-card p-5">

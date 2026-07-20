@@ -42,7 +42,7 @@ function Inner() {
   }, [tab]);
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-5">
+    <div className="dawn-page space-y-5">
       <div>
         <h1 className="font-display font-semibold text-2xl text-navy">Leave</h1>
         <p className="text-muted text-sm mt-1">Time off, balances, and what your business offers.</p>
@@ -150,11 +150,11 @@ function BalancesTab() {
   if (!d.rows?.length) return <Empty>No employees yet.</Empty>;
 
   return (
-    <div className="dawn-card overflow-x-auto">
+    <div className="dawn-card dawn-table-wrap">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-navy-line">
-            <th className="text-left px-4 py-2.5 font-semibold text-navy sticky left-0 bg-white">Employee</th>
+            <th className="text-left px-4 py-2.5 font-semibold text-navy sticky-col">Employee</th>
             {d.types.map((t: any) => (
               <th key={t.code} className="px-3 py-2.5 text-right font-medium text-muted text-xs whitespace-nowrap">{t.label.replace(" Leave", "")}</th>
             ))}
@@ -163,7 +163,7 @@ function BalancesTab() {
         <tbody>
           {d.rows.map((r: any) => (
             <tr key={r.id} className="border-b border-navy-line/40 last:border-0">
-              <td className="px-4 py-2.5 sticky left-0 bg-white">
+              <td className="px-4 py-2.5 sticky-col">
                 <span className="font-medium text-navy">{r.name}</span>
                 {r.role && <span className="text-xs text-muted block">{r.role}</span>}
               </td>

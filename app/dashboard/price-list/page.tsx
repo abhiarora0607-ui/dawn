@@ -63,12 +63,11 @@ function ItemModal({ item, onClose, onSaved }: { item: Item | null; onClose: () 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
+    <div className="dawn-scrim">
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto animate-rise">
         <div className="sticky top-0 bg-white border-b border-navy-line px-5 py-4 flex items-center justify-between">
           <h3 className="font-semibold text-navy">{item?.id ? "Edit item" : "Add item"}</h3>
-          <button onClick={onClose} className="p-1.5 text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="btn-icon text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-4">
           <div className="flex gap-2">
@@ -170,7 +169,7 @@ function PriceListInner() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Price List" />
-      <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
+      <div className="dawn-page space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="font-display font-semibold text-2xl text-navy">Price List</h1>
@@ -201,7 +200,7 @@ function PriceListInner() {
         {loading ? (
           <div className="grid gap-3">{[...Array(3)].map((_, i) => <div key={i} className="h-24 rounded-2xl skeleton" />)}</div>
         ) : items.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-navy-line p-12 text-center shadow-card">
+          <div className="dawn-card p-12 text-center shadow-card">
             <div className="w-14 h-14 rounded-2xl bg-amber/15 flex items-center justify-center mx-auto mb-4"><Tag className="w-7 h-7 text-amber-deep" /></div>
             <h2 className="text-lg font-semibold text-navy mb-2">No items yet</h2>
             <p className="text-muted text-sm max-w-sm mx-auto mb-5">Add your first product or service. You&apos;ll get a shareable price list you can send to customers.</p>
@@ -212,7 +211,7 @@ function PriceListInner() {
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
             {filtered.map((item) => (
-              <div key={item.id} className={`bg-white rounded-2xl border border-navy-line p-4 shadow-card ${!item.is_active ? "opacity-60" : ""}`}>
+              <div key={item.id} className={`dawn-card p-4 shadow-card ${!item.is_active ? "opacity-60" : ""}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -237,10 +236,10 @@ function PriceListInner() {
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <div className="flex gap-1">
-                      <button onClick={() => setModal({ open: true, item })} className="p-1.5 text-navy/40 hover:text-navy" title="Edit"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => duplicate(item)} className="p-1.5 text-navy/40 hover:text-navy" title="Duplicate"><Copy className="w-4 h-4" /></button>
-                      <button onClick={() => toggleActive(item)} className="p-1.5 text-navy/40 hover:text-navy" title={item.is_active ? "Hide" : "Show"}>{item.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}</button>
-                      <button onClick={() => setConfirm({ open: true, id: item.id })} className="p-1.5 text-navy/40 hover:text-red-500" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => setModal({ open: true, item })} className="btn-icon text-navy/40 hover:text-navy" title="Edit"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => duplicate(item)} className="btn-icon text-navy/40 hover:text-navy" title="Duplicate"><Copy className="w-4 h-4" /></button>
+                      <button onClick={() => toggleActive(item)} className="btn-icon text-navy/40 hover:text-navy" title={item.is_active ? "Hide" : "Show"}>{item.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}</button>
+                      <button onClick={() => setConfirm({ open: true, id: item.id })} className="btn-icon text-navy/40 hover:text-red-500" title="Delete"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                 </div>

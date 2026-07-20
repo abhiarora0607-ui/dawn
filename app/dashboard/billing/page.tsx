@@ -63,7 +63,7 @@ function Inner() {
     `${e.planName} · renews${e.renewsInDays != null ? ` in ${e.renewsInDays}d` : ""} on ${e.periodEnd ? new Date(e.periodEnd).toLocaleDateString() : ""}${e.cancelAtPeriodEnd ? " · will not renew" : ""}`;
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
+    <div className="dawn-page space-y-6">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="font-display font-semibold text-2xl text-navy">Billing</h1>
@@ -161,8 +161,8 @@ function Inner() {
 
       {/* ---- cancel-reason modal ---- */}
       {cancelModal && (
-        <div className="fixed inset-0 bg-navy/40 flex items-center justify-center z-50 p-4" onClick={() => setCancelModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl p-5" onClick={(ev) => ev.stopPropagation()}>
+        <div className="dawn-scrim" onClick={() => setCancelModal(false)}>
+          <div className="dawn-sheet" onClick={(ev) => ev.stopPropagation()}>
             <p className="font-display font-semibold text-lg text-navy">Before you go —</p>
             <p className="text-sm text-muted mt-1 mb-3">What&apos;s the main reason? It genuinely shapes what we build.</p>
             <div className="flex flex-wrap gap-2 mb-3">
@@ -181,8 +181,8 @@ function Inner() {
 
       {/* ---- checkout modal ---- */}
       {checkout && (
-        <div className="fixed inset-0 bg-navy/40 flex items-center justify-center z-50 p-4" onClick={() => !paying && !paid && setCheckout(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl p-5" onClick={(ev) => ev.stopPropagation()}>
+        <div className="dawn-scrim" onClick={() => !paying && !paid && setCheckout(null)}>
+          <div className="dawn-sheet" onClick={(ev) => ev.stopPropagation()}>
             {paid ? (
               <div className="text-center py-4">
                 <span className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3"><Check className="w-7 h-7 text-emerald-600" /></span>

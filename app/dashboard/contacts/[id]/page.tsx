@@ -105,7 +105,7 @@ function ProfileInner() {
         <button onClick={() => router.push("/dashboard/contacts")} className="flex items-center gap-1.5 text-sm text-muted hover:text-navy"><ArrowLeft className="w-4 h-4" /> Contacts</button>
 
         {/* Header */}
-        <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+        <div className="dawn-card p-5 shadow-card">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h1 className="font-display font-semibold text-2xl text-navy">{contact.name}</h1>
@@ -137,13 +137,13 @@ function ProfileInner() {
 
         {/* Stage + follow-up */}
         <div className="grid sm:grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
+          <div className="dawn-card p-4 shadow-card">
             <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-2">Stage</label>
             <select value={contact.stage} onChange={(e) => askStageChange(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber">
               {STAGES.map((s, i) => <option key={s} value={s}>{stageNames[i] || s}</option>)}
             </select>
           </div>
-          <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
+          <div className="dawn-card p-4 shadow-card">
             <label className="block text-xs font-semibold text-muted uppercase tracking-wide mb-2">Follow-up date</label>
             <input type="date" value={contact.follow_up_date || ""} onChange={(e) => updateField({ followUpDate: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber" />
           </div>
@@ -166,7 +166,7 @@ function ProfileInner() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-navy-line shadow-card overflow-hidden">
+            <div className="dawn-card shadow-card overflow-hidden">
               <p className="text-xs font-semibold text-navy/70 uppercase tracking-wide px-4 pt-4 pb-2">Order history</p>
               <div className="divide-y divide-navy-line/60">
                 {sales.map((o: any) => {
@@ -195,7 +195,7 @@ function ProfileInner() {
         )}
 
         {/* Add note + attachment */}
-        <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card space-y-2">
+        <div className="dawn-card p-4 shadow-card space-y-2">
           <div className="flex gap-2">
             <input value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addNote()} placeholder="Add a note…" className="flex-1 px-3 py-2 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber" />
             <button onClick={addNote} className="bg-navy text-white px-4 rounded-xl hover:bg-navy-soft"><Send className="w-4 h-4" /></button>
@@ -273,10 +273,9 @@ function EditContactModal({ contact, onClose, onSave }: { contact: any; onClose:
     if (problem) { setErr(problem); setBusy(false); }
   }
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
+    <div className="dawn-scrim">
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-5 animate-rise max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">Edit contact</h3><button onClick={onClose} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button></div>
+        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">Edit contact</h3><button onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button></div>
         <div className="space-y-3">
           <input value={f.name} onChange={(e) => { setF({ ...f, name: e.target.value }); setErr(""); }} placeholder="Name *" className="cinp" />
           <input value={f.phone} onChange={(e) => { setF({ ...f, phone: e.target.value }); setErr(""); }} placeholder="Phone" className="cinp" />

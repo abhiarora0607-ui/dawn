@@ -69,7 +69,7 @@ function OrdersInner() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Orders" />
-      <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
+      <div className="dawn-page space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div><h1 className="font-display font-semibold text-2xl text-navy">Orders</h1><p className="text-muted text-sm mt-1">Every purchase, and a tap to create a new one.</p></div>
           <button onClick={() => setModal(true)} className="flex items-center gap-2 bg-navy text-white font-medium px-4 py-2 rounded-xl hover:bg-navy-soft transition-colors shrink-0"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">New order</span></button>
@@ -92,7 +92,7 @@ function OrdersInner() {
         {loading ? (
           <div className="p-12 flex items-center justify-center text-muted"><Loader2 className="w-6 h-6 animate-spin mr-3" /> Loading orders…</div>
         ) : orders.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-navy-line p-12 text-center shadow-card">
+          <div className="dawn-card p-12 text-center shadow-card">
             <div className="w-14 h-14 rounded-2xl bg-amber/15 flex items-center justify-center mx-auto mb-4"><ShoppingBag className="w-7 h-7 text-amber-deep" /></div>
             <h2 className="text-lg font-semibold text-navy mb-2">No orders yet</h2>
             <p className="text-muted text-sm max-w-sm mx-auto mb-5">Create an order for a customer or a walk-in. Prices pull from your Price List automatically.</p>
@@ -118,9 +118,9 @@ function OrdersInner() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className={`text-[12px] font-bold uppercase px-2 py-1 rounded ${cancelled ? "bg-navy/10 text-navy/50" : o.status === "paid" ? "bg-emerald-50 text-emerald-700" : o.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{cancelled ? "Cancelled" : o.status}</span>
-                    <a href={`/receipt/${o.share_token || o.id}?owner=1`} target="_blank" className="p-1.5 text-navy/40 hover:text-navy" title="Receipt"><Receipt className="w-4 h-4" /></a>
-                    {!cancelled && <button onClick={() => setCancelFor(o)} className="p-1.5 text-navy/40 hover:text-amber-deep" title="Cancel order"><Ban className="w-4 h-4" /></button>}
-                    <button onClick={() => setConfirmDel(o.id)} className="p-1.5 text-navy/40 hover:text-red-500" title="Delete permanently"><Trash2 className="w-4 h-4" /></button>
+                    <a href={`/receipt/${o.share_token || o.id}?owner=1`} target="_blank" className="btn-icon text-navy/40 hover:text-navy" title="Receipt"><Receipt className="w-4 h-4" /></a>
+                    {!cancelled && <button onClick={() => setCancelFor(o)} className="btn-icon text-navy/40 hover:text-amber-deep" title="Cancel order"><Ban className="w-4 h-4" /></button>}
+                    <button onClick={() => setConfirmDel(o.id)} className="btn-icon text-navy/40 hover:text-red-500" title="Delete permanently"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
                 {!cancelled && <>
@@ -191,12 +191,11 @@ function CancelOrderModal({ order, currency, onClose, onDone }: { order: any; cu
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
+    <div className="dawn-scrim z-[60]">
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm p-5 animate-rise max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-1">
           <h3 className="font-semibold text-navy flex items-center gap-1.5"><Ban className="w-4 h-4 text-amber-deep" /> Cancel order</h3>
-          <button onClick={onClose} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button>
         </div>
         <p className="text-sm text-muted mb-3">The order stays on record, marked cancelled. Its cost is reversed and it leaves your revenue and reports.</p>
 

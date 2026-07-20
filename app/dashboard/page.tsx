@@ -39,7 +39,7 @@ function fmt(n: number) {
 function StatCard({ label, value, change, unit = "", icon: Icon, invert = false }: { label: string; value: string; change?: number; unit?: string; icon: any; invert?: boolean }) {
   const positive = change === undefined ? null : invert ? change < 0 : change > 0;
   return (
-    <div className="bg-white rounded-xl border border-navy/8 p-4">
+    <div className="dawn-card-flat p-4">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-navy/50">{label}</span>
         <Icon className="w-4 h-4 text-navy/30" />
@@ -111,7 +111,7 @@ export default function Dashboard() {
 
         {error ? (
           <div className="p-4 sm:p-6 max-w-2xl mx-auto">
-            <div className="bg-white rounded-2xl border border-navy-line p-10 text-center shadow-card">
+            <div className="dawn-card p-10 text-center shadow-card">
               <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle className="w-6 h-6 text-red-500" />
               </div>
@@ -174,7 +174,7 @@ export default function Dashboard() {
 
             <div className="grid lg:grid-cols-3 gap-6">
               {/* Actions - takes 2 cols */}
-              <section className="lg:col-span-2 bg-white rounded-2xl border border-navy/8 p-6">
+              <section className="lg:col-span-2 dawn-card p-6">
                 <h2 className="text-sm font-semibold text-navy/50 uppercase tracking-wide mb-4">Do this today</h2>
                 <div className="space-y-3">
                   {data.brief.actions.map((a, i) => (
@@ -195,7 +195,7 @@ export default function Dashboard() {
               {/* Right column */}
               <div className="space-y-6">
                 {/* Best time */}
-                <section className="bg-white rounded-2xl border border-navy/8 p-6">
+                <section className="dawn-card p-6">
                   <h2 className="text-sm font-semibold text-navy/50 uppercase tracking-wide mb-4">Post timing</h2>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-amber/15 flex items-center justify-center">
@@ -212,7 +212,7 @@ export default function Dashboard() {
                 </section>
 
                 {/* Top post */}
-                <section className="bg-white rounded-2xl border border-navy/8 p-6">
+                <section className="dawn-card p-6">
                   <h2 className="text-sm font-semibold text-navy/50 uppercase tracking-wide mb-4">Your top post</h2>
                   <p className="text-sm font-medium text-navy leading-snug">&ldquo;{data.account.topPost.caption}&rdquo;</p>
                   <div className="flex items-center gap-4 mt-3 text-xs text-navy/60">
@@ -226,7 +226,7 @@ export default function Dashboard() {
 
             {/* Competitor intelligence */}
             {data.competitors.length > 0 && (
-            <section className="bg-white rounded-2xl border border-navy/8 p-6">
+            <section className="dawn-card p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold text-navy/50 uppercase tracking-wide">Competitor signals</h2>
                 <span className="text-[12px] text-navy/40 bg-navy/5 px-2 py-1 rounded">public data only</span>

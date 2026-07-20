@@ -88,7 +88,7 @@ function Inner() {
             <p className="text-xs text-muted">A lead untouched past its stage&apos;s window. New leads go cold in 3 days, contacted in 7, negotiating in 14.</p>
             <div className="grid gap-2">
               {a.stale.map((s: any) => (
-                <div key={s.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card">
+                <div key={s.id} className="dawn-card-flat p-4 shadow-card">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <Link href={`/dashboard/contacts/${s.id}`} className="font-semibold text-navy text-sm hover:text-amber-deep">{s.name}</Link>
@@ -150,7 +150,7 @@ function Inner() {
             </div>
             <div className="grid gap-2">
               {a.unpaid.map((u: any) => (
-                <div key={u.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card flex items-center justify-between gap-3">
+                <div key={u.id} className="dawn-card-flat p-4 shadow-card flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold text-navy text-sm">{u.name}</p>
                     <p className="text-xs text-muted">{u.owner} · order {u.daysOld} day(s) old</p>
@@ -171,7 +171,7 @@ function Inner() {
           a.stuckOrders.length === 0 ? <Empty msg="Every order is delivered." />
           : <div className="grid gap-2">
             {a.stuckOrders.map((o: any) => (
-              <div key={o.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card flex items-center justify-between gap-3">
+              <div key={o.id} className="dawn-card-flat p-4 shadow-card flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-semibold text-navy text-sm">{o.name}</p>
                   <p className="text-xs text-muted">{o.owner} · {money(o.total, currency)}</p>
@@ -187,12 +187,11 @@ function Inner() {
       </div>
 
       {snooze && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-          <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={() => setSnooze(null)} />
-          <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm p-5 animate-rise">
+        <div className="dawn-scrim">
+          <div className="dawn-sheet relative">
             <div className="flex items-center justify-between mb-1">
               <h3 className="font-semibold text-navy">Follow up with {snooze.name}</h3>
-              <button onClick={() => setSnooze(null)} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
+              <button onClick={() => setSnooze(null)} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button>
             </div>
             <p className="text-sm text-muted mb-4">Commit to a date and it leaves this list.</p>
             <div className="grid grid-cols-2 gap-2">
@@ -211,7 +210,7 @@ function Inner() {
 
 function Empty({ msg }: { msg: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-navy-line p-12 text-center shadow-card">
+    <div className="dawn-card p-12 text-center shadow-card">
       <p className="text-sm text-navy font-medium">All clear</p>
       <p className="text-xs text-muted mt-1 max-w-sm mx-auto">{msg}</p>
     </div>

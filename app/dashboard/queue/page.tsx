@@ -45,7 +45,7 @@ export default function Queue() {
         {loading ? (
           <div className="p-12 flex items-center justify-center text-muted"><Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading…</div>
         ) : active.length === 0 && done.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-navy-line p-12 text-center shadow-card">
+          <div className="dawn-card p-12 text-center shadow-card">
             <div className="w-14 h-14 rounded-2xl bg-amber/15 flex items-center justify-center mx-auto mb-4">
               <CalendarClock className="w-7 h-7 text-amber-deep" />
             </div>
@@ -57,11 +57,11 @@ export default function Queue() {
             {active.length > 0 && (
               <div className="space-y-3">
                 {active.map((item) => (
-                  <div key={item.id} className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+                  <div key={item.id} className="dawn-card p-5 shadow-card">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[12px] font-bold text-amber-deep uppercase bg-amber/10 px-2 py-0.5 rounded">{item.kind}</span>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => copy(item)} className="p-1.5 text-navy/40 hover:text-navy" title="Copy">
+                        <button onClick={() => copy(item)} className="btn-icon text-navy/40 hover:text-navy" title="Copy">
                           {copiedId === item.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                         </button>
                         <button onClick={() => mark(item.id, "done")} className="text-xs font-medium bg-navy text-white px-3 py-1.5 rounded-lg hover:bg-navy-soft">Mark done</button>

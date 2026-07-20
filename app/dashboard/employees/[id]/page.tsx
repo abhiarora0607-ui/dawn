@@ -47,7 +47,7 @@ export default function EmployeeHub() {
         <button onClick={() => router.push("/dashboard/employees")} className="flex items-center gap-1.5 text-sm text-muted hover:text-navy"><ArrowLeft className="w-4 h-4" /> Employees</button>
 
         {/* Header */}
-        <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+        <div className="dawn-card p-5 shadow-card">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h1 className="font-display font-semibold text-2xl text-navy flex items-center gap-2">
@@ -72,7 +72,7 @@ export default function EmployeeHub() {
           <Stat label="Close rate" value={s.conversion != null ? `${s.conversion}%` : "—"} icon={TrendingUp} />
         </div>
         {live && (live.eligible || live.tooNew) && (
-          <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+          <div className="dawn-card p-5 shadow-card">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-semibold text-navy">This month&apos;s score</p>
               {live.tooNew ? <span className="text-xs text-muted">too new to score</span>
@@ -111,7 +111,7 @@ export default function EmployeeHub() {
                   <p className="text-sm font-medium text-navy truncate">{c.name}</p>
                   <p className="text-[12px] text-muted">{c.stage}{c.follow_up_date ? <span className={overdue ? "text-red-600 font-medium" : ""}> · follow up {new Date(c.follow_up_date).toLocaleDateString()}</span> : ""}</p>
                 </Link>
-                {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="p-1.5 text-emerald-600 shrink-0"><MessageCircle className="w-4 h-4" /></a>}
+                {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="btn-icon text-emerald-600 shrink-0"><MessageCircle className="w-4 h-4" /></a>}
               </div>
             );
           })}
@@ -187,7 +187,7 @@ export default function EmployeeHub() {
 
 function Stat({ label, value, icon: Icon, tone }: { label: string; value: string; icon: any; tone?: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
+    <div className="dawn-card p-4 shadow-card">
       <Icon className="w-4 h-4 text-amber-deep mb-1" />
       <p className={`text-lg font-bold ${tone === "green" ? "text-emerald-600" : "text-navy"}`}>{value}</p>
       <p className="text-[12px] text-muted uppercase tracking-wide">{label}</p>
@@ -197,7 +197,7 @@ function Stat({ label, value, icon: Icon, tone }: { label: string; value: string
 
 function Section({ title, count, icon: Icon, children }: { title: string; count: number; icon: any; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-navy-line shadow-card overflow-hidden">
+    <div className="dawn-card shadow-card overflow-hidden">
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <p className="text-sm font-semibold text-navy flex items-center gap-1.5"><Icon className="w-4 h-4 text-navy/40" /> {title}</p>
         <span className="text-[12px] font-bold text-navy/40 bg-surface px-2 py-0.5 rounded-full">{count}</span>

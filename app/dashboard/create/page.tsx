@@ -165,7 +165,7 @@ export default function Create() {
           <div className="grid lg:grid-cols-2 gap-6">
             {/* LEFT: image + enhancement */}
             <div className="space-y-4">
-              <div className="bg-white rounded-2xl border border-navy/8 p-4">
+              <div className="dawn-card p-4">
                 <div className="relative rounded-xl overflow-hidden bg-navy/5 aspect-square">
                   {isVideo ? (
                     <video src={imgSrc} controls className="w-full h-full object-cover" />
@@ -211,7 +211,7 @@ export default function Create() {
 
               {/* Enhancement details */}
               {result && (
-                <div className="bg-white rounded-2xl border border-navy/8 p-5">
+                <div className="dawn-card p-5">
                   <h3 className="text-sm font-semibold text-navy/50 uppercase tracking-wide mb-3">Auto-enhancement</h3>
                   <div className="grid grid-cols-5 gap-2 mb-3">
                     {[
@@ -249,7 +249,7 @@ export default function Create() {
             {/* RIGHT: analysis, captions, hashtags */}
             <div className="space-y-4">
               {analyzing && !result && (
-                <div className="bg-white rounded-2xl border border-navy/8 p-12 flex items-center justify-center text-navy/40">
+                <div className="dawn-card p-12 flex items-center justify-center text-navy/40">
                   <Loader2 className="w-5 h-5 animate-spin mr-2" /> Dawn is looking at your photo…
                 </div>
               )}
@@ -281,7 +281,7 @@ export default function Create() {
                   </div>
 
                   {/* Captions */}
-                  <div className="bg-white rounded-2xl border border-navy/8 p-5">
+                  <div className="dawn-card p-5">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold text-navy/50 uppercase tracking-wide">Captions</h3>
                       <button onClick={analyze} disabled={analyzing} className="flex items-center gap-1.5 text-xs font-medium text-navy/60 hover:text-navy">
@@ -303,7 +303,7 @@ export default function Create() {
                   </div>
 
                   {/* Hashtags */}
-                  <div className="bg-white rounded-2xl border border-navy/8 p-5">
+                  <div className="dawn-card p-5">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold text-navy/50 uppercase tracking-wide">Hashtags</h3>
                       <button onClick={copyTags} className="flex items-center gap-1.5 text-xs font-medium text-navy/60 hover:text-navy">
@@ -330,7 +330,7 @@ export default function Create() {
                   </div>
 
                   {/* Preview note */}
-                  <div className="bg-white rounded-2xl border border-navy/8 p-5">
+                  <div className="dawn-card p-5">
                     <div className="flex items-center gap-2 mb-3">
                       <Instagram className="w-4 h-4 text-navy" />
                       <h3 className="text-sm font-semibold text-navy/50 uppercase tracking-wide">Ready to post</h3>

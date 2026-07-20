@@ -31,7 +31,7 @@ export default function RecoveryPage() {
   return (
     <DashboardShell>
       <DashTopbar pageTitle="Recently deleted" />
-      <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-5">
+      <div className="dawn-page space-y-5">
         <div>
           <h1 className="font-display font-semibold text-2xl text-navy">Recently deleted</h1>
           <p className="text-muted text-sm mt-1">Anything you delete is kept for {windowDays} days. Restore it here, or let it clear itself.</p>

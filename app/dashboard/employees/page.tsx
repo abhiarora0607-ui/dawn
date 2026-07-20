@@ -170,7 +170,7 @@ function EmployeesInner() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Employees" />
-      <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
+      <div className="dawn-page space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div><h1 className="font-display font-semibold text-2xl text-navy">Employees</h1><p className="text-muted text-sm mt-1">Your team. Active salaries auto-post as monthly expenses. Use <span className="font-medium text-navy/70">Login</span> on any row to give someone their own staff portal sign-in.</p></div>
           <button onClick={() => setModal({ open: true, emp: null })} className="flex items-center gap-2 bg-navy text-white font-medium px-4 py-2 rounded-xl hover:bg-navy-soft shrink-0"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span></button>
@@ -179,7 +179,7 @@ function EmployeesInner() {
         {loading ? (
           <div className="p-12 flex items-center justify-center text-muted"><Loader2 className="w-6 h-6 animate-spin mr-3" /> Loading…</div>
         ) : false ? (
-          <div className="bg-white rounded-2xl border border-navy-line p-12 text-center shadow-card">
+          <div className="dawn-card p-12 text-center shadow-card">
             <div className="w-14 h-14 rounded-2xl bg-amber/15 flex items-center justify-center mx-auto mb-4"><Users className="w-7 h-7 text-amber-deep" /></div>
             <h2 className="text-lg font-semibold text-navy mb-2">No employees yet</h2>
             <p className="text-muted text-sm max-w-sm mx-auto mb-5">Add your team members. Their salaries become automatic monthly expenses while active.</p>
@@ -233,7 +233,7 @@ function EmployeesInner() {
                     <CalendarClock className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Attendance</span>
                   </Link>
                   {!e.is_owner && (
-                    <button onClick={() => setConfirmDel(e.id)} className="ml-auto p-1.5 text-navy/30 hover:text-red-500" title="Remove"><Trash2 className="w-4 h-4" /></button>
+                    <button onClick={() => setConfirmDel(e.id)} className="btn-icon ml-auto  text-navy/30 hover:text-red-500" title="Remove"><Trash2 className="w-4 h-4" /></button>
                   )}
                 </div>
               </div>

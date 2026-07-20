@@ -68,12 +68,11 @@ function QuickAdd({ onClose, onAdded }: { onClose: () => void; onAdded: () => vo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
+    <div className="dawn-scrim">
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-5 animate-rise max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-navy text-lg">Add lead</h3>
-          <button onClick={onClose} className="p-1.5 text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="btn-icon text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-3">
           <input autoFocus value={f.name} onChange={(e) => { setF({ ...f, name: e.target.value }); setErr(""); }} placeholder="Name *" className="inp" />
@@ -119,8 +118,8 @@ function ContactCard({ c, stageNames, onDragStart, onConvert, onMove }: { c: Con
         {c.instagram_handle && <p className="text-xs text-muted">@{c.instagram_handle}</p>}
         <span className="inline-block text-[12px] text-muted mt-1">{c.source}</span>
       </Link>
-      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-navy-line/60">        {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"><MessageCircle className="w-3.5 h-3.5" /></a>}
-        {c.phone && <a href={`tel:${c.phone}`} className="p-1.5 text-navy/50 hover:bg-navy/5 rounded-lg"><Phone className="w-3.5 h-3.5" /></a>}
+      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-navy-line/60">        {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="btn-icon text-emerald-600 hover:bg-emerald-50 rounded-lg"><MessageCircle className="w-3.5 h-3.5" /></a>}
+        {c.phone && <a href={`tel:${c.phone}`} className="btn-icon text-navy/50 hover:bg-navy/5 rounded-lg"><Phone className="w-3.5 h-3.5" /></a>}
         {c.stage !== "Customer (Won)" && (
           <button onClick={() => onConvert(c)} className="ml-auto text-[12px] font-semibold text-amber-deep bg-amber/10 px-2 py-1 rounded-lg hover:bg-amber/20">Convert →</button>
         )}
@@ -193,7 +192,7 @@ function ContactsInner() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Contacts" />
-      <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-5">
+      <div className="dawn-page space-y-5">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="font-display font-semibold text-2xl text-navy">Contacts</h1>
@@ -229,7 +228,7 @@ function ContactsInner() {
         {loading ? (
           <div className="p-12 flex items-center justify-center text-muted"><Loader2 className="w-6 h-6 animate-spin mr-3" /> Loading contacts…</div>
         ) : contacts.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-navy-line p-12 text-center shadow-card">
+          <div className="dawn-card p-12 text-center shadow-card">
             <div className="w-14 h-14 rounded-2xl bg-amber/15 flex items-center justify-center mx-auto mb-4"><Plus className="w-7 h-7 text-amber-deep" /></div>
             <h2 className="text-lg font-semibold text-navy mb-2">No leads yet</h2>
             <p className="text-muted text-sm max-w-sm mx-auto mb-5">Add your first lead — someone who messaged you, or a walk-in. It takes 10 seconds.</p>
@@ -260,7 +259,7 @@ function ContactsInner() {
         ) : (
           <div className="grid gap-2">
             {filtered.map((c) => (
-              <div key={c.id} className="bg-white rounded-xl border border-navy-line p-3 shadow-card flex items-center justify-between gap-3 hover:border-amber/40">
+              <div key={c.id} className="dawn-card-flat p-3 shadow-card flex items-center justify-between gap-3 hover:border-amber/40">
                 <Link href={`/dashboard/contacts/${c.id}`} className="min-w-0 flex-1">
                   <p className="font-semibold text-navy text-sm">{c.name}</p>
                   <p className="text-xs text-muted">{c.phone || c.instagram_handle ? (c.phone || "@" + c.instagram_handle) : c.source}</p>

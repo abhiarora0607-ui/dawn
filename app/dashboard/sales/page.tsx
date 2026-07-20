@@ -28,7 +28,7 @@ function CashFlowChart({ data, currency }: { data: { label: string; in: number; 
   // Keep the axis readable: cap visible bars to a sample if very long.
   const show = data.length > 31 ? data.filter((_, i) => i % Math.ceil(data.length / 31) === 0) : data;
   return (
-    <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+    <div className="dawn-card p-5 shadow-card">
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm font-semibold text-navy">Money in vs out</p>
         <div className="flex gap-3 text-[12px]">
@@ -70,10 +70,9 @@ function ExpenseModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
     setSaving(false);
   }
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-sm p-5 animate-rise">
-        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">Add expense</h3><button onClick={onClose} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button></div>
+    <div className="dawn-scrim">
+      <div className="dawn-sheet relative">
+        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">Add expense</h3><button onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button></div>
         <div className="space-y-3">
           <input type="number" min="0" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} placeholder="Amount" className="inp" />
           <select value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} className="inp">{cats.map((c) => <option key={c}>{c}</option>)}</select>
@@ -145,7 +144,7 @@ function SalesInner() {
   return (
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Finance" />
-      <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
+      <div className="dawn-page space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div><h1 className="font-display font-semibold text-2xl text-navy">Finance</h1><p className="text-muted text-sm mt-1">{fin?.range?.label || "Your money"}, at a glance.</p></div>
           <button onClick={() => setExpModal(true)} className="flex items-center gap-2 border border-navy-line text-navy font-medium px-4 py-2 rounded-xl hover:bg-surface shrink-0 text-sm"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Expense</span></button>
@@ -165,7 +164,7 @@ function SalesInner() {
           </div>
         )}
 
-        <div className="flex gap-2 bg-white p-1 rounded-xl border border-navy-line w-fit">
+        <div className="btn-icon flex gap-2 bg-white  rounded-xl border border-navy-line w-fit">
           {(["overview", "sales", "expenses"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)} className={`text-sm font-medium px-4 py-2 rounded-lg capitalize transition-colors ${tab === t ? "bg-navy text-white" : "text-muted"}`}>{t}</button>
           ))}
@@ -208,7 +207,7 @@ function SalesInner() {
 
             {/* Receivables aging */}
             {c?.pendingTotal > 0 && (
-              <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+              <div className="dawn-card p-5 shadow-card">
                 <p className="text-sm font-semibold text-navy mb-3">Money owed, by age</p>
                 <div className="grid grid-cols-4 gap-2">
                   {[["0–7 days", fin.aging.d0_7, "text-navy"], ["8–30", fin.aging.d8_30, "text-amber-deep"], ["31–60", fin.aging.d31_60, "text-orange-600"], ["60+", fin.aging.d60plus, "text-red-600"]].map(([lab, val, col]: any) => (
@@ -224,7 +223,7 @@ function SalesInner() {
 
             <div className="grid md:grid-cols-2 gap-3">
               {fin.charts?.topItems?.length > 0 && (
-                <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+                <div className="dawn-card p-5 shadow-card">
                   <p className="text-sm font-semibold text-navy mb-3">Top items</p>
                   <div className="space-y-2">
                     {fin.charts.topItems.map((it: any, i: number) => (
@@ -237,7 +236,7 @@ function SalesInner() {
                 </div>
               )}
               {fin.charts?.expenseByCategory?.length > 0 && (
-                <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+                <div className="dawn-card p-5 shadow-card">
                   <p className="text-sm font-semibold text-navy mb-3">Where the money goes</p>
                   <div className="space-y-2">
                     {fin.charts.expenseByCategory.map((cat: any, i: number) => (
@@ -259,7 +258,7 @@ function SalesInner() {
                   </div>
                   <div className="grid gap-2">
                     {g.rows.map((s: any) => (
-                      <div key={s.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card">
+                      <div key={s.id} className="dawn-card-flat p-4 shadow-card">
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
                             <p className="font-semibold text-navy text-sm">{money(Number(s.total), currency)} <span className="text-xs font-normal text-muted">· {(s.items || []).length} item(s)</span></p>
@@ -267,7 +266,7 @@ function SalesInner() {
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className={`text-[12px] font-bold uppercase px-2 py-1 rounded ${s.status === "paid" ? "bg-emerald-50 text-emerald-700" : s.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{s.status}</span>
-                            <a href={`/receipt/${s.share_token || s.id}?owner=1`} target="_blank" className="p-1.5 text-navy/40 hover:text-navy" title="Receipt"><Receipt className="w-4 h-4" /></a>
+                            <a href={`/receipt/${s.share_token || s.id}?owner=1`} target="_blank" className="btn-icon text-navy/40 hover:text-navy" title="Receipt"><Receipt className="w-4 h-4" /></a>
                           </div>
                         </div>
                         {Number(s.balance) > 0 && (
@@ -291,11 +290,11 @@ function SalesInner() {
                   </div>
                   <div className="grid gap-2">
                     {g.rows.map((e: any) => (
-                      <div key={e.id} className="bg-white rounded-xl border border-navy-line p-3 shadow-card flex items-center justify-between">
+                      <div key={e.id} className="dawn-card-flat p-3 shadow-card flex items-center justify-between">
                         <div><p className="font-semibold text-navy text-sm">{e.category}{e.recurring ? <span className="ml-1.5 text-[12px] text-amber-deep">↻ monthly</span> : null}{e.source === "order" ? <span className="ml-1.5 text-[12px] text-navy/40">cost of goods</span> : null}</p><p className="text-xs text-muted">{e.note || ""}</p></div>
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-red-600">−{money(Number(e.amount), currency)}</span>
-                          {e.source !== "order" && e.source !== "salary" && <button onClick={() => delExpense(e.id)} className="p-1.5 text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>}
+                          {e.source !== "order" && e.source !== "salary" && <button onClick={() => delExpense(e.id)} className="btn-icon text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>}
                         </div>
                       </div>
                     ))}
@@ -313,7 +312,7 @@ function SalesInner() {
 
 function Empty({ label, sub }: { label: string; sub: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-navy-line p-12 text-center shadow-card">
+    <div className="dawn-card p-12 text-center shadow-card">
       <h2 className="text-lg font-semibold text-navy mb-2">{label}</h2>
       <p className="text-muted text-sm max-w-sm mx-auto">{sub}</p>
     </div>

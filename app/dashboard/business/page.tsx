@@ -40,7 +40,7 @@ export default function BusinessDashboard() {
   return (
     <DashboardShell>
       <DashTopbar pageTitle="Business" />
-      <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
+      <div className="dawn-page space-y-6">
 
         <OnboardingCard />
         <WhatsNew />
@@ -83,7 +83,7 @@ export default function BusinessDashboard() {
           </div>
 
           {needsAction === 0 ? (
-            <div className="bg-white rounded-2xl border border-navy-line p-8 text-center">
+            <div className="dawn-card p-8 text-center">
               <p className="text-sm text-navy font-medium">Nothing is slipping.</p>
               <p className="text-xs text-muted mt-1">No overdue follow-ups, no cold leads, no uncollected money, no stuck orders.</p>
             </div>
@@ -179,7 +179,7 @@ export default function BusinessDashboard() {
             </div>
 
             <div className="dawn-card overflow-hidden">
-              <div className="overflow-x-auto dawn-scroll">
+              <div className="dawn-table-wrap">
                 <table className="w-full text-sm">
                   <thead className="bg-surface border-b border-navy-line">
                     <tr>
@@ -329,7 +329,7 @@ function Row({ main, meta, phone, urgent, href }: any) {
   return (
     <div className="flex items-center justify-between gap-2 py-1 border-b border-navy-line/40 last:border-0">
       {href ? <Link href={href} className="flex items-center justify-between flex-1 min-w-0 hover:opacity-70">{body}</Link> : <div className="flex items-center justify-between flex-1 min-w-0">{body}</div>}
-      {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="p-1 text-emerald-600 shrink-0"><MessageCircle className="w-3.5 h-3.5" /></a>}
+      {wa && <a href={`https://wa.me/${wa}`} target="_blank" className="btn-icon text-emerald-600 shrink-0"><MessageCircle className="w-3.5 h-3.5" /></a>}
     </div>
   );
 }

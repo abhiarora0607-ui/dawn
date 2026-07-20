@@ -45,7 +45,7 @@ function Inner() {
       <DashTopbar pageTitle="Team work" />
       <div className="p-4 sm:p-6 space-y-4 max-w-4xl">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex gap-1 bg-white p-1 rounded-xl border border-navy-line">
+          <div className="btn-icon flex gap-1 bg-white  rounded-xl border border-navy-line">
             {(["tasks", "notes"] as const).map((t) => (
               <button key={t} onClick={() => setTab(t)} className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg capitalize ${tab === t ? "bg-navy text-white" : "text-muted"}`}>
                 {t === "tasks" ? <CheckSquare className="w-4 h-4" /> : <StickyNote className="w-4 h-4" />} {t}
@@ -63,13 +63,13 @@ function Inner() {
         </select>
 
         {loading ? <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>
-        : items.length === 0 ? <div className="bg-white rounded-2xl border border-navy-line p-12 text-center text-muted text-sm">Nothing here yet. Assign the first one.</div>
+        : items.length === 0 ? <div className="dawn-card p-12 text-center text-muted text-sm">Nothing here yet. Assign the first one.</div>
         : (
           <div className="grid gap-2">
             {items.map((x: any) => {
               const overdue = tab === "tasks" && !x.done && x.due_date && new Date(x.due_date) < today;
               return (
-                <div key={x.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card flex items-start gap-3">
+                <div key={x.id} className="dawn-card-flat p-4 shadow-card flex items-start gap-3">
                   {tab === "tasks" && <input type="checkbox" checked={!!x.done} onChange={() => toggle(x)} className="w-4 h-4 accent-amber-deep mt-0.5 shrink-0" />}
                   <div className="min-w-0 flex-1">
                     <p className={`text-sm ${x.done ? "text-navy/40 line-through" : "text-navy"} ${tab === "notes" ? "whitespace-pre-wrap" : ""}`}>{tab === "tasks" ? x.title : x.body}</p>
@@ -79,7 +79,7 @@ function Inner() {
                       {x.assigned_by === "admin" && <span className="text-[12px] bg-amber/10 text-amber-deep px-1.5 py-0.5 rounded">assigned by you</span>}
                     </div>
                   </div>
-                  <button onClick={() => remove(x.id)} className="p-1.5 text-navy/30 hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => remove(x.id)} className="btn-icon text-navy/30 hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
                 </div>
               );
             })}
@@ -112,12 +112,11 @@ function AssignModal({ kind, employees, contacts, onClose, onSaved }: { kind: "t
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-      <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
+    <div className="dawn-scrim">
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-5 animate-rise max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-1">
           <h3 className="font-semibold text-navy">Assign {kind === "tasks" ? "a task" : "a note"}</h3>
-          <button onClick={onClose} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="btn-icon text-navy/40"><X className="w-5 h-5" /></button>
         </div>
         <p className="text-xs text-muted mb-4">It appears in their portal like one of their own.</p>
         <div className="space-y-3">

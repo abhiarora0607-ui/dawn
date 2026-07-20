@@ -49,7 +49,7 @@ function Inner() {
   }, [tab]);
 
   return (
-    <div className="w-full max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-5">
+    <div className="dawn-page space-y-5">
       <div>
         <h1 className="font-display font-semibold text-2xl text-navy">Attendance</h1>
         <p className="text-muted text-sm mt-1">Who worked, when, and for how long.</p>
@@ -170,11 +170,11 @@ function MonthTab() {
       {!d ? <Loading /> : d.grid.length === 0 ? <Empty>No employees to show.</Empty> : (
         <>
         <MonthSummary d={d} />
-        <div className="dawn-card overflow-x-auto">
+        <div className="dawn-card dawn-table-wrap">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-navy-line">
-                <th className="text-left px-3 py-2.5 font-semibold text-navy sticky left-0 bg-white z-10 min-w-[130px]">Employee</th>
+                <th className="text-left px-3 py-2.5 font-semibold text-navy sticky-col min-w-[130px]">Employee</th>
                 {d.dates.map((dt: string) => {
                   const isToday = dt === d.today;
                   return (
@@ -191,7 +191,7 @@ function MonthTab() {
             <tbody>
               {d.grid.map((g: any) => (
                 <tr key={g.id} className="border-b border-navy-line/40 last:border-0">
-                  <td className="px-3 py-2 sticky left-0 bg-white z-10">
+                  <td className="px-3 py-2 sticky-col">
                     <Link href={`/dashboard/attendance/${g.id}`} className="font-medium text-navy hover:text-amber-deep truncate block max-w-[130px]">{g.name}</Link>
                   </td>
                   {g.cells.map((c: any) => <td key={c.date} className="px-0.5 py-2 text-center"><Cell c={c} /></td>)}
