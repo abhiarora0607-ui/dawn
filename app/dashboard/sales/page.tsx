@@ -209,7 +209,7 @@ function SalesInner() {
             {c?.pendingTotal > 0 && (
               <div className="dawn-card p-5 shadow-card">
                 <p className="text-sm font-semibold text-navy mb-3">Money owed, by age</p>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[["0–7 days", fin.aging.d0_7, "text-navy"], ["8–30", fin.aging.d8_30, "text-amber-deep"], ["31–60", fin.aging.d31_60, "text-orange-600"], ["60+", fin.aging.d60plus, "text-red-600"]].map(([lab, val, col]: any) => (
                     <div key={lab} className="text-center bg-surface rounded-xl p-2">
                       <p className={`text-sm font-bold ${col}`}>{money(val, currency)}</p>

@@ -14,7 +14,7 @@ export function BriefingSuggestions() {
   if (suggestions.length === 0) return null;
 
   return (
-    <section className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+    <section className="dawn-card p-5 shadow-card">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Lightbulb className="w-4 h-4 text-amber-deep" />

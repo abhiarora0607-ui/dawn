@@ -295,7 +295,7 @@ function FixDay({ onDone }: { onDone: () => void }) {
                   <input type="time" value={r.in} onChange={(e) => setRows(rows.map((x, j) => j === i ? { ...x, in: e.target.value } : x))} className="inp flex-1" />
                   <span className="text-muted text-sm">to</span>
                   <input type="time" value={r.out} onChange={(e) => setRows(rows.map((x, j) => j === i ? { ...x, out: e.target.value } : x))} className="inp flex-1" />
-                  {rows.length > 1 && <button onClick={() => setRows(rows.filter((_, j) => j !== i))} className="p-1.5 text-navy/30 hover:text-red-500"><X className="w-4 h-4" /></button>}
+                  {rows.length > 1 && <button onClick={() => setRows(rows.filter((_, j) => j !== i))} className="btn-icon p-1.5 text-navy/30 hover:text-red-500"><X className="w-4 h-4" /></button>}
                 </div>
               ))}
             </div>

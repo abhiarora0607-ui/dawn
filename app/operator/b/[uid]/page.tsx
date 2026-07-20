@@ -81,7 +81,7 @@ export default function BusinessDetail() {
     <Wrap>
       <Link href="/operator/businesses" className="flex items-center gap-1.5 text-sm text-muted hover:text-navy mb-5"><ArrowLeft className="w-4 h-4" /> All businesses</Link>
 
-      <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card mb-4">
+      <div className="dawn-card p-5 shadow-card mb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="font-display font-semibold text-2xl text-navy flex items-center gap-2">
@@ -102,9 +102,9 @@ export default function BusinessDetail() {
       </div>
 
       {/* Usage counts */}
-      <div className="grid grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         {[["Contacts", d.counts.contacts], ["Orders", d.counts.orders], ["Employees", d.counts.employees], ["Tasks", d.counts.tasks]].map(([l, v]: any) => (
-          <div key={l} className="bg-white rounded-2xl border border-navy-line p-4 shadow-card text-center">
+          <div key={l} className="dawn-card p-4 shadow-card text-center">
             <p className="text-xl font-bold text-navy">{v}</p>
             <p className="text-[12px] text-muted uppercase tracking-wide">{l}</p>
           </div>
@@ -112,7 +112,7 @@ export default function BusinessDetail() {
       </div>
 
       {/* Activity shape */}
-      <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card mb-4">
+      <div className="dawn-card p-5 shadow-card mb-4">
         <p className="text-sm font-semibold text-navy mb-3">Activity, last 12 weeks</p>
         <div className="flex items-end gap-1 h-20">
           {(d.weeks || []).map((n: number, i: number) => (
@@ -124,7 +124,7 @@ export default function BusinessDetail() {
 
       {/* Instagram */}
       {d.instagram?.length > 0 && (
-        <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card mb-4">
+        <div className="dawn-card p-4 shadow-card mb-4">
           <p className="text-sm font-semibold text-navy mb-2">Instagram</p>
           {d.instagram.map((g: any, i: number) => (
             <p key={i} className="text-xs text-muted">Connected {new Date(g.connectedAt).toLocaleDateString()} · {g.live ? "token active" : "disconnected (link kept)"}</p>
@@ -187,7 +187,7 @@ export default function BusinessDetail() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-navy-line p-5 shadow-card">
+      <div className="dawn-card p-5 shadow-card">
         <p className="text-sm font-semibold text-navy flex items-center gap-1.5 mb-3"><StickyNote className="w-4 h-4 text-amber-deep" /> Your notes on this business</p>
         <div className="flex gap-2 mb-3">
           <input value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addNote()} placeholder="Called them, they want X…" className="flex-1 px-3 py-2 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber" />
@@ -198,7 +198,7 @@ export default function BusinessDetail() {
             {d.notes.map((n: any) => (
               <div key={n.id} className="flex items-start justify-between gap-2 text-sm border-b border-navy-line/40 last:border-0 pb-2">
                 <div className="min-w-0"><p className="text-navy">{n.note}</p><p className="text-[12px] text-muted">{new Date(n.created_at).toLocaleString()}</p></div>
-                <button onClick={() => delNote(n.id)} className="p-1 text-navy/30 hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
+                <button onClick={() => delNote(n.id)} className="btn-icon p-1 text-navy/30 hover:text-red-500 shrink-0"><Trash2 className="w-4 h-4" /></button>
               </div>
             ))}
           </div>

@@ -93,7 +93,7 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto animate-rise">
         <div className="sticky top-0 bg-white border-b border-navy-line px-5 py-4 flex items-center justify-between">
           <h3 className="font-semibold text-navy">New order</h3>
-          <button onClick={onClose} className="p-1.5 text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="btn-icon p-1.5 text-navy/40 hover:text-navy"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="p-5 space-y-4">
@@ -164,7 +164,7 @@ export function OrderModal({ contact, onClose, onDone }: { contact?: Customer | 
                       <input type="number" min="1" value={l.qty} onChange={(e) => setLine(i, "qty", Number(e.target.value))} className="w-14 inp-sm" />
                       <span className="text-xs text-muted">×</span>
                       <input type="number" min="0" value={l.unitPrice} onChange={(e) => setLine(i, "unitPrice", Number(e.target.value))} className="w-20 inp-sm" />
-                      <button onClick={() => setLines(lines.filter((_, x) => x !== i))} className="p-1 text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => setLines(lines.filter((_, x) => x !== i))} className="btn-icon p-1 text-navy/40 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   ))}
                 </div>

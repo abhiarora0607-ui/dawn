@@ -104,7 +104,7 @@ export default function TeamDashboard() {
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-5 pb-28">
         {tab === "dashboard" && can("dashboard") && (
           <>
             {myScore && !myScore.tooNew && (
@@ -182,7 +182,7 @@ export default function TeamDashboard() {
       </div>
 
       {/* Bottom nav: up to 4 main tabs + More */}
-      <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-navy-line flex items-center justify-around h-16 z-20">
+      <nav className="dawn-bottom-nav fixed bottom-0 inset-x-0 flex items-center justify-around min-h-16 z-20">
         {mainTabs.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)} className={`flex flex-col items-center gap-0.5 flex-1 py-1 ${tab === t.id ? "text-amber-deep" : "text-navy/50"}`}>
             <t.icon className="w-5 h-5" /><span className="text-[12px] font-medium">{t.label}</span>
@@ -196,9 +196,8 @@ export default function TeamDashboard() {
       </nav>
 
       {moreOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={() => setMoreOpen(false)} />
-          <div className="relative bg-white rounded-t-3xl w-full max-w-3xl p-5 animate-rise">
+        <div className="dawn-scrim z-50" onClick={() => setMoreOpen(false)}>
+          <div className="dawn-sheet dawn-sheet-wide relative" onClick={(e) => e.stopPropagation()}>
             <div className="grid grid-cols-3 gap-3">
               {moreTabs.map((t) => (
                 <button key={t.id} onClick={() => { setTab(t.id); setMoreOpen(false); }} className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border ${tab === t.id ? "border-amber bg-amber/5 text-navy" : "border-navy-line text-navy/70"}`}>
@@ -225,7 +224,7 @@ export default function TeamDashboard() {
           onConfirm={() => { const { c, stage } = backFor; setBackFor(null); quickStage(c, stage, undefined, true); }}
         />
       )}
-      {flash && <div className="fixed bottom-20 inset-x-4 z-[70] max-w-md mx-auto bg-navy text-white text-sm px-4 py-3 rounded-xl shadow-lg text-center">{flash}</div>}
+      {flash && <div className="fixed bottom-24 inset-x-4 z-[70] max-w-md mx-auto bg-navy text-white text-sm px-4 py-3 rounded-xl shadow-lg text-center pb-safe">{flash}</div>}
       {payOrder && (
         <PaymentModal
           balance={Number(payOrder.balance) || 0}
@@ -247,7 +246,7 @@ function logOutreach(contactId: string, channel: "whatsapp" | "call") {
 
 function Stat({ label, value, icon: Icon }: { label: string; value: number; icon: any }) {
   return (
-    <div className="bg-white rounded-2xl border border-navy-line p-4 shadow-card">
+    <div className="dawn-card p-4 shadow-card">
       <Icon className="w-4 h-4 text-amber-deep mb-1" />
       <p className="text-xl font-bold text-navy">{value}</p>
       <p className="text-xs text-muted">{label}</p>
@@ -264,7 +263,7 @@ function ActivityFeed() {
   if (!loaded || items.length === 0) return null;
   const LABELS: Record<string, string> = { "contact.create": "Added a lead", "contact.update": "Updated a contact", "order.create": "Created an order", "order.status": "Updated order status", "order.payment": "Recorded a payment", "message.send": "Sent a message" };
   return (
-    <div className="bg-white rounded-2xl border border-navy-line p-4">
+    <div className="dawn-card p-4">
       <p className="text-sm font-semibold text-navy mb-2 flex items-center gap-1.5"><Clock className="w-4 h-4 text-navy/40" /> Recent activity</p>
       <div className="space-y-2">
         {items.slice(0, 8).map((it, i) => (
@@ -303,12 +302,12 @@ function ContactList({ title, items, canEdit, isLeads, onAdd, onEdit, onQuickSta
           ))}
         </div>
       )}
-      {shown.length === 0 ? <div className="bg-white rounded-2xl border border-navy-line p-10 text-center text-muted text-sm">{items.length === 0 ? "Nothing here yet." : "No matches."}</div> : (
+      {shown.length === 0 ? <div className="dawn-card p-10 text-center text-muted text-sm">{items.length === 0 ? "Nothing here yet." : "No matches."}</div> : (
         <div className="grid gap-2">
           {shown.map((c) => {
             const wa = (c.phone || "").replace(/[^0-9]/g, "");
             return (
-              <div key={c.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card">
+              <div key={c.id} className="dawn-card-flat p-4 shadow-card">
                 <div className="flex items-center justify-between">
                   <button onClick={() => onOpen(c)} className="min-w-0 text-left flex-1">
                     <p className="font-semibold text-navy text-sm">{c.name}</p>
@@ -394,10 +393,10 @@ function OrderList({ orders, canEdit, onAdd, onChanged, onPay }: { orders: any[]
         <h2 className="font-display font-semibold text-lg text-navy">My orders</h2>
         <button onClick={onAdd} className="flex items-center gap-1.5 text-sm font-medium bg-navy text-white px-3 py-1.5 rounded-lg"><Plus className="w-4 h-4" /> New</button>
       </div>
-      {orders.length === 0 ? <div className="bg-white rounded-2xl border border-navy-line p-10 text-center text-muted text-sm">No orders yet.</div> : (
+      {orders.length === 0 ? <div className="dawn-card p-10 text-center text-muted text-sm">No orders yet.</div> : (
         <div className="grid gap-2">
           {orders.map((o) => (
-            <div key={o.id} className="bg-white rounded-xl border border-navy-line p-4 shadow-card">
+            <div key={o.id} className="dawn-card-flat p-4 shadow-card">
               <div className="flex items-center justify-between">
                 <div><p className="font-semibold text-navy text-sm">₹{o.total} <span className="text-xs font-normal text-muted">· {(o.items || []).length} item(s)</span></p><p className="text-xs text-muted">{new Date(o.date).toLocaleDateString()}</p></div>
                 <span className={`text-[12px] font-bold uppercase px-2 py-1 rounded ${o.status === "paid" ? "bg-emerald-50 text-emerald-700" : o.status === "partial" ? "bg-amber/10 text-amber-deep" : "bg-red-50 text-red-600"}`}>{o.status}</span>
@@ -447,24 +446,24 @@ function Tasks({ contacts }: { contacts: any[] }) {
   return (
     <div className="space-y-3">
       <h2 className="font-display font-semibold text-lg text-navy">Tasks</h2>
-      <div className="bg-white rounded-2xl border border-navy-line p-3 space-y-2">
+      <div className="dawn-card p-3 space-y-2">
         <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="Add a task…" className="tinp" />
         <div className="flex gap-2">
           <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="tinp flex-1" />
           <button onClick={add} className="bg-navy text-white px-4 rounded-xl text-sm font-medium">Add</button>
         </div>
       </div>
-      {open.length === 0 && done.length === 0 ? <div className="bg-white rounded-2xl border border-navy-line p-10 text-center text-muted text-sm">No tasks yet — add your first above.</div> : (
+      {open.length === 0 && done.length === 0 ? <div className="dawn-card p-10 text-center text-muted text-sm">No tasks yet — add your first above.</div> : (
         <>
           <div className="grid gap-2">
             {open.map((t) => (
-              <div key={t.id} className="bg-white rounded-xl border border-navy-line p-3 shadow-card flex items-center gap-3">
+              <div key={t.id} className="dawn-card-flat p-3 shadow-card flex items-center gap-3">
                 <input type="checkbox" checked={false} onChange={() => toggle(t)} className="w-4 h-4 accent-amber-deep shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-navy">{t.title}</p>
                   {t.due_date && <p className={`text-[12px] ${overdue(t) ? "text-red-600 font-semibold" : "text-muted"}`}>{overdue(t) ? "Overdue · " : "Due "}{new Date(t.due_date).toLocaleDateString()}</p>}
                 </div>
-                <button onClick={() => remove(t.id)} className="p-1.5 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                <button onClick={() => remove(t.id)} className="btn-icon p-1.5 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
             ))}
           </div>
@@ -476,7 +475,7 @@ function Tasks({ contacts }: { contacts: any[] }) {
                   <div key={t.id} className="bg-white/60 rounded-xl border border-navy-line p-3 flex items-center gap-3">
                     <input type="checkbox" checked onChange={() => toggle(t)} className="w-4 h-4 accent-amber-deep shrink-0" />
                     <p className="text-sm text-navy/50 line-through flex-1">{t.title}</p>
-                    <button onClick={() => remove(t.id)} className="p-1.5 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => remove(t.id)} className="btn-icon p-1.5 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 ))}
               </div>
@@ -505,10 +504,10 @@ function CalendarView({ leads }: { leads: any[] }) {
   return (
     <div className="space-y-3">
       <h2 className="font-display font-semibold text-lg text-navy">Calendar</h2>
-      {dates.length === 0 ? <div className="bg-white rounded-2xl border border-navy-line p-10 text-center text-muted text-sm">Nothing scheduled. Add tasks with due dates or set follow-up dates on leads.</div> : (
+      {dates.length === 0 ? <div className="dawn-card p-10 text-center text-muted text-sm">Nothing scheduled. Add tasks with due dates or set follow-up dates on leads.</div> : (
         <div className="space-y-3">
           {dates.map((d) => (
-            <div key={d} className="bg-white rounded-2xl border border-navy-line p-4">
+            <div key={d} className="dawn-card p-4">
               <p className={`text-xs font-bold uppercase tracking-wide mb-2 ${d < today ? "text-red-600" : d === today ? "text-amber-deep" : "text-muted"}`}>
                 {d < today ? "Overdue · " : ""}{new Date(d).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
               </p>
@@ -544,17 +543,17 @@ function Notes() {
   return (
     <div className="space-y-3">
       <h2 className="font-display font-semibold text-lg text-navy">Notes</h2>
-      <div className="bg-white rounded-2xl border border-navy-line p-3 space-y-2">
+      <div className="dawn-card p-3 space-y-2">
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Write a note…" className="tinp resize-none" />
         <button onClick={add} className="w-full bg-navy text-white py-2.5 rounded-xl text-sm font-medium">Save note</button>
       </div>
       <div className="grid gap-2">
         {notes.map((n) => (
-          <div key={n.id} className="bg-white rounded-xl border border-navy-line p-3 shadow-card">
+          <div key={n.id} className="dawn-card-flat p-3 shadow-card">
             <p className="text-sm text-navy whitespace-pre-wrap">{n.body}</p>
             <div className="flex items-center justify-between mt-2 pt-2 border-t border-navy-line">
               <span className="text-[12px] text-muted">{new Date(n.updated_at).toLocaleString()}</span>
-              <button onClick={() => remove(n.id)} className="p-1 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+              <button onClick={() => remove(n.id)} className="btn-icon p-1 text-navy/30 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
             </div>
           </div>
         ))}
@@ -576,7 +575,7 @@ function Reports() {
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h2 className="font-display font-semibold text-lg text-navy">My reports</h2>
-        <div className="flex gap-1 bg-white p-1 rounded-xl border border-navy-line">
+        <div className="btn-icon flex gap-1 bg-white p-1 rounded-xl border border-navy-line">
           {WINDOWS.map((w) => <button key={w.id} onClick={() => setWin(w.id)} className={`text-xs font-medium px-2.5 py-1.5 rounded-lg ${win === w.id ? "bg-navy text-white" : "text-muted"}`}>{w.label}</button>)}
         </div>
       </div>
@@ -610,7 +609,7 @@ function Profile({ me, canExport, onChangePassword, onLogout }: { me: any; canEx
   return (
     <div className="space-y-3">
       <h2 className="font-display font-semibold text-lg text-navy">Profile & settings</h2>
-      <div className="bg-white rounded-2xl border border-navy-line p-4">
+      <div className="dawn-card p-4">
         <p className="font-semibold text-navy">{me.name || "Team member"}</p>
         <p className="text-xs text-muted mt-0.5">Access: {(me.permissions || []).length} permissions granted by your admin</p>
       </div>
@@ -741,7 +740,7 @@ function Messages() {
   if (active) return (
     <div className="space-y-3">
       <button onClick={() => { setActive(null); setNote(""); }} className="text-sm text-muted">← All conversations</button>
-      <div className="bg-white rounded-2xl border border-navy-line p-4 min-h-[300px] flex flex-col">
+      <div className="dawn-card p-4 min-h-[300px] flex flex-col">
         <p className="font-semibold text-navy text-sm mb-3">{active.external_username || "Customer"}</p>
         <div className="flex-1 space-y-2 overflow-y-auto max-h-[50vh]">
           {msgs.map((m) => (
@@ -761,10 +760,10 @@ function Messages() {
     <div className="space-y-3">
       <h2 className="font-display font-semibold text-lg text-navy">Messages</h2>
       <div className="bg-amber/10 border border-amber/30 rounded-xl p-3 text-xs text-navy">Instagram messaging goes live once Meta approves the app. Conversations assigned to you will appear here.</div>
-      {convs.length === 0 ? <div className="bg-white rounded-2xl border border-navy-line p-10 text-center text-muted text-sm">No conversations yet.</div> : (
+      {convs.length === 0 ? <div className="dawn-card p-10 text-center text-muted text-sm">No conversations yet.</div> : (
         <div className="grid gap-2">
           {convs.map((c) => (
-            <button key={c.id} onClick={() => open(c)} className="bg-white rounded-xl border border-navy-line p-4 shadow-card text-left flex items-center justify-between w-full">
+            <button key={c.id} onClick={() => open(c)} className="dawn-card-flat p-4 shadow-card text-left flex items-center justify-between w-full">
               <div className="min-w-0"><p className="font-semibold text-navy text-sm">{c.external_username || "Customer"}</p><p className="text-xs text-muted truncate">{c.last_message_preview || "…"}</p></div>
               {c.unread_count > 0 && <span className="text-[12px] font-bold bg-amber text-navy px-2 py-0.5 rounded-full">{c.unread_count}</span>}
             </button>
@@ -780,7 +779,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
       <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-5 animate-rise max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">{title}</h3><button onClick={onClose} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button></div>
+        <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">{title}</h3><button onClick={onClose} className="btn-icon p-1.5 text-navy/40"><X className="w-5 h-5" /></button></div>
         <div className="space-y-3">{children}</div>
       </div>
       <style jsx global>{`.tinp{width:100%;padding:0.6rem 0.75rem;border:1px solid #E4E8F0;border-radius:0.75rem;font-size:0.875rem;color:#16233F;outline:none;background:#fff}.tinp:focus{border-color:#FF9E43}`}</style>
@@ -824,7 +823,7 @@ function ContactDetail({ id, canEdit, onClose, onEdit }: { id: string; canEdit: 
                 <h3 className="font-semibold text-navy text-lg">{c.name}</h3>
                 <p className="text-xs text-muted">{c.stage} · {c.source}</p>
               </div>
-              <button onClick={onClose} className="p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
+              <button onClick={onClose} className="btn-icon p-1.5 text-navy/40"><X className="w-5 h-5" /></button>
             </div>
 
             <div className="flex flex-wrap gap-2 mb-4">

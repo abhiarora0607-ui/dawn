@@ -105,8 +105,7 @@ console.log("\n[5] Icon buttons are thumb-sized");
       if (/\bp-1(\.5)?\b/.test(m) && !/btn-icon|min-h|h-\d{2}/.test(m)) tiny++;
     }
   }
-  // Reported, not fatal: these migrate area by area in V35–V37.
-  if (tiny > 0) console.log(`  ${DIM}· ${tiny} icon button(s) still under 44px — migrating in V35–V37${RESET}`);
+  if (tiny > 0) fail(`${tiny} icon button(s) under 44px — use .btn-icon so a thumb can hit them`);
   else pass("every icon button has a 44px hit area");
 }
 

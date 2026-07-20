@@ -170,8 +170,8 @@ function Money() {
 
       {/* plan editor */}
       {edit && (
-        <div className="fixed inset-0 bg-navy/40 flex items-center justify-center z-50 p-4" onClick={() => setEdit(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-5 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="dawn-scrim" onClick={() => setEdit(null)}>
+          <div className="dawn-sheet" onClick={(e) => e.stopPropagation()}>
             <p className="font-display font-semibold text-lg text-navy mb-4">{edit.new ? "New plan" : `Edit ${edit.name}`}</p>
             <div className="space-y-3 text-sm">
               <label className="block"><span className="text-muted text-xs">Name</span><input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} className="inp mt-1" /></label>

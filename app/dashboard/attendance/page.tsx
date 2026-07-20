@@ -170,7 +170,9 @@ function MonthTab() {
       {!d ? <Loading /> : d.grid.length === 0 ? <Empty>No employees to show.</Empty> : (
         <>
         <MonthSummary d={d} />
-        <div className="dawn-card dawn-table-wrap">
+        <MonthCards d={d} />
+
+        <div className="dawn-card dawn-table-wrap hidden md:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-navy-line">
@@ -242,6 +244,46 @@ function MonthSummary({ d }: { d: any }) {
           Days only appear once someone punches in. If your team hasn&apos;t started using the portal yet, this stays empty.
         </p>
       )}
+    </div>
+  );
+}
+
+// Phone view of the month: one card per person, the month as a wrapped strip
+// of small squares, and the numbers said in words underneath. Tapping a square
+// still reveals the date and hours via title, and the whole card links through
+// to that person's full history.
+function MonthCards({ d }: { d: any }) {
+  return (
+    <div className="grid gap-3 md:hidden">
+      {d.grid.map((g: any) => {
+        const worked = g.cells.filter((c: any) => c.c === "full" || c.c === "half");
+        const flagged = g.cells.filter((c: any) => c.f).length;
+        return (
+          <div key={g.id} className="dawn-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <Link href={`/dashboard/attendance/${g.id}`} className="font-semibold text-navy hover:text-amber-deep block truncate">{g.name}</Link>
+                {g.role && <p className="t-micro text-muted truncate">{g.role}</p>}
+              </div>
+              <div className="text-right shrink-0">
+                <p className="font-display font-semibold text-xl text-navy leading-none">{g.totals.presentDays}</p>
+                <p className="t-micro text-muted mt-0.5">{g.totals.presentDays === 1 ? "day" : "days"}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-1 mt-3">
+              {g.cells.map((c: any) => <Cell key={c.date} c={c} />)}
+            </div>
+
+            <p className="t-micro text-muted mt-3">
+              {(g.totals.workedMinutes / 60).toFixed(1)}h worked
+              {g.totals.absentDays > 0 && ` · ${g.totals.absentDays} absent`}
+              {g.totals.leaveDays > 0 && ` · ${g.totals.leaveDays} on leave`}
+              {flagged > 0 && <span className="text-amber-deep font-medium"> · {flagged} to check</span>}
+            </p>
+          </div>
+        );
+      })}
     </div>
   );
 }

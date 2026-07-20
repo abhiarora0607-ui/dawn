@@ -21,7 +21,7 @@ export function ReceiptSend({ receiptUrl, customerName, customerPhone, total, cu
   const btn = "flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-xl transition-colors";
 
   return (
-    <div className="noprint mt-4 bg-white rounded-2xl border border-navy-line p-4">
+    <div className="noprint mt-4 dawn-card p-4">
       <p className="text-sm font-semibold text-navy mb-3">Send receipt to customer</p>
 
       {employees.length > 0 && (
