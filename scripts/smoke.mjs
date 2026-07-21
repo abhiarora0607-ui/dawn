@@ -191,6 +191,10 @@ check("roles: legacy permission ids", React.createElement(RolePicker, {
   permissions: ["dashboard", "financials", "edit_leads"], onApply: () => {},
 }));
 
+// --- ResetOrg: the most destructive screen in the product ---
+const { ResetOrg } = await import("../components/ResetOrg.tsx");
+check("reset: collapsed card", React.createElement(ResetOrg, {}));
+
 console.log(JSON.stringify(results));
 `;
   writeFileSync(`${STAGE}/run.mjs`, harness);

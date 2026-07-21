@@ -58,28 +58,20 @@ export async function POST(req: Request) {
   // ---------------------------------------------------------------- CLEAR
   if (action === "clear") {
     try {
-      const demoContacts = await (await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&is_demo=is.true&select=id`, { headers: H(key), cache: "no-store" })).json();
-      for (const c of Array.isArray(demoContacts) ? demoContacts : []) {
-        await fetch(`${url}/rest/v1/activities?uid=eq.${uid}&contact_id=eq.${c.id}`, { method: "DELETE", headers: H(key) });
-      }
-      // Demo employees may have recurring salary rows — remove those too.
-      const demoEmps = await (await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&is_demo=is.true&select=id`, { headers: H(key), cache: "no-store" })).json();
-      for (const e of Array.isArray(demoEmps) ? demoEmps : []) {
-        await fetch(`${url}/rest/v1/recurring_expenses?uid=eq.${uid}&employee_id=eq.${e.id}`, { method: "DELETE", headers: H(key) });
-        // Attendance rows belong to the employee, not to is_demo — clear them
-        // by employee id or they'd outlive the person they describe.
-        for (const t of ["attendance_logs", "attendance_days", "regularization_requests", "remote_grants"]) {
-          await fetch(`${url}/rest/v1/${t}?uid=eq.${uid}&employee_id=eq.${e.id}`, { method: "DELETE", headers: H(key) }).catch(() => {});
-        }
-      }
-      // The demo holiday too.
-      await fetch(`${url}/rest/v1/holidays?uid=eq.${uid}&name=eq.Local%20festival`, { method: "DELETE", headers: H(key) }).catch(() => {});
-      for (const t of DEMO_TABLES) {
-        // Never touch the permanent owner record.
-        const guard = t === "employees" ? "&is_owner=is.false" : "";
-        await fetch(`${url}/rest/v1/${t}?uid=eq.${uid}&is_demo=is.true${guard}`, { method: "DELETE", headers: H(key) });
-      }
-      return NextResponse.json({ ok: true, cleared: true });
+      // V45: clearing goes through the shared lifecycle map. The list here used
+      // to be maintained by hand and had fallen six tables behind — payslips,
+      // leave requests, balances, bonuses, encashments and portal logins were
+      // all left pointing at employees that had just been deleted. One map,
+      // shared with the reset tool, so adding a table means updating one place.
+      const { wipeRecords } = await import("@/lib/data-lifecycle-db");
+      const result = await wipeRecords(url, key, uid, "demo");
+
+      // The demo holiday isn't tagged — it's identified by name.
+      await fetch(`${url}/rest/v1/holidays?uid=eq.${uid}&name=eq.Local%20festival`,
+        { method: "DELETE", headers: H(key) }).catch(() => {});
+
+      return NextResponse.json({ ok: true, cleared: true, removed: result.total });
+
     } catch (e: any) {
       return NextResponse.json({ error: `Clear failed. ${e?.message || ""}` }, { status: 500 });
     }
@@ -239,6 +231,94 @@ export async function POST(req: Request) {
         }]);
       }
     } catch { /* attendance demo data is a nicety, never a blocker */ }
+
+    // ------------------------------------------------------------------
+    // V45: give the demo an ORGANISATION, not just a list of people.
+    // Without departments, reporting lines and payroll, the org chart is
+    // empty, My Team says nobody reports to you, and the roles dropdown has
+    // nothing to illustrate.
+    // ------------------------------------------------------------------
+    try {
+      // Departments — enough to make the org page meaningful, few enough to
+      // stay believable for a small business.
+      const depts = await insert(url, key, "departments", [
+        { uid, name: "Sales", head_employee_id: priya, sort_order: 0 },
+        { uid, name: "Operations", head_employee_id: null, sort_order: 1 },
+      ], true);
+      const salesDept = depts?.[0]?.id || null;
+      const opsDept = depts?.[1]?.id || null;
+
+      // A shape with actual depth: Priya leads Sales with Rahul under her,
+      // Neha sits in Operations reporting to the owner. That's the smallest
+      // arrangement where "a lead sees their team" means anything.
+      await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&id=eq.${priya}`, {
+        method: "PATCH", headers: H(key),
+        body: JSON.stringify({ reports_to: ownerEmp, department_id: salesDept, job_title: "Sales Lead" }),
+      }).catch(() => {});
+      await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&id=eq.${rahul}`, {
+        method: "PATCH", headers: H(key),
+        body: JSON.stringify({ reports_to: priya, department_id: salesDept, job_title: "Sales Executive" }),
+      }).catch(() => {});
+      await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&id=eq.${neha}`, {
+        method: "PATCH", headers: H(key),
+        body: JSON.stringify({ reports_to: ownerEmp, department_id: opsDept, job_title: "Support Executive" }),
+      }).catch(() => {});
+
+      // Portal logins with DIFFERENT roles, so the permission system is
+      // visible rather than theoretical. Priya manages, Rahul sells, Neha
+      // has the minimum.
+      const { permissionsForRole } = await import("@/lib/roles");
+      await insert(url, key, "employee_accounts", [
+        { uid, employee_id: priya, login_id: "priya", password_hash: null, active: false,
+          permissions: permissionsForRole("manager"), is_demo: true },
+        { uid, employee_id: rahul, login_id: "rahul", password_hash: null, active: false,
+          permissions: permissionsForRole("sales_rep"), is_demo: true },
+        { uid, employee_id: neha, login_id: "neha", password_hash: null, active: false,
+          permissions: permissionsForRole("support_staff"), is_demo: true },
+      ], false);
+
+      // Last month's payroll, in mixed states — a draft to approve, an
+      // approved one to pay, and one already paid. A payroll screen with
+      // nothing on it demonstrates nothing.
+      const lastMonth = (() => {
+        const d = new Date(); d.setMonth(d.getMonth() - 1);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      })();
+      const slips = await insert(url, key, "payslips", [
+        { uid, employee_id: priya, month: lastMonth, status: "paid",
+          base_amount: 22000, additions: 0, deductions: 0, net_amount: 22000,
+          paid_at: new Date().toISOString() },
+        { uid, employee_id: rahul, month: lastMonth, status: "approved",
+          base_amount: 20000, additions: 2000, deductions: 0, net_amount: 22000 },
+        { uid, employee_id: neha, month: lastMonth, status: "draft",
+          base_amount: 18000, additions: 0, deductions: 0, net_amount: 18000 },
+      ], true);
+      if (Array.isArray(slips)) {
+        const lines: any[] = [];
+        for (const sl of slips) {
+          lines.push({ uid, payslip_id: sl.id, kind: "base", label: "Monthly salary", amount: sl.base_amount });
+          if (Number(sl.additions) > 0) {
+            lines.push({ uid, payslip_id: sl.id, kind: "bonus", label: "Bonus — good quarter", amount: sl.additions });
+          }
+        }
+        if (lines.length) await insert(url, key, "payslip_lines", lines, false);
+      }
+
+      // A bonus waiting on approval, so the approve/reject path has something
+      // in it.
+      await insert(url, key, "bonus_requests", [
+        { uid, employee_id: rahul, amount: 3000, reason: "Closed the Meera Joshi subscription",
+          status: "pending", requested_by: priya },
+      ], false);
+
+      // Leave: one approved in the past, one pending for a lead to decide.
+      await insert(url, key, "leave_requests", [
+        { uid, employee_id: neha, code: "casual", from_date: daysAgo(9), to_date: daysAgo(9),
+          days: 1, reason: "Family function", status: "approved" },
+        { uid, employee_id: rahul, code: "sick", from_date: daysAhead(3), to_date: daysAhead(4),
+          days: 2, reason: "Minor surgery, doctor advised rest", status: "pending" },
+      ], false);
+    } catch { /* the org layer is a demonstration aid, never a blocker */ }
 
     return NextResponse.json({ ok: true, seeded: true });
   } catch (e: any) {

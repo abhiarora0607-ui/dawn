@@ -95,9 +95,9 @@ function Inner() {
         </div>
 
         {approved > 0 && (
-          <p className="t-micro text-amber-deep mt-3 flex items-start gap-1.5">
-            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-            {approved} payslip{approved === 1 ? " is" : "s are"} approved but not paid. Nothing reaches your books until you mark them paid.
+          <p className="t-micro text-emerald-600 mt-3 flex items-start gap-1.5">
+            <Check className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            {approved} payslip{approved === 1 ? "" : "s"} approved for this month — the salary is recorded in your expenses.
           </p>
         )}
       </div>
@@ -147,12 +147,7 @@ function Inner() {
                       <button onClick={() => act({ action: "set_status", id: s.id, status: "approved" }, s.id)}
                         disabled={!!busy} className="btn btn-quiet btn-sm">Approve</button>
                     )}
-                    {s.status === "approved" && d.canPay && (
-                      <button onClick={() => act({ action: "set_status", id: s.id, status: "paid" }, s.id)}
-                        disabled={!!busy} className="btn btn-primary btn-sm">
-                        {busy === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Mark paid"}
-                      </button>
-                    )}
+
                   </div>
                 </div>
 

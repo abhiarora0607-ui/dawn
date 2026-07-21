@@ -7,6 +7,7 @@ import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
 import { ToastProvider, useToast, ConfirmDialog } from "@/components/Toast";
+import { ResetOrg } from "@/components/ResetOrg";
 import { invalidateSettingsCache } from "@/lib/use-settings";
 import { Loader2, Save, Upload, Database, Trash2, Download, Building2, Copy, Check , RotateCcw} from "lucide-react";
 
@@ -136,7 +137,9 @@ function SettingsInner() {
 
         <LoginLinksSection />
       </div>
-      <ConfirmDialog open={confirmClear} title="Clear demo data?" body="Removes only demo contacts, orders, and items. Your real data stays." confirmLabel="Clear" onConfirm={clearDemo} onCancel={() => setConfirmClear(false)} />
+      <div className="mt-5"><ResetOrg /></div>
+
+      <ConfirmDialog open={confirmClear} title="Clear demo data?" body="Removes everything the demo created — contacts, orders, employees, payroll, leave and attendance. Your real records stay." confirmLabel="Clear" onConfirm={clearDemo} onCancel={() => setConfirmClear(false)} />
       <style jsx global>{`.inp{width:100%;padding:0.6rem 0.75rem;border:1px solid #E4E8F0;border-radius:0.75rem;font-size:0.875rem;color:#16233F;outline:none}.inp:focus{border-color:#FF9E43}`}</style>
     </DashboardShell>
   );

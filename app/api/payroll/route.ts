@@ -195,7 +195,10 @@ export async function POST(req: Request) {
       if (to === "approved") { patch.approved_at = now; patch.approved_by = meId || "owner"; }
 
       // ---- the moment money enters the books ----
-      if (to === "paid") {
+      // Approving posts the expense (V45: paying is withdrawn for now). A
+      // payslip that already created one must never create a second — the
+      // approved → paid path would otherwise double-count every salary.
+      if ((to === "approved" || to === "paid") && !slip.expense_id) {
         const emp = await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&id=eq.${slip.employee_id}&select=name&limit=1`,
           { headers: H(key), cache: "no-store" }).then((r) => r.json()).then((r) => r?.[0]).catch(() => null);
         const lines = await fetch(`${url}/rest/v1/payslip_lines?uid=eq.${uid}&payslip_id=eq.${slip.id}&select=*`,
@@ -236,7 +239,8 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         ok: true,
-        note: to === "paid" ? "Marked paid — the expense is now in your books." : null,
+        note: to === "approved" ? "Approved — the salary is now in your books."
+          : to === "paid" ? "Marked paid." : null,
       });
     }
 

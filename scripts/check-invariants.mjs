@@ -321,6 +321,60 @@ console.log("\n[12] No role template contains a conflicting pair");
   if (bad === 0) pass("every role template is free of built-in conflicts");
 }
 
+// ---- 13. DELETION LEAVES NO ORPHANS (V45) -----------------------------------
+// Clearing demo data used to maintain its own list of employee-owned tables.
+// It was written when there were six and never updated as the product grew to
+// seventeen, so payslips, leave requests, balances, bonuses, encashments and
+// portal logins were left behind pointing at deleted employees — invisible in
+// the UI and impossible to find again.
+//
+// Both deletion paths must go through the shared map, and the map must cover
+// every table that carries an employee_id.
+console.log("\n[13] Demo clearing and reset share one deletion map");
+{
+  let bad = 0;
+  const demo = read("app/api/demo/route.ts");
+  if (!/wipeRecords/.test(demo)) {
+    fail("demo clearing does not use the shared lifecycle engine"); bad++;
+  }
+  const reset = read("app/api/reset/route.ts");
+  if (!/wipeRecords/.test(reset)) { fail("reset does not use the shared engine"); bad++; }
+
+  // Every table queried by employee_id anywhere must be in the child list, or
+  // deleting an employee strands it.
+  const map = read("lib/data-lifecycle.ts");
+  const referenced = new Set();
+  for (const f of files) {
+    const src = read(f);
+    for (const m of src.matchAll(/rest\/v1\/([a-z_]+)\?[^`]*employee_id=eq\./g)) referenced.add(m[1]);
+    for (const m of src.matchAll(/rest\/v1\/([a-z_]+)\?[^`]*employee_id=in\./g)) referenced.add(m[1]);
+  }
+  // Tables where employee_id is an ASSIGNMENT, not ownership: the row belongs
+  // to the business and must survive the person. Deleting a salesperson must
+  // never delete their customers.
+  const ASSIGNED_NOT_OWNED = new Set([
+    "contacts", "sales", "tasks", "events", "emp_notes",
+    "employee_scores", "activities", "expenses", "attachments",
+    "conversations", "messages", "catalog_items", "saved_content",
+  ]);
+  for (const t of referenced) {
+    if (t === "employees") continue;
+    if (ASSIGNED_NOT_OWNED.has(t)) continue;
+    if (!new RegExp(`table: "${t}", via: "child"`).test(map)) {
+      fail(`${t} is keyed by employee_id but isn't cleaned up with the employee`); bad++;
+    }
+  }
+
+  // The reset must never delete what keeps someone signed in.
+  if (!/dawn_users/.test(map) || !/subscriptions/.test(map)) {
+    fail("reset does not declare what it preserves"); bad++;
+  }
+  if (/table: "dawn_users"|table: "subscriptions"|table: "business_settings"/.test(map)) {
+    fail("a preserved table is also in the delete list"); bad++;
+  }
+  if (bad === 0) pass("one deletion map, no orphaned child tables");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {
