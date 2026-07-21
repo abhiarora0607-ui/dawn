@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "check": "node scripts/validate-schema.mjs && node scripts/check-invariants.mjs && next build",
-    "invariants": "node scripts/check-invariants.mjs"
+    "invariants": "node scripts/check-invariants.mjs",
+    "verify": "npm run build && node scripts/validate-schema.mjs && node scripts/check-invariants.mjs && node scripts/run-tests.mjs && node scripts/check-layout.mjs && node scripts/smoke.mjs"
   },
   "dependencies": {
     "next": "14.2.5",
