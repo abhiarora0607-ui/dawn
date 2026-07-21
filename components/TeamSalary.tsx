@@ -1,0 +1,89 @@
+"use client";
+
+// My pay. What I earn, what I've been paid, and what's owed from encashment.
+//
+// Read-only by design: pay questions belong to a conversation with a manager,
+// not an edit field. What this does is remove the need to ask "was I paid this
+// month?" — a question people are often uncomfortable raising.
+
+import { useEffect, useState } from "react";
+import { Loader2, Wallet, Calendar, TrendingUp } from "lucide-react";
+
+export function TeamSalary() {
+  const [d, setD] = useState<any>(null);
+
+  useEffect(() => { fetch("/api/team/salary").then((r) => r.json()).then(setD).catch(() => {}); }, []);
+
+  if (!d) return <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (d.error) return <p className="dawn-empty">{d.error}</p>;
+
+  const pending = (d.encashments || []).filter((e: any) => e.status === "approved" && !e.paidInMonth);
+
+  return (
+    <div className="space-y-4">
+      <div className="dawn-card p-5">
+        <p className="t-micro text-muted flex items-center gap-1.5"><Wallet className="w-3.5 h-3.5" /> Monthly salary</p>
+        <p className="font-display font-semibold text-3xl text-navy mt-1">₹{d.monthly.toLocaleString("en-IN")}</p>
+        <p className="t-micro text-muted mt-1">
+          About ₹{d.perDay.toLocaleString("en-IN")} a day
+          {d.joiningDate && ` · joined ${new Date(d.joiningDate).toLocaleDateString()}`}
+        </p>
+      </div>
+
+      {pending.length > 0 && (
+        <div className="dawn-card p-4 border-amber/30">
+          <p className="text-sm font-semibold text-navy flex items-center gap-1.5">
+            <TrendingUp className="w-4 h-4 text-amber-deep" /> Coming in your next salary
+          </p>
+          {pending.map((e: any) => (
+            <p key={e.id} className="text-sm text-navy/80 mt-1">
+              ₹{Number(e.amount || 0).toLocaleString("en-IN")} — {e.days} {e.days === 1 ? "day" : "days"} of {e.label} encashed
+            </p>
+          ))}
+        </div>
+      )}
+
+      <div>
+        <p className="t-label mb-2">Payment history</p>
+        {d.payments?.length === 0 ? (
+          <p className="dawn-empty">Nothing recorded yet. Salary payments appear here once they&apos;re paid.</p>
+        ) : (
+          <div className="dawn-card divide-y divide-navy-line/40">
+            {d.payments.map((p: any) => (
+              <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-navy flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-navy/30" />
+                    {new Date(p.date).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
+                  </p>
+                  {p.hasExtra && <p className="t-micro text-amber-deep mt-0.5">Includes leave encashment</p>}
+                </div>
+                <p className="font-semibold text-navy shrink-0">₹{p.amount.toLocaleString("en-IN")}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {d.encashments?.length > 0 && (
+        <div>
+          <p className="t-label mb-2">Encashment requests</p>
+          <div className="dawn-card divide-y divide-navy-line/40">
+            {d.encashments.map((e: any) => (
+              <div key={e.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <span className="text-sm text-navy">{e.days} {e.days === 1 ? "day" : "days"} · {e.label}</span>
+                <span className={`pill ${e.status === "paid" ? "pill-green" : e.status === "approved" ? "pill-sky" : e.status === "rejected" ? "pill-red" : "pill-amber"}`}>
+                  {e.status === "approved" ? "next salary" : e.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="t-micro text-muted text-center">
+        Something look wrong? Talk to your manager — pay is set by the business, not here.
+      </p>
+    </div>
+  );
+}

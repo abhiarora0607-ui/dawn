@@ -36,7 +36,7 @@ const read = (p) => readFileSync(p, "utf8");
 
 // ---- 1. TENANT ISOLATION ----------------------------------------------------
 console.log("\n[1] Tenant isolation — every tenant-table read filters by uid");
-const TENANT_TABLES = ["contacts", "sales", "catalog_items", "expenses", "employees", "tasks", "activities", "subscriptions", "payments", "events", "feedback", "attendance_logs", "attendance_days", "holidays", "remote_grants", "regularization_requests", "leave_requests", "leave_balances", "leave_types", "encashment_requests"];
+const TENANT_TABLES = ["contacts", "sales", "catalog_items", "expenses", "employees", "tasks", "activities", "subscriptions", "payments", "events", "feedback", "attendance_logs", "attendance_days", "holidays", "remote_grants", "regularization_requests", "leave_requests", "leave_balances", "leave_types", "encashment_requests", "departments"];
 {
   let bad = 0;
   for (const p of files.filter((f) => f.includes("/api/"))) {
@@ -136,7 +136,7 @@ console.log("\n[6] Service key never referenced in client components");
 // ---- 7. AREA GATES (V26) ----------------------------------------------------
 console.log("\n[7] Billing area gates — every area API carries its guard");
 {
-  const CRM = ["contacts","sales","catalog","expenses","employees","contacts/import","admin-tasks","employee-accounts","employee-detail","employee-performance","finance","pulse","records","recovery","scores","search","item-detail","onboarding","demo","audit","attendance","attendance/settings","attendance/requests","leave","leave/settings"];
+  const CRM = ["contacts","sales","catalog","expenses","employees","contacts/import","admin-tasks","employee-accounts","employee-detail","employee-performance","finance","pulse","records","recovery","scores","search","item-detail","onboarding","demo","audit","attendance","attendance/settings","attendance/requests","leave","leave/settings","org"];
   const IG  = ["brief","suggestions","analyze-image","automation","brand-voice","calendar","carousel","competitors","content","persona","schedule","saved","value"];
   let bad = 0;
   for (const r of CRM) {
@@ -154,6 +154,14 @@ console.log("\n[7] Billing area gates — every area API carries its guard");
     // V31b: leave belongs to the person too — same rule.
     const lv = read("app/api/team/leave/route.ts");
     if (!lv.includes("guardEmployee()")) { fail("team leave must use an unpermissioned guardEmployee()"); bad++; }
+    // V38: an employee's own pay is theirs. The endpoint must take no target
+    // parameter at all — the simplest possible defence against the worst leak
+    // an HR product can have.
+    const sal = read("app/api/team/salary/route.ts");
+    if (!sal.includes("ctx.employeeId")) { fail("team salary must scope to the caller"); bad++; }
+    if (/employeeId.*searchParams|searchParams.*employee/i.test(sal)) {
+      fail("team salary must not accept an employee id parameter"); bad++;
+    }
   } catch { fail("app/api/team/attendance missing"); bad++; }
   if (bad === 0) pass(`all ${CRM.length + IG.length} area APIs + the portal choke point are gated`);
 }

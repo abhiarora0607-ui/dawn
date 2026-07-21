@@ -8,15 +8,17 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TeamAttendance } from "@/components/TeamAttendance";
 import { TeamLeave } from "@/components/TeamLeave";
+import { TeamSalary } from "@/components/TeamSalary";
+import { PeopleSearch } from "@/components/PeopleSearch";
 import { DawnLogo } from "@/components/DawnLogo";
 import { LostDialog, PaymentModal, WonDialog } from "@/components/SharedModals";
 import {
   Loader2, Users, ShoppingBag, LogOut, Phone, MessageCircle, TrendingUp, Plus, X, Send,
   MessageSquare, KeyRound, Bell, Clock, CheckSquare, CalendarDays, StickyNote, BarChart3,
-  Settings as SettingsIcon, MoreHorizontal, Pencil, Download, Trash2, Home, CalendarClock, Palmtree,
+  Settings as SettingsIcon, MoreHorizontal, Pencil, Download, Trash2, Home, CalendarClock, Palmtree, Wallet, Search,
 } from "lucide-react";
 
-type Tab = "dashboard" | "attendance" | "leave" | "leads" | "customers" | "orders" | "messages" | "tasks" | "calendar" | "notes" | "reports" | "settings";
+type Tab = "dashboard" | "attendance" | "leave" | "salary" | "people" | "leads" | "customers" | "orders" | "messages" | "tasks" | "calendar" | "notes" | "reports" | "settings";
 const STAGES = ["New Lead", "Contacted", "Negotiating", "Customer (Won)", "Lost"];
 
 export default function TeamDashboard() {
@@ -75,6 +77,8 @@ export default function TeamDashboard() {
     { id: "dashboard", label: "Home", icon: Home, perm: "dashboard" },
     { id: "attendance", label: "Attendance", icon: CalendarClock, perm: "dashboard" },
     { id: "leave", label: "Leave", icon: Palmtree, perm: "dashboard" },
+    { id: "salary", label: "My Pay", icon: Wallet, perm: "dashboard" },
+    { id: "people", label: "People", icon: Search, perm: "dashboard" },
     { id: "leads", label: "Leads", icon: Users, perm: "leads" },
     { id: "customers", label: "Customers", icon: Users, perm: "customers" },
     { id: "orders", label: "Orders", icon: ShoppingBag, perm: "orders" },
@@ -174,6 +178,8 @@ export default function TeamDashboard() {
         {tab === "messages" && can("messaging") && <Messages />}
         {tab === "attendance" && <TeamAttendance />}
         {tab === "leave" && <TeamLeave />}
+        {tab === "salary" && <TeamSalary />}
+        {tab === "people" && <PeopleTab />}
         {tab === "tasks" && can("tasks") && <Tasks contacts={[...leads, ...customers]} />}
         {tab === "calendar" && can("calendar") && <CalendarView leads={leads} />}
         {tab === "notes" && can("notes") && <Notes />}
@@ -879,4 +885,18 @@ function ContactDetail({ id, canEdit, onClose, onEdit }: { id: string; canEdit: 
 
 function Field({ label, value }: { label: string; value: string }) {
   return <div className="bg-surface rounded-lg px-3 py-2"><p className="text-[12px] uppercase tracking-wide text-muted">{label}</p><p className="text-sm text-navy truncate">{value}</p></div>;
+}
+
+
+// The People tab is the shared search, presented as a tab rather than a
+// keyboard shortcut — most employees will never think to press a hotkey.
+function PeopleTab() {
+  const [open, setOpen] = useState(true);
+  return open
+    ? <PeopleSearch onClose={() => setOpen(false)} />
+    : (
+      <div className="dawn-card p-6 text-center">
+        <button onClick={() => setOpen(true)} className="btn btn-primary">Find a colleague</button>
+      </div>
+    );
 }
