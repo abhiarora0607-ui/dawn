@@ -136,11 +136,19 @@ console.log("\n[6] Service key never referenced in client components");
 // ---- 7. AREA GATES (V26) ----------------------------------------------------
 console.log("\n[7] Billing area gates — every area API carries its guard");
 {
-  const CRM = ["contacts","sales","catalog","expenses","employees","contacts/import","admin-tasks","employee-accounts","employee-detail","employee-performance","finance","pulse","records","recovery","scores","search","item-detail","onboarding","demo","audit","attendance","attendance/settings","attendance/requests","leave","leave/settings","org","payroll","bonus"];
+  const CRM = ["contacts","sales","catalog","expenses","employees","contacts/import","admin-tasks","employee-accounts","employee-detail","employee-performance","finance","pulse","records","recovery","scores","search","item-detail","onboarding","demo","audit","attendance","attendance/settings","attendance/requests","leave","leave/settings","org","payroll","bonus","view-as"];
   const IG  = ["brief","suggestions","analyze-image","automation","brand-voice","calendar","carousel","competitors","content","persona","schedule","saved","value"];
   let bad = 0;
   for (const r of CRM) {
-    try { if (!read(`app/api/${r}/route.ts`).includes('"crm"')) { fail(`app/api/${r}: missing crm gate`); bad++; } } catch {}
+    try {
+      const src = read(`app/api/${r}/route.ts`);
+      // The gate may be applied directly, or via resolveApprover() which calls
+      // requireArea(…, "crm") and hands back `blocked` for the route to return.
+      // Both are real gates; only "no gate at all" is a failure.
+      const direct = src.includes('"crm"');
+      const viaApprover = src.includes("resolveApprover") && /\.blocked|blocked\)/.test(src);
+      if (!direct && !viaApprover) { fail(`app/api/${r}: missing crm gate`); bad++; }
+    } catch {}
   }
   for (const r of IG) {
     try { if (!read(`app/api/${r}/route.ts`).includes('"instagram_ai"')) { fail(`app/api/${r}: missing instagram_ai gate`); bad++; } } catch {}
@@ -220,6 +228,33 @@ console.log("\n[9] Salary reaches the books only through a paid payslip");
     fail("a draft payslip must not be markable paid without approval"); bad++;
   }
   if (bad === 0) pass("salary flows only through an approved, paid payslip");
+}
+
+// ---- 10. NOBODY APPROVES THEIR OWN REQUEST (V40) ----------------------------
+// Delegation's one unforgivable failure: a manager quietly signing off their
+// own leave. Every route that decides a request must run the shared authority
+// check, which refuses self-approval — rather than hand-rolling a comparison
+// that someone later "simplifies" away.
+console.log("\n[10] Delegated approvals go through the shared authority check");
+{
+  let bad = 0;
+  for (const f of ["app/api/leave/route.ts", "app/api/attendance/requests/route.ts"]) {
+    const src = read(f);
+    if (!src.includes("canDecideFor")) { fail(`${f} decides requests without canDecideFor()`); bad++; }
+  }
+  const appr = read("lib/approvals.ts");
+  if (!/subjectId === ctx\.meId/.test(appr)) {
+    fail("canDecideFor must refuse self-approval"); bad++;
+  }
+  if (!/queueScope[\s\S]*?filter\(\(id\) => id !== ctx\.meId\)/.test(appr)) {
+    fail("an approval queue must exclude the approver's own requests"); bad++;
+  }
+  // View-as must stay read-only: no POST handler at all.
+  const va = read("app/api/view-as/route.ts");
+  if (/export async function (POST|PATCH|DELETE|PUT)/.test(va)) {
+    fail("view-as must be read-only — it exports a writing handler"); bad++;
+  }
+  if (bad === 0) pass("approvals require authority, never self, and view-as cannot write");
 }
 
 // ---- RESULT -----------------------------------------------------------------

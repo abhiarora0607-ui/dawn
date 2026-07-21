@@ -8,8 +8,7 @@
 // so a day off stops reading as an absence the moment it's approved.
 
 import { NextResponse } from "next/server";
-import { getUid } from "@/lib/auth";
-import { requireArea } from "@/lib/entitlements";
+import { resolveApprover, canDecideFor, queueFilter } from "@/lib/approvals";
 import { getAttSettings, recomputeDay, getHolidays } from "@/lib/attendance-db";
 import { getLeaveTypes, getBalances, adjustBalance } from "@/lib/leave-db";
 import { LEAVE_LABEL, availableOf, dayRate, CURRENT_YEAR } from "@/lib/leave";
@@ -21,12 +20,13 @@ function H(key: string, extra: Record<string, string> = {}) {
   return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
 }
 
+// V40: a manager decides their own team's leave. Before this, every request in
+// the company queued behind the owner — workable at three people, a bottleneck
+// at fifty.
 async function ctx() {
-  const uid = await getUid();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SECRET_KEY;
-  if (!uid || !url || !key) return null;
-  const area = await requireArea(url, key, uid, "crm");
-  return { uid, url, key, blocked: area };
+  const a = await resolveApprover();
+  if (!a) return null;
+  return { uid: a.uid, url: a.url, key: a.key, blocked: a.blocked, appr: a };
 }
 
 export async function GET(req: Request) {
@@ -53,7 +53,9 @@ export async function GET(req: Request) {
 
   if (view === "balances") {
     const types = await getLeaveTypes(url, key, uid);
-    const rows = await Promise.all(EMP.map(async (e: any) => ({
+    const visible = c.appr.org.visible;
+    const scoped = visible === "all" ? EMP : EMP.filter((e: any) => (visible as string[]).includes(e.id));
+    const rows = await Promise.all(scoped.map(async (e: any) => ({
       id: e.id, name: e.name, role: e.role,
       balances: await getBalances(url, key, uid, e.id, year, types),
     })));
@@ -63,8 +65,9 @@ export async function GET(req: Request) {
   // requests
   const status = sp.get("status") || "pending";
   const filter = status === "all" ? "" : `&status=eq.${status}`;
-  const rows = await fetch(`${url}/rest/v1/leave_requests?uid=eq.${uid}${filter}&order=created_at.desc&limit=100`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
-  const pending = await fetch(`${url}/rest/v1/leave_requests?uid=eq.${uid}&status=eq.pending&select=id`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
+  const scope = queueFilter(c.appr);
+  const rows = await fetch(`${url}/rest/v1/leave_requests?uid=eq.${uid}${filter}${scope}&order=created_at.desc&limit=100`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
+  const pending = await fetch(`${url}/rest/v1/leave_requests?uid=eq.${uid}&status=eq.pending${scope}&select=id`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
 
   return NextResponse.json({
     requests: (Array.isArray(rows) ? rows : []).map((r: any) => ({ ...r, employee_name: nameById[r.employee_id] || "Unknown", label: LEAVE_LABEL[r.code] || r.code })),
@@ -88,6 +91,11 @@ export async function POST(req: Request) {
       const er = Array.isArray(rows) ? rows[0] : null;
       if (!er) return NextResponse.json({ error: "Request not found." }, { status: 404 });
       if (er.status !== "pending") return NextResponse.json({ error: "Already decided." }, { status: 400 });
+      const mayDecide = canDecideFor(c.appr, er.employee_id);
+      if (!mayDecide.ok) return NextResponse.json({ error: mayDecide.why }, { status: 403 });
+      // Encashment is money. A manager may sign off leave, but turning leave
+      // into pay stays with an admin.
+      if (!c.appr.isAdmin) return NextResponse.json({ error: "Only an admin can approve an encashment — it becomes pay." }, { status: 403 });
 
       if (b.action === "encash_reject") {
         await fetch(`${url}/rest/v1/encashment_requests?uid=eq.${uid}&id=eq.${er.id}`, {
@@ -122,6 +130,11 @@ export async function POST(req: Request) {
     const lr = Array.isArray(rows) ? rows[0] : null;
     if (!lr) return NextResponse.json({ error: "Request not found." }, { status: 404 });
     if (lr.status !== "pending") return NextResponse.json({ error: "That request has already been decided." }, { status: 400 });
+
+    // Authority, not just visibility: deciding someone's leave means being
+    // above them, and never means deciding your own.
+    const allowed = canDecideFor(c.appr, lr.employee_id);
+    if (!allowed.ok) return NextResponse.json({ error: allowed.why }, { status: 403 });
 
     if (b.action === "reject") {
       await fetch(`${url}/rest/v1/leave_requests?uid=eq.${uid}&id=eq.${lr.id}`, {

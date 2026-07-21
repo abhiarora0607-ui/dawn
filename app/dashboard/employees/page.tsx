@@ -6,8 +6,9 @@ import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
 import { ToastProvider, useToast, ConfirmDialog } from "@/components/Toast";
-import { Loader2, Plus, X, Trash2, Users, Pencil, KeyRound, CalendarClock } from "lucide-react";
+import { Loader2, Plus, X, Trash2, Users, Pencil, KeyRound, CalendarClock , Eye } from "lucide-react";
 import { TeamAccessModal } from "@/components/TeamAccessModal";
+import { ViewAs } from "@/components/ViewAs";
 import { useSettings } from "@/lib/use-settings";
 
 type Employee = {
@@ -127,7 +128,6 @@ function EmpModal({ emp, onClose, onSaved }: { emp: Employee | null; onClose: ()
           <p className="text-xs text-muted">While active, this salary is auto-added as a monthly expense. Marking inactive stops future salary expenses (past ones stay).</p>
           <button onClick={save} disabled={saving} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl disabled:opacity-60">{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null} {emp ? "Save" : "Add employee"}</button>
         </div>
-        <style jsx>{`.inp{width:100%;padding:0.6rem 0.75rem;border:1px solid #E4E8F0;border-radius:0.75rem;font-size:0.875rem;color:#16233F;outline:none}.inp:focus{border-color:#FF9E43}`}</style>
       </div>
     </div>
   );
@@ -137,6 +137,7 @@ function EmployeesInner() {
   const { data } = useBrief();
   const { currency } = useSettings();
   const { toast } = useToast();
+  const [viewing, setViewing] = useState<string | null>(null);
   const [emps, setEmps] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ open: boolean; emp: Employee | null }>({ open: false, emp: null });
@@ -202,6 +203,11 @@ function EmployeesInner() {
                     </p>
                   </div>
                   {e.remote_permanent && <span className="text-[12px] font-bold uppercase bg-sky-50 text-sky-600 border border-sky-200 px-1.5 py-0.5 rounded shrink-0">Remote</span>}
+                  {!e.is_owner && (
+                    <button onClick={() => setViewing(e.id)} className="btn-icon shrink-0 text-navy/40 hover:text-amber-deep" aria-label="View">
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
 
                 {/* what */}
@@ -253,6 +259,7 @@ function EmployeesInner() {
       {modal.open && <EmpModal emp={modal.emp} onClose={() => setModal({ open: false, emp: null })} onSaved={load} />}
       <ConfirmDialog open={!!confirmDel} title="Remove this employee?" body="Their past salary expenses stay; future ones stop." confirmLabel="Remove" onConfirm={doDelete} onCancel={() => setConfirmDel(null)} />
       {accessEmp && <TeamAccessModal employee={accessEmp} onClose={() => setAccessEmp(null)} />}
+      {viewing && <ViewAs employeeId={viewing} onClose={() => setViewing(null)} />}
       <ConfirmDialog open={!!pendingToggle} title={pendingToggle?.status === "active" ? "Mark inactive?" : "Mark active?"} body={pendingToggle?.status === "active" ? "Future monthly salary expenses will stop. Past ones stay." : "Monthly salary will resume as an expense while active."} confirmLabel="Confirm" onConfirm={() => pendingToggle && toggleStatus(pendingToggle)} onCancel={() => setPendingToggle(null)} />
     </DashboardShell>
   );

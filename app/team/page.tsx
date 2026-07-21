@@ -9,16 +9,17 @@ import { useRouter } from "next/navigation";
 import { TeamAttendance } from "@/components/TeamAttendance";
 import { TeamLeave } from "@/components/TeamLeave";
 import { TeamSalary } from "@/components/TeamSalary";
+import { TeamMyTeam } from "@/components/TeamMyTeam";
 import { PeopleSearch } from "@/components/PeopleSearch";
 import { DawnLogo } from "@/components/DawnLogo";
 import { LostDialog, PaymentModal, WonDialog } from "@/components/SharedModals";
 import {
   Loader2, Users, ShoppingBag, LogOut, Phone, MessageCircle, TrendingUp, Plus, X, Send,
   MessageSquare, KeyRound, Bell, Clock, CheckSquare, CalendarDays, StickyNote, BarChart3,
-  Settings as SettingsIcon, MoreHorizontal, Pencil, Download, Trash2, Home, CalendarClock, Palmtree, Wallet, Search,
+  Settings as SettingsIcon, MoreHorizontal, Pencil, Download, Trash2, Home, CalendarClock, Palmtree, Wallet, Search, Users2,
 } from "lucide-react";
 
-type Tab = "dashboard" | "attendance" | "leave" | "salary" | "people" | "leads" | "customers" | "orders" | "messages" | "tasks" | "calendar" | "notes" | "reports" | "settings";
+type Tab = "dashboard" | "attendance" | "leave" | "salary" | "people" | "myteam" | "leads" | "customers" | "orders" | "messages" | "tasks" | "calendar" | "notes" | "reports" | "settings";
 const STAGES = ["New Lead", "Contacted", "Negotiating", "Customer (Won)", "Lost"];
 
 export default function TeamDashboard() {
@@ -77,6 +78,7 @@ export default function TeamDashboard() {
     { id: "dashboard", label: "Home", icon: Home, perm: "dashboard" },
     { id: "attendance", label: "Attendance", icon: CalendarClock, perm: "dashboard" },
     { id: "leave", label: "Leave", icon: Palmtree, perm: "dashboard" },
+    { id: "myteam", label: "My Team", icon: Users2, perm: "dashboard" },
     { id: "salary", label: "My Pay", icon: Wallet, perm: "dashboard" },
     { id: "people", label: "People", icon: Search, perm: "dashboard" },
     { id: "leads", label: "Leads", icon: Users, perm: "leads" },
@@ -178,6 +180,7 @@ export default function TeamDashboard() {
         {tab === "messages" && can("messaging") && <Messages />}
         {tab === "attendance" && <TeamAttendance />}
         {tab === "leave" && <TeamLeave />}
+        {tab === "myteam" && <TeamMyTeam />}
         {tab === "salary" && <TeamSalary />}
         {tab === "people" && <PeopleTab />}
         {tab === "tasks" && can("tasks") && <Tasks contacts={[...leads, ...customers]} />}

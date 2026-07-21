@@ -7,8 +7,7 @@
 // day is always traceable back to who asked, why, and who approved it.
 
 import { NextResponse } from "next/server";
-import { getUid } from "@/lib/auth";
-import { requireArea } from "@/lib/entitlements";
+import { resolveApprover, canDecideFor, queueFilter } from "@/lib/approvals";
 import { recomputeDay, getAttSettings } from "@/lib/attendance-db";
 import { IST_OFFSET_MIN, hhmmToMinutes } from "@/lib/attendance";
 import { audit } from "@/lib/audit";
@@ -25,16 +24,18 @@ function istToUtc(date: string, hhmm: string): string {
 }
 
 export async function GET(req: Request) {
-  const uid = await getUid();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SECRET_KEY;
-  if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
-  const area = await requireArea(url, key, uid, "crm");
-  if (area) return NextResponse.json(area, { status: 403 });
+  // V40: a manager sees their own team's fix requests. Waiting for the owner
+  // to approve a forgotten punch-out is exactly the kind of small blockage
+  // that makes people stop bothering to report anything.
+  const appr = await resolveApprover();
+  if (!appr) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  if (appr.blocked) return NextResponse.json(appr.blocked, { status: 403 });
+  const { uid, url, key } = appr;
 
   const status = new URL(req.url).searchParams.get("status") || "pending";
   const filter = status === "all" ? "" : `&status=eq.${status}`;
   const [rows, employees] = await Promise.all([
-    fetch(`${url}/rest/v1/regularization_requests?uid=eq.${uid}${filter}&order=created_at.desc&limit=100`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+    fetch(`${url}/rest/v1/regularization_requests?uid=eq.${uid}${filter}${queueFilter(appr)}&order=created_at.desc&limit=100`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
     fetch(`${url}/rest/v1/employees?uid=eq.${uid}&select=id,name`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
   ]);
   const nameById: Record<string, string> = {};
@@ -47,11 +48,10 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const uid = await getUid();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SECRET_KEY;
-  if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
-  const area = await requireArea(url, key, uid, "crm");
-  if (area) return NextResponse.json(area, { status: 403 });
+  const appr = await resolveApprover();
+  if (!appr) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+  if (appr.blocked) return NextResponse.json(appr.blocked, { status: 403 });
+  const { uid, url, key } = appr;
 
   try {
     const b = await req.json();
@@ -61,6 +61,12 @@ export async function POST(req: Request) {
     const rr = Array.isArray(rows) ? rows[0] : null;
     if (!rr) return NextResponse.json({ error: "Request not found." }, { status: 404 });
     if (rr.status !== "pending") return NextResponse.json({ error: "That request has already been decided." }, { status: 400 });
+
+    // Approving a fix rewrites what a day's attendance says, which is why the
+    // check is authority over the person rather than mere visibility — and why
+    // it can never be your own.
+    const allowed = canDecideFor(appr, rr.employee_id);
+    if (!allowed.ok) return NextResponse.json({ error: allowed.why }, { status: 403 });
 
     if (b.action === "reject") {
       await fetch(`${url}/rest/v1/regularization_requests?uid=eq.${uid}&id=eq.${rr.id}`, {

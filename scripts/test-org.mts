@@ -99,3 +99,80 @@ for (const [name, got, want] of t) {
   console.log(`${ok ? "  ok  " : "  FAIL"} ${name} → ${got}${ok ? "" : ` (want ${want})`}`);
 }
 console.log(bad === 0 ? `\n*** ALL ${t.length} ORG RULES CORRECT ***` : `\n*** ${bad} ORG RULE FAILURE(S) ***`);
+
+// ---- V40: who may decide whose requests ----
+// Approval is authority over a person, so it's deliberately stricter than
+// visibility. These are the abuse cases worth pinning down.
+const t3: [string, any, string][] = [];
+
+// Reusing the same org: owner → alice → carol → frank, owner → bob → erin.
+// alice heads Sales.
+function mkCtx(meId: string | null, perms: string[] = []): any {
+  const me = meId ? E.find((e) => e.id === meId) : null;
+  const isAdmin = !meId || !!me?.is_owner || !!me?.is_admin;
+  return {
+    meId, permissions: perms, isAdmin,
+    org: {
+      employees: E, departments: D,
+      myTeam: meId ? O.subtreeOf(meId, E) : E.map((e) => e.id),
+      approverFor: (id: string) => O.managerChain(id, E)[0] || null,
+    },
+  };
+}
+
+// Mirrors canDecideFor / queueScope without importing the route plumbing.
+const A = {
+  canDecideFor(ctx: any, subjectId: string) {
+    if (ctx.isAdmin) return { ok: true };
+    if (!ctx.meId) return { ok: false, why: "Sign in first." };
+    if (subjectId === ctx.meId) return { ok: false, why: "You can't decide your own request — it goes to your manager." };
+    if (!ctx.org.myTeam.includes(subjectId)) return { ok: false, why: "You can only decide requests from people on your team." };
+    if (!(ctx.permissions.includes("team_edit") || ctx.org.myTeam.length > 0)) return { ok: false, why: "You don't have permission to decide requests." };
+    return { ok: true };
+  },
+  queueScope(ctx: any) {
+    if (ctx.isAdmin) return "all";
+    return ctx.org.myTeam.filter((id: string) => id !== ctx.meId);
+  },
+  queueFilter(ctx: any, column = "employee_id") {
+    const scope = A.queueScope(ctx);
+    if (scope === "all") return "";
+    if ((scope as string[]).length === 0) return `&${column}=eq.00000000-0000-0000-0000-000000000000`;
+    return `&${column}=in.(${(scope as string[]).join(",")})`;
+  },
+  approverNameFor(ctx: any, subjectId: string) {
+    const managerId = ctx.org.approverFor(subjectId);
+    if (!managerId) return "the owner";
+    return E.find((e: any) => e.id === managerId)?.name || "your manager";
+  },
+};
+
+t3.push(["admin decides anything", String(A.canDecideFor(mkCtx(null), "frank").ok), "true"]);
+t3.push(["lead decides own report", String(A.canDecideFor(mkCtx("alice"), "carol").ok), "true"]);
+t3.push(["lead decides 2 levels down", String(A.canDecideFor(mkCtx("alice"), "frank").ok), "true"]);
+// the one that matters
+t3.push(["nobody decides their own", String(A.canDecideFor(mkCtx("alice"), "alice").ok), "false"]);
+t3.push(["self-decision is explained", String(A.canDecideFor(mkCtx("alice"), "alice").why).includes("your manager"), "true"]);
+t3.push(["peer cannot decide peer", String(A.canDecideFor(mkCtx("bob"), "carol").ok), "false"]);
+t3.push(["member decides nobody", String(A.canDecideFor(mkCtx("frank"), "carol").ok), "false"]);
+t3.push(["cannot decide upward", String(A.canDecideFor(mkCtx("carol"), "alice").ok), "false"]);
+
+// queue excludes yourself, so your own request is never in a list you can act on
+t3.push(["queue excludes self", String((A.queueScope(mkCtx("alice")) as string[]).includes("alice")), "false"]);
+t3.push(["queue holds the subtree", (A.queueScope(mkCtx("alice")) as string[]).sort().join(","), "carol,dan,frank"]);
+t3.push(["admin queue is everything", String(A.queueScope(mkCtx(null))), "all"]);
+t3.push(["member queue is empty", (A.queueScope(mkCtx("frank")) as string[]).length + "", "0"]);
+t3.push(["empty queue filters to nothing", String(A.queueFilter(mkCtx("frank")).includes("00000000")), "true"]);
+
+// routing
+t3.push(["request rises to nearest manager", A.approverNameFor(mkCtx("frank"), "frank"), "Carol"]);
+t3.push(["lead's own request rises above them", A.approverNameFor(mkCtx("carol"), "carol"), "Alice"]);
+t3.push(["top of tree routes to owner", A.approverNameFor(mkCtx(null), "owner"), "the owner"]);
+
+let bad3 = 0;
+for (const [name, got, want] of t3) {
+  const ok = String(got) === want;
+  if (!ok) bad3++;
+  console.log(`${ok ? "  ok  " : "  FAIL"} ${name} → ${got}${ok ? "" : ` (want ${want})`}`);
+}
+console.log(bad3 === 0 ? `*** ALL ${t3.length} APPROVAL RULES CORRECT ***` : `*** ${bad3} APPROVAL FAILURE(S) ***`);
