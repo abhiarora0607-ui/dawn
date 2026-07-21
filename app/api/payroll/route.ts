@@ -73,8 +73,9 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     month,
+    canPrepare: org.isAdmin || permissions.includes("payroll_prepare"),
+    canApprove: org.isAdmin || permissions.includes("payroll_approve"),
     canPay: org.isAdmin || permissions.includes("payroll_pay"),
-    canApprove: org.isAdmin,
     payslips: S.map((s: any) => ({
       ...s,
       employee_name: nameById[s.employee_id] || "Unknown",
@@ -110,7 +111,9 @@ export async function POST(req: Request) {
 
     // ------------------------------------------------------- GENERATE
     if (b.action === "generate") {
-      if (!org.isAdmin) return NextResponse.json({ error: "Only an admin can run payroll." }, { status: 403 });
+      if (!(org.isAdmin || permissions.includes("payroll_prepare"))) {
+        return NextResponse.json({ error: "You don't have permission to draft payslips." }, { status: 403 });
+      }
 
       const employees = await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&status=eq.active&select=id,name,monthly_salary,joining_date`,
         { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
@@ -179,8 +182,8 @@ export async function POST(req: Request) {
 
       // Approving is an admin act; paying is a separate permission, because at
       // two people that's the owner and at two hundred it's a finance clerk.
-      if (to === "approved" && !org.isAdmin) {
-        return NextResponse.json({ error: "Only an admin can approve payslips." }, { status: 403 });
+      if (to === "approved" && !(org.isAdmin || permissions.includes("payroll_approve"))) {
+        return NextResponse.json({ error: "You don't have permission to approve payslips." }, { status: 403 });
       }
       if (to === "paid" && !(org.isAdmin || permissions.includes("payroll_pay"))) {
         return NextResponse.json({ error: "You don't have permission to mark payslips paid." }, { status: 403 });
@@ -239,7 +242,9 @@ export async function POST(req: Request) {
 
     // ---------------------------------------------------- BULK APPROVE
     if (b.action === "approve_all") {
-      if (!org.isAdmin) return NextResponse.json({ error: "Only an admin can approve payslips." }, { status: 403 });
+      if (!(org.isAdmin || permissions.includes("payroll_approve"))) {
+        return NextResponse.json({ error: "You don't have permission to approve payslips." }, { status: 403 });
+      }
       const drafts = await fetch(`${url}/rest/v1/payslips?uid=eq.${uid}&month=eq.${month}&status=eq.draft&select=id`,
         { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
       const n = Array.isArray(drafts) ? drafts.length : 0;

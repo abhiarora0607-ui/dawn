@@ -22,7 +22,7 @@ export async function GET(req: Request) {
       fetch(`${url}/rest/v1/activities?uid=eq.${ctx.uid}&contact_id=eq.${id}&order=created_at.desc&limit=30`, { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/sales?uid=eq.${ctx.uid}&deleted_at=is.null&contact_id=eq.${id}&order=date.desc&limit=20`, { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()),
     ]);
-    const showMoney = hasPermission(ctx, "financials");
+    const showMoney = hasPermission(ctx, "finance_view");
     return NextResponse.json({
       contact,
       activities: Array.isArray(activities) ? activities : [],

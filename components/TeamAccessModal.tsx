@@ -3,20 +3,12 @@
 import { useEffect, useState } from "react";
 import { useToast, ConfirmDialog } from "@/components/Toast";
 import { Loader2, X, KeyRound, Copy, Check, Shield } from "lucide-react";
+import { PermissionPicker } from "@/components/PermissionPicker";
+import { expandImplied } from "@/lib/permissions";
 
-const ALL_PERMISSIONS = [
-  "dashboard", "leads", "customers", "orders",
-  "edit_leads", "edit_customers", "edit_orders",
-  "messaging", "tasks", "calendar", "notes",
-  "reports", "data_export", "financials", "settings",
-];
-const LABELS: Record<string, string> = {
-  dashboard: "Dashboard", leads: "Leads", customers: "Customers", orders: "Orders",
-  edit_leads: "Edit leads", edit_customers: "Edit customers", edit_orders: "Edit orders & payments",
-  messaging: "Messaging", tasks: "Tasks", calendar: "Calendar", notes: "Notes",
-  reports: "My reports", data_export: "Data export", financials: "Financial info", settings: "Profile & settings",
-};
-const DEFAULTS = ["dashboard", "leads", "customers", "orders", "tasks", "calendar", "notes", "settings"];
+// A sensible starting point for a new account: the portal, contacts, and the
+// day-to-day tools. Nothing financial, nothing about other people.
+const DEFAULTS = ["dashboard", "leads", "customers", "orders", "tasks", "calendar", "notes", "settings", "people_directory"];
 
 export function TeamAccessModal({ employee, onClose }: { employee: { id: string; name: string }; onClose: () => void }) {
   const { toast } = useToast();
@@ -39,6 +31,7 @@ export function TeamAccessModal({ employee, onClose }: { employee: { id: string;
   }
   useEffect(() => { load(); }, [employee.id]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function togglePerm(p: string) {
     setPerms((cur) => cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p]);
   }
@@ -118,7 +111,7 @@ export function TeamAccessModal({ employee, onClose }: { employee: { id: string;
               {!account ? (
                 <>
                   <p className="text-sm text-muted">Create a login so {employee.name} can sign in at <span className="font-medium text-navy">/team-login</span> and see only their assigned work.</p>
-                  <PermissionGrid perms={perms} toggle={togglePerm} />
+                  <PermissionPicker value={perms} onChange={setPerms} />
                   <button onClick={createLogin} disabled={busy} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl hover:bg-navy-soft disabled:opacity-60">
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />} Create login
                   </button>
@@ -129,7 +122,7 @@ export function TeamAccessModal({ employee, onClose }: { employee: { id: string;
                     <label className="block text-sm font-semibold text-navy mb-1.5">Login ID</label>
                     <input value={loginId} onChange={(e) => setLoginId(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber" />
                   </div>
-                  <PermissionGrid perms={perms} toggle={togglePerm} />
+                  <PermissionPicker value={perms} onChange={setPerms} />
                   <div className="flex flex-wrap gap-2">
                     <button onClick={savePermissions} disabled={busy} className="flex-1 min-w-[120px] bg-navy text-white font-medium py-2.5 rounded-xl hover:bg-navy-soft disabled:opacity-60">Save changes</button>
                     <button onClick={resetPassword} disabled={busy} className="flex items-center gap-1.5 border border-navy-line text-navy font-medium px-4 py-2.5 rounded-xl hover:bg-surface"><KeyRound className="w-4 h-4" /> Reset password</button>
@@ -150,18 +143,3 @@ export function TeamAccessModal({ employee, onClose }: { employee: { id: string;
   );
 }
 
-function PermissionGrid({ perms, toggle }: { perms: string[]; toggle: (p: string) => void }) {
-  return (
-    <div>
-      <label className="block text-sm font-semibold text-navy mb-2">Permissions</label>
-      <div className="grid grid-cols-2 gap-2">
-        {ALL_PERMISSIONS.map((p) => (
-          <label key={p} className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg border cursor-pointer ${perms.includes(p) ? "border-amber bg-amber/5 text-navy" : "border-navy-line text-muted"}`}>
-            <input type="checkbox" checked={perms.includes(p)} onChange={() => toggle(p)} className="accent-amber-deep" />
-            {LABELS[p]}
-          </label>
-        ))}
-      </div>
-    </div>
-  );
-}

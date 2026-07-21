@@ -151,6 +151,29 @@ const danglingChild = [
 ];
 check("org tree: root id not in nodes", React.createElement(OrgTree, { nodes: danglingChild, roots: ["p", "ghost"] }));
 
+// --- PermissionPicker: 40 permissions, implications, conflict warnings ---
+const { PermissionPicker } = await import("../components/PermissionPicker.tsx");
+
+check("permissions: nothing granted", React.createElement(PermissionPicker, { value: [], onChange: () => {} }));
+check("permissions: typical salesperson", React.createElement(PermissionPicker, {
+  value: ["dashboard", "leads", "leads_edit", "customers", "tasks", "settings"], onChange: () => {},
+}));
+// the conflict path — must render the warning, not crash on it
+check("permissions: conflicting pair", React.createElement(PermissionPicker, {
+  value: ["payroll_prepare", "payroll_approve", "expense_create", "expense_approve"], onChange: () => {},
+}));
+// a grantor who holds less than they're editing
+check("permissions: limited grantor", React.createElement(PermissionPicker, {
+  value: ["dashboard", "salary_view"], onChange: () => {}, grantable: ["dashboard"],
+}));
+check("permissions: everything at once", React.createElement(PermissionPicker, {
+  value: (await import("../lib/permissions.ts")).PERMISSION_IDS, onChange: () => {},
+}));
+// an unknown id from an older grant must not break the form
+check("permissions: unknown stored id", React.createElement(PermissionPicker, {
+  value: ["dashboard", "some_removed_permission"], onChange: () => {},
+}));
+
 console.log(JSON.stringify(results));
 `;
   writeFileSync(`${STAGE}/run.mjs`, harness);

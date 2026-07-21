@@ -79,7 +79,7 @@ function Inner() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            {d.missing?.length > 0 && (
+            {d.missing?.length > 0 && d.canPrepare && (
               <button onClick={() => act({ action: "generate" }, "gen")} disabled={!!busy} className="btn btn-primary">
                 {busy === "gen" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                 Draft {d.missing.length} payslip{d.missing.length === 1 ? "" : "s"}

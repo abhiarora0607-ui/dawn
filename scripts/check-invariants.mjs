@@ -257,6 +257,33 @@ console.log("\n[10] Delegated approvals go through the shared authority check");
   if (bad === 0) pass("approvals require authority, never self, and view-as cannot write");
 }
 
+// ---- 11. PAYROLL KEEPS THREE SEPARATE HANDS (V43) ---------------------------
+// Preparing, approving and paying must stay distinct permissions. Collapsing
+// any two back together recreates the state where one person can draft a
+// payslip, sign it off and pay it — the single worst failure mode in a payroll
+// product, and the one segregation of duties exists to prevent.
+console.log("\n[11] Payroll prepare / approve / pay stay separate");
+{
+  let bad = 0;
+  const perms = read("lib/permissions.ts");
+  for (const id of ["payroll_prepare", "payroll_approve", "payroll_pay"]) {
+    if (!new RegExp(`id: "${id}"`).test(perms)) { fail(`${id} missing from the catalogue`); bad++; }
+  }
+  // The conflict warnings are the visible half; without them the split is
+  // real but nobody is told when one person holds both.
+  if (!/payroll_prepare[\s\S]{0,80}payroll_approve/.test(perms)) {
+    fail("no conflict declared between drafting and approving payroll"); bad++;
+  }
+  const route = read("app/api/payroll/route.ts");
+  if (!/payroll_prepare/.test(route)) { fail("payroll route does not enforce payroll_prepare"); bad++; }
+  if (!/payroll_approve/.test(route)) { fail("payroll route does not enforce payroll_approve"); bad++; }
+  if (!/payroll_pay/.test(route)) { fail("payroll route does not enforce payroll_pay"); bad++; }
+  // financials was the catch-all that made this indistinguishable.
+  const stillBroad = files.filter((f) => /hasPermission\([^)]*"financials"/.test(read(f)));
+  if (stillBroad.length) { fail(`still gating on the old financials catch-all: ${stillBroad[0]}`); bad++; }
+  if (bad === 0) pass("payroll duties are separable and enforced");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

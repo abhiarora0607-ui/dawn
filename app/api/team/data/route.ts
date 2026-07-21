@@ -66,7 +66,7 @@ export async function GET(req: Request) {
         customers: (out.customers || []).length,
         orders: myOrders.length,
         // Revenue only if they have financial permission
-        revenue: hasPermission(ctx, "financials") ? myOrders.reduce((a: number, o: any) => a + (Number(o.amount_paid) || 0), 0) : null,
+        revenue: hasPermission(ctx, "finance_view") ? myOrders.reduce((a: number, o: any) => a + (Number(o.amount_paid) || 0), 0) : null,
       };
     }
     // Their own current-month score — motivating, and only their own row.

@@ -42,8 +42,8 @@ export async function GET(req: Request) {
       pendingOrders: S.filter((s: any) => s.order_status !== "Delivered").length,
       pendingAmount: S.reduce((a: number, s: any) => a + (Number(s.balance) || 0), 0),
       conversion: C.length ? Math.round((customers / C.length) * 100) : 0,
-      revenue: hasPermission(ctx, "financials") ? revenue : null,
-      avgOrderValue: hasPermission(ctx, "financials") && S.length ? Math.round(revenue / S.length) : null,
+      revenue: hasPermission(ctx, "finance_view") ? revenue : null,
+      avgOrderValue: hasPermission(ctx, "finance_view") && S.length ? Math.round(revenue / S.length) : null,
     };
     return NextResponse.json({ stats });
   } catch { return NextResponse.json({ stats: null }); }

@@ -6,6 +6,7 @@
 // replace it.
 
 import crypto from "crypto";
+import { PERMISSION_IDS, migratePermissions, satisfies } from "@/lib/permissions";
 
 const SB_URL = () => process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SB_KEY = () => process.env.SUPABASE_SECRET_KEY;
@@ -19,13 +20,10 @@ function H(extra: Record<string, string> = {}) {
 // the admin UI grid in components/TeamAccessModal.tsx.
 //   - file_uploads was removed (image uploads were removed from the CRM).
 //   - team_management was removed (managing the team is admin-only).
-export const ALL_PERMISSIONS = [
-  "dashboard", "leads", "customers", "orders",
-  "edit_leads", "edit_customers", "edit_orders",
-  "messaging", "tasks", "calendar", "notes",
-  "reports", "data_export", "financials", "settings",
-] as const;
-export type Permission = (typeof ALL_PERMISSIONS)[number];
+// V43: the catalogue lives in lib/permissions.ts. These re-exports keep older
+// imports working while the codebase moves over.
+export const ALL_PERMISSIONS = PERMISSION_IDS;
+export type Permission = string;
 
 export const PERMISSION_LABELS: Record<string, string> = {
   dashboard: "Dashboard", leads: "Leads", customers: "Customers", orders: "Orders",
@@ -89,8 +87,20 @@ export async function getEmployee(): Promise<EmployeeContext | null> {
   } catch { return null; }
 }
 
-export function hasPermission(ctx: EmployeeContext | null, perm: Permission): boolean {
-  return !!ctx && Array.isArray(ctx.permissions) && ctx.permissions.includes(perm);
+export function hasPermission(ctx: EmployeeContext | null, perm: string): boolean {
+  if (!ctx || !Array.isArray(ctx.permissions)) return false;
+  // V43: stored permissions may still be in the old vocabulary, and routes may
+  // still ask in it. Translating in the one place every check passes through
+  // means the rollout doesn't depend on migrating 40 call sites atomically —
+  // old grants answer new questions and new grants answer old ones.
+  const held = migratePermissions(ctx.permissions);
+  return satisfies(held, perm) || held.includes(perm);
+}
+
+/** The caller's permissions in the current vocabulary. */
+export function effectivePermissions(ctx: EmployeeContext | null): string[] {
+  if (!ctx || !Array.isArray(ctx.permissions)) return [];
+  return migratePermissions(ctx.permissions);
 }
 
 // Guard for employee API routes. Returns context or an error signal, and
