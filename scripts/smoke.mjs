@@ -174,6 +174,23 @@ check("permissions: unknown stored id", React.createElement(PermissionPicker, {
   value: ["dashboard", "some_removed_permission"], onChange: () => {},
 }));
 
+// --- RolePicker: the dropdown and its change preview ---
+const { RolePicker } = await import("../components/RolePicker.tsx");
+const { permissionsForRole } = await import("../lib/roles.ts");
+
+check("roles: new account, nothing set", React.createElement(RolePicker, { permissions: [], onApply: () => {} }));
+check("roles: exact template match", React.createElement(RolePicker, {
+  permissions: permissionsForRole("sales_rep"), onApply: () => {},
+}));
+// a hand-tuned set — must label as custom rather than mis-detect
+check("roles: hand-edited permissions", React.createElement(RolePicker, {
+  permissions: [...permissionsForRole("accountant"), "leads"], onApply: () => {},
+}));
+// legacy permissions from before roles existed
+check("roles: legacy permission ids", React.createElement(RolePicker, {
+  permissions: ["dashboard", "financials", "edit_leads"], onApply: () => {},
+}));
+
 console.log(JSON.stringify(results));
 `;
   writeFileSync(`${STAGE}/run.mjs`, harness);

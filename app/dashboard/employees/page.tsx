@@ -61,7 +61,7 @@ function EmpModal({ emp, onClose, onSaved }: { emp: Employee | null; onClose: ()
         <div className="space-y-3">
           <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Name *" className="inp" />
           <div className="grid grid-cols-2 gap-2">
-            <input value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })} placeholder="Role (e.g. Sales)" className="inp" />
+            <input value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })} placeholder="Job title (e.g. Senior Packer)" className="inp" />
             <input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="Phone" className="inp" />
           </div>
           <input value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="Email (optional)" className="inp" />

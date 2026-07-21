@@ -284,6 +284,43 @@ console.log("\n[11] Payroll prepare / approve / pay stay separate");
   if (bad === 0) pass("payroll duties are separable and enforced");
 }
 
+// ---- 12. NO ROLE TEMPLATE SHIPS A CONFLICT (V44) ----------------------------
+// A role that grants a conflicting pair by default hands that conflict to
+// every business which picks the role, without anyone choosing it — and the
+// V43 warning then fires on a state the product created itself.
+//
+// This caught a real mistake while V44 was being written: Finance Manager was
+// given both payroll_approve and payroll_pay, which is precisely the
+// maker-checker pair the split exists to keep apart.
+console.log("\n[12] No role template contains a conflicting pair");
+{
+  let bad = 0;
+  const roles = read("lib/roles.ts");
+  const perms = read("lib/permissions.ts");
+
+  const pairs = [...perms.matchAll(/a: "([a-z_]+)", b: "([a-z_]+)"/g)].map((m) => [m[1], m[2]]);
+  // Each role's grant block, minus the owner (who holds everything by design).
+  const blocks = [...roles.matchAll(/id: "([a-z_]+)",\s*\n\s*label:[\s\S]*?permissions: \[([\s\S]*?)\],\n/g)];
+  for (const [, id, body] of blocks) {
+    if (id === "owner") continue;
+    const granted = new Set([...body.matchAll(/"([a-z_]+)"/g)].map((m) => m[1]));
+    for (const [a, b] of pairs) {
+      if (granted.has(a) && granted.has(b)) {
+        fail(`role "${id}" grants the conflicting pair ${a} + ${b}`); bad++;
+      }
+    }
+  }
+  // Releasing money should never come from a template — it's granted to a
+  // named person, deliberately.
+  for (const [, id, body] of blocks) {
+    if (id === "owner") continue;
+    if (/"payroll_pay"/.test(body)) { fail(`role "${id}" grants payroll_pay by default`); bad++; }
+    if (/"billing"/.test(body)) { fail(`role "${id}" grants billing`); bad++; }
+    if (/"salary_edit"/.test(body)) { fail(`role "${id}" grants salary_edit`); bad++; }
+  }
+  if (bad === 0) pass("every role template is free of built-in conflicts");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

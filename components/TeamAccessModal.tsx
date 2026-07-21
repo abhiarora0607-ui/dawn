@@ -4,14 +4,17 @@ import { useEffect, useState } from "react";
 import { useToast, ConfirmDialog } from "@/components/Toast";
 import { Loader2, X, KeyRound, Copy, Check, Shield } from "lucide-react";
 import { PermissionPicker } from "@/components/PermissionPicker";
+import { RolePicker } from "@/components/RolePicker";
+import { defaultRoleForDepartment, roleLabel, permissionsForRole } from "@/lib/roles";
 import { expandImplied } from "@/lib/permissions";
 
 // A sensible starting point for a new account: the portal, contacts, and the
 // day-to-day tools. Nothing financial, nothing about other people.
 const DEFAULTS = ["dashboard", "leads", "customers", "orders", "tasks", "calendar", "notes", "settings", "people_directory"];
 
-export function TeamAccessModal({ employee, onClose }: { employee: { id: string; name: string }; onClose: () => void }) {
+export function TeamAccessModal({ employee, onClose }: { employee: { id: string; name: string; department?: string | null }; onClose: () => void }) {
   const { toast } = useToast();
+  const suggestedRole = defaultRoleForDepartment(employee.department);
   const [account, setAccount] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -111,7 +114,19 @@ export function TeamAccessModal({ employee, onClose }: { employee: { id: string;
               {!account ? (
                 <>
                   <p className="text-sm text-muted">Create a login so {employee.name} can sign in at <span className="font-medium text-navy">/team-login</span> and see only their assigned work.</p>
-                  <PermissionPicker value={perms} onChange={setPerms} />
+                  <>
+                    {!account && suggestedRole && (
+                      <button type="button" onClick={() => setPerms(permissionsForRole(suggestedRole))}
+                        className="dawn-card-inset p-3 w-full text-left mb-3 hover:border-amber/40">
+                        <p className="t-small text-navy">
+                          People in {employee.department} usually start as <strong>{roleLabel(suggestedRole)}</strong>.
+                        </p>
+                        <p className="t-micro text-amber-deep mt-0.5">Use that as a starting point</p>
+                      </button>
+                    )}
+                    <RolePicker permissions={perms} onApply={(next) => setPerms(next)} />
+                    <div className="mt-3"><PermissionPicker value={perms} onChange={setPerms} /></div>
+                  </>
                   <button onClick={createLogin} disabled={busy} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl hover:bg-navy-soft disabled:opacity-60">
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />} Create login
                   </button>
@@ -122,7 +137,19 @@ export function TeamAccessModal({ employee, onClose }: { employee: { id: string;
                     <label className="block text-sm font-semibold text-navy mb-1.5">Login ID</label>
                     <input value={loginId} onChange={(e) => setLoginId(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-navy-line text-sm text-navy focus:outline-none focus:border-amber" />
                   </div>
-                  <PermissionPicker value={perms} onChange={setPerms} />
+                  <>
+                    {!account && suggestedRole && (
+                      <button type="button" onClick={() => setPerms(permissionsForRole(suggestedRole))}
+                        className="dawn-card-inset p-3 w-full text-left mb-3 hover:border-amber/40">
+                        <p className="t-small text-navy">
+                          People in {employee.department} usually start as <strong>{roleLabel(suggestedRole)}</strong>.
+                        </p>
+                        <p className="t-micro text-amber-deep mt-0.5">Use that as a starting point</p>
+                      </button>
+                    )}
+                    <RolePicker permissions={perms} onApply={(next) => setPerms(next)} />
+                    <div className="mt-3"><PermissionPicker value={perms} onChange={setPerms} /></div>
+                  </>
                   <div className="flex flex-wrap gap-2">
                     <button onClick={savePermissions} disabled={busy} className="flex-1 min-w-[120px] bg-navy text-white font-medium py-2.5 rounded-xl hover:bg-navy-soft disabled:opacity-60">Save changes</button>
                     <button onClick={resetPassword} disabled={busy} className="flex items-center gap-1.5 border border-navy-line text-navy font-medium px-4 py-2.5 rounded-xl hover:bg-surface"><KeyRound className="w-4 h-4" /> Reset password</button>
