@@ -195,6 +195,27 @@ check("roles: legacy permission ids", React.createElement(RolePicker, {
 const { ResetOrg } = await import("../components/ResetOrg.tsx");
 check("reset: collapsed card", React.createElement(ResetOrg, {}));
 
+// --- TeamMyTeam: the new totals block, with and without salary ---
+const { TeamMyTeam } = await import("../components/TeamMyTeam.tsx");
+check("my team: renders before data arrives", React.createElement(TeamMyTeam, {}));
+
+// The totals block reads a nested shape; a missing branch there is exactly the
+// "cannot read properties of undefined" class that took the portal down.
+const mt = await import("../components/TeamMyTeam.tsx");
+const totalsShapes = [
+  { name: "zero month", t: { mine: { revenue: 0, orders: 0, expenses: 0 }, team: { revenue: 0, orders: 0, expenses: 0, salary: null }, combined: { revenue: 0, orders: 0, expenses: 0 }, headcount: 0 } },
+  { name: "with salary", t: { mine: { revenue: 5000, orders: 2, expenses: 0 }, team: { revenue: 42000, orders: 9, expenses: 1200, salary: 60000 }, combined: { revenue: 47000, orders: 11, expenses: 1200 }, headcount: 3 } },
+  { name: "salary withheld", t: { mine: { revenue: 5000, orders: 2, expenses: 0 }, team: { revenue: 42000, orders: 9, expenses: 1200, salary: null }, combined: { revenue: 47000, orders: 11, expenses: 1200 }, headcount: 3 } },
+];
+for (const sh of totalsShapes) {
+  for (const k of ["mine", "team", "combined"]) {
+    if (!sh.t[k] || typeof sh.t[k].revenue !== "number") {
+      results.push(["fail", "my team totals: " + sh.name + " missing " + k + ".revenue"]);
+    }
+  }
+  results.push(["ok", "my team totals: " + sh.name]);
+}
+
 console.log(JSON.stringify(results));
 `;
   writeFileSync(`${STAGE}/run.mjs`, harness);

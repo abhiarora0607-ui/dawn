@@ -55,6 +55,7 @@ export function TeamMyTeam() {
 
       {view === "people" ? (
         <div className="space-y-2">
+          {d.totals && <TeamTotals t={d.totals} canSeeSalary={d.canSeeSalary} month={d.month} />}
           {d.team.map((p: any) => (
             <div key={p.id} className="dawn-card p-4">
               <div className="flex items-start justify-between gap-3">
@@ -64,6 +65,18 @@ export function TeamMyTeam() {
                 </div>
                 <span className={`pill ${PRESENCE[p.presence] || "pill-grey"} shrink-0`}>{p.presence}</span>
               </div>
+
+              {/* This month's contribution, shown only when there is one —
+                  a row of zeros for a support role is noise, not information. */}
+              {(p.revenue > 0 || p.orders > 0 || p.expenses > 0 || p.salary) && (
+                <div className="grid grid-cols-3 gap-2 mt-2.5">
+                  <Fig label="Revenue" value={`₹${Number(p.revenue).toLocaleString("en-IN")}`} />
+                  <Fig label={p.orders === 1 ? "Order" : "Orders"} value={String(p.orders)} />
+                  {p.salary != null
+                    ? <Fig label="Salary" value={`₹${Number(p.salary).toLocaleString("en-IN")}`} />
+                    : <Fig label="Expenses" value={`₹${Number(p.expenses).toLocaleString("en-IN")}`} />}
+                </div>
+              )}
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
                 {p.hours && Number(p.hours) > 0 && <span className="t-micro text-muted">{p.hours}h today</span>}
@@ -175,6 +188,74 @@ function Requests({ onChange }: { onChange: () => void }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+
+/** One figure in a compact row. */
+function Fig({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="dawn-card-inset px-2.5 py-2">
+      <p className="t-micro text-muted">{label}</p>
+      <p className="text-sm font-semibold text-navy truncate">{value}</p>
+    </div>
+  );
+}
+
+/**
+ * The team's month.
+ *
+ * Split into mine / team / together rather than one blended number: a lead
+ * asked "how did we do" needs to answer for the team, but also to see their
+ * own contribution inside it. One figure hides both.
+ */
+function TeamTotals({ t, canSeeSalary, month }: { t: any; canSeeSalary: boolean; month: string }) {
+  const monthLabel = month
+    ? new Date(`${month}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", timeZone: "UTC" })
+    : "This month";
+
+  return (
+    <div className="dawn-card p-4 mb-1">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="t-label">{monthLabel}</p>
+        <p className="t-micro text-muted">
+          you + {t.headcount} {t.headcount === 1 ? "person" : "people"}
+        </p>
+      </div>
+
+      <p className="font-display font-semibold text-3xl text-navy mt-1">
+        ₹{Number(t.combined.revenue).toLocaleString("en-IN")}
+      </p>
+      <p className="t-micro text-muted">
+        {t.combined.orders} {t.combined.orders === 1 ? "order" : "orders"} collected
+      </p>
+
+      <div className="grid grid-cols-2 gap-2 mt-3">
+        <div className="dawn-card-inset px-3 py-2">
+          <p className="t-micro text-muted">Yours</p>
+          <p className="text-sm font-semibold text-navy">₹{Number(t.mine.revenue).toLocaleString("en-IN")}</p>
+        </div>
+        <div className="dawn-card-inset px-3 py-2">
+          <p className="t-micro text-muted">Your team&apos;s</p>
+          <p className="text-sm font-semibold text-navy">₹{Number(t.team.revenue).toLocaleString("en-IN")}</p>
+        </div>
+      </div>
+
+      {(t.combined.expenses > 0 || (canSeeSalary && t.team.salary)) && (
+        <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2.5 pt-2.5 border-t border-navy-line/40">
+          {t.combined.expenses > 0 && (
+            <span className="t-micro text-muted">
+              Expenses <strong className="text-navy">₹{Number(t.combined.expenses).toLocaleString("en-IN")}</strong>
+            </span>
+          )}
+          {canSeeSalary && t.team.salary > 0 && (
+            <span className="t-micro text-muted">
+              Team salary <strong className="text-navy">₹{Number(t.team.salary).toLocaleString("en-IN")}/mo</strong>
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

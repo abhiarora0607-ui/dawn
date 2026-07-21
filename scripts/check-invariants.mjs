@@ -375,6 +375,38 @@ console.log("\n[13] Demo clearing and reset share one deletion map");
   if (bad === 0) pass("one deletion map, no orphaned child tables");
 }
 
+// ---- 14. TEAM FIGURES RESPECT THE SALARY GATE (V45b) ------------------------
+// A lead sees their team's revenue and expenses because they're accountable
+// for them. Salary is different: managing four packers is not a business
+// reason to know what they earn.
+//
+// The gate has to hold on the SERVER. Hiding the figure in the component while
+// the API still returns it means the number is one devtools panel away, which
+// is not a permission at all.
+console.log("\n[14] A lead's team view hides salary without permission");
+{
+  let bad = 0;
+  const api = read("app/api/team/my-team/route.ts");
+
+  if (!/canSeeSalary/.test(api)) { fail("team view has no salary gate"); bad++; }
+  // Must use the migration-aware check, or a legacy grant is silently ignored.
+  if (!/hasPermission\(ctx, "salary_view"\)/.test(api)) {
+    fail("salary gate must use hasPermission so old grants still resolve"); bad++;
+  }
+  // The salary query itself must sit behind the gate — fetching then hiding
+  // still puts the figure in the response.
+  const salaryFetch = api.indexOf("monthly_salary");
+  const gateStart = api.indexOf("if (canSeeSalary)");
+  if (salaryFetch >= 0 && (gateStart < 0 || salaryFetch < gateStart)) {
+    fail("salary is fetched before the permission is checked"); bad++;
+  }
+  // And it must be nulled rather than defaulted to a number.
+  if (!/canSeeSalary \? \(salaryBy\[e\.id\] \|\| 0\) : null/.test(api)) {
+    fail("salary must be null when not permitted, not zero"); bad++;
+  }
+  if (bad === 0) pass("salary stays behind salary_view on the server");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {
