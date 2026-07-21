@@ -15,7 +15,7 @@
 
 import { NextResponse } from "next/server";
 import { getUid } from "@/lib/auth";
-import { countRecords, wipeRecords, summariseCounts } from "@/lib/data-lifecycle-db";
+import { countRecords, wipeRecords, summariseCounts, verifyWipe } from "@/lib/data-lifecycle-db";
 import { RESET_PRESERVES } from "@/lib/data-lifecycle";
 import { audit } from "@/lib/audit";
 
@@ -97,12 +97,19 @@ export async function POST(req: Request) {
 
     const result = await wipeRecords(url, key, uid, "all", { keepEmployees });
 
+    // Confirm it actually finished rather than trusting that it did.
+    const check = await verifyWipe(url, key, uid, "all");
+
     return NextResponse.json({
       ok: true,
       deleted: result.total,
       failed: result.failed,
-      note: result.failed.length
-        ? `Removed ${result.total} records. ${result.failed.length} table(s) couldn't be cleared — try again or contact support.`
+      clean: check.clean,
+      remaining: check.remaining,
+      note: !check.clean
+        ? `Removed ${result.total} records, but some are still there. Run it again — if they persist, contact support.`
+        : result.failed.length
+        ? `Removed ${result.total} records. ${result.failed.length} table(s) couldn't be reached.`
         : `Removed ${result.total} records. Your business is now empty.`,
     });
   } catch {

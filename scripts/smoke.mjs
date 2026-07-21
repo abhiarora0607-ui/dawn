@@ -216,6 +216,10 @@ for (const sh of totalsShapes) {
   results.push(["ok", "my team totals: " + sh.name]);
 }
 
+// --- GrantLeave: the admin gift sheet ---
+const { GrantLeave } = await import("../components/GrantLeave.tsx");
+check("grant leave: opens empty", React.createElement(GrantLeave, { onClose: () => {} }));
+
 console.log(JSON.stringify(results));
 `;
   writeFileSync(`${STAGE}/run.mjs`, harness);

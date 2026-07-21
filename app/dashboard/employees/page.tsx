@@ -22,13 +22,18 @@ type Employee = {
 };
 
 function EmpModal({ emp, onClose, onSaved }: { emp: Employee | null; onClose: () => void; onSaved: () => void }) {
+  const [depts, setDepts] = useState<any[]>([]);
+  useEffect(() => {
+    fetch("/api/org?view=departments").then((r) => r.json())
+      .then((d) => setDepts(d.departments || [])).catch(() => {});
+  }, []);
   const { toast } = useToast();
-  const [f, setF] = useState<any>(emp ? { name: emp.name, status: emp.status, monthlySalary: emp.monthly_salary, joiningDate: (emp as any).joining_date || "", phone: (emp as any).phone || "", role: (emp as any).role || "", email: (emp as any).email || "",
+  const [f, setF] = useState<any>(emp ? { name: emp.name, status: emp.status, monthlySalary: emp.monthly_salary, joiningDate: (emp as any).joining_date || "", phone: (emp as any).phone || "", role: (emp as any).role || "", email: (emp as any).email || "", departmentId: (emp as any).department_id || "", commissionEligible: !!(emp as any).commission_eligible, commissionBasis: (emp as any).commission_basis || "own", commissionRate: (emp as any).commission_rate ?? "",
         shiftStart: (emp as any).shift_start?.slice(0, 5) || "", shiftEnd: (emp as any).shift_end?.slice(0, 5) || "",
         requiredHours: (emp as any).required_hours ?? "", weeklyOffs: (emp as any).weekly_offs || null,
         remotePermanent: !!(emp as any).remote_permanent, attendanceExempt: !!(emp as any).attendance_exempt,
         dateOfBirth: (emp as any).date_of_birth || "", extraRegularizations: (emp as any).extra_regularizations ?? 0 }
-      : { name: "", status: "active", monthlySalary: "", joiningDate: "", phone: "", role: "", email: "",
+      : { name: "", status: "active", monthlySalary: "", joiningDate: "", phone: "", role: "", email: "", departmentId: "", commissionEligible: false, commissionBasis: "own", commissionRate: "",
         shiftStart: "", shiftEnd: "", requiredHours: "", weeklyOffs: null, remotePermanent: false,
         attendanceExempt: false, dateOfBirth: "", extraRegularizations: 0 });
   const [showAtt, setShowAtt] = useState(false);
@@ -41,7 +46,7 @@ function EmpModal({ emp, onClose, onSaved }: { emp: Employee | null; onClose: ()
     try {
       const res = await fetch("/api/employees", {
         method: emp ? "PATCH" : "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...(emp ? { id: emp.id } : {}), name: f.name.trim(), status: f.status, monthlySalary: Number(f.monthlySalary) || 0, joiningDate: f.joiningDate || null, phone: f.phone, role: f.role, email: f.email,
+        body: JSON.stringify({ ...(emp ? { id: emp.id } : {}), name: f.name.trim(), status: f.status, monthlySalary: Number(f.monthlySalary) || 0, joiningDate: f.joiningDate || null, phone: f.phone, role: f.role, email: f.email, departmentId: f.departmentId || null, commissionEligible: f.commissionEligible, commissionBasis: f.commissionBasis, commissionRate: Number(f.commissionRate) || 0,
           shiftStart: f.shiftStart || null, shiftEnd: f.shiftEnd || null,
           requiredHours: f.requiredHours === "" ? null : Number(f.requiredHours),
           weeklyOffs: f.weeklyOffs, remotePermanent: !!f.remotePermanent,
@@ -62,6 +67,38 @@ function EmpModal({ emp, onClose, onSaved }: { emp: Employee | null; onClose: ()
           <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Name *" className="inp" />
           <div className="grid grid-cols-2 gap-2">
             <input value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })} placeholder="Job title (e.g. Senior Packer)" className="inp" />
+
+            {/* V46: department was only settable from the Organisation page,
+                so nobody adding an employee ever saw it. */}
+            <select value={f.departmentId} onChange={(e) => setF({ ...f, departmentId: e.target.value })} className="inp">
+              <option value="">No department</option>
+              {depts.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+            {depts.length === 0 && (
+              <p className="t-micro text-muted -mt-1">
+                No departments yet — add them under Organisation.
+              </p>
+            )}
+
+            {/* Commission: hidden until switched on, because most people
+                aren't on it and three extra fields for everyone is noise. */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={f.commissionEligible}
+                onChange={(e) => setF({ ...f, commissionEligible: e.target.checked })}
+                className="w-4 h-4 accent-amber-deep" />
+              <span className="text-sm text-navy">Earns commission</span>
+            </label>
+            {f.commissionEligible && (
+              <div className="grid grid-cols-2 gap-2">
+                <select value={f.commissionBasis} onChange={(e) => setF({ ...f, commissionBasis: e.target.value })} className="inp">
+                  <option value="own">On their own revenue</option>
+                  <option value="team">On their team's revenue</option>
+                </select>
+                <input type="number" step="0.1" min="0" max="100" value={f.commissionRate}
+                  onChange={(e) => setF({ ...f, commissionRate: e.target.value })}
+                  placeholder="Rate %" className="inp" />
+              </div>
+            )}
             <input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="Phone" className="inp" />
           </div>
           <input value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="Email (optional)" className="inp" />

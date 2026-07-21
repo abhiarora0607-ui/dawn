@@ -83,7 +83,11 @@ export function buildPayslip(opts: {
   encashments: { id: string; days: number; amount: number; label: string }[];
   joiningDate?: string | null;
   month: string;                       // "2026-07"
-}): { lines: PayslipLine[]; totals: ReturnType<typeof totalsOf>; proRata: boolean } {
+  /** Days taken as unpaid leave in this month. Deducted at the day rate. */
+  unpaidDays?: number;
+  /** Commission earned, already calculated. */
+  commission?: { amount: number; label: string } | null;
+}): { lines: PayslipLine[]; totals: ReturnType<typeof totalsOf>; proRata: boolean; dayRate: number } {
   const lines: PayslipLine[] = [];
 
   // Someone who joined mid-month is paid for the days they worked. Paying a
@@ -108,6 +112,30 @@ export function buildPayslip(opts: {
     amount: base,
   });
 
+  // Unpaid leave. The day rate divides by the days in THIS month, not by 30 —
+  // otherwise the same salary produces a different daily value in February
+  // than in July, and someone taking three unpaid days in a short month is
+  // penalised for the calendar.
+  const daysInThisMonth = new Date(Number(opts.month.slice(0, 4)), Number(opts.month.slice(5, 7)), 0).getDate();
+  const dayRate = round(Number(opts.monthlySalary || 0) / daysInThisMonth);
+
+  const unpaid = Number(opts.unpaidDays || 0);
+  if (unpaid > 0) {
+    lines.push({
+      kind: "deduction",
+      label: `${unpaid} ${unpaid === 1 ? "day" : "days"} unpaid leave`,
+      amount: round(dayRate * unpaid),
+    });
+  }
+
+  if (opts.commission && opts.commission.amount > 0) {
+    lines.push({
+      kind: "bonus",
+      label: opts.commission.label,
+      amount: opts.commission.amount,
+    });
+  }
+
   for (const b of opts.bonuses) {
     lines.push({ kind: "bonus", label: b.reason ? `Bonus — ${b.reason}` : "Bonus", amount: Number(b.amount || 0), sourceId: b.id });
   }
@@ -120,7 +148,7 @@ export function buildPayslip(opts: {
     });
   }
 
-  return { lines, totals: totalsOf(lines), proRata };
+  return { lines, totals: totalsOf(lines), proRata, dayRate };
 }
 
 /** The expense note, so the books read the same as the payslip. */

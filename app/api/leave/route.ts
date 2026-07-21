@@ -11,7 +11,7 @@ import { NextResponse } from "next/server";
 import { resolveApprover, canDecideFor, queueFilter } from "@/lib/approvals";
 import { getAttSettings, recomputeDay, getHolidays } from "@/lib/attendance-db";
 import { getLeaveTypes, getBalances, adjustBalance } from "@/lib/leave-db";
-import { LEAVE_LABEL, availableOf, dayRate, CURRENT_YEAR } from "@/lib/leave";
+import { LEAVE_LABEL, LEAVE_CODES, availableOf, dayRate, CURRENT_YEAR } from "@/lib/leave";
 import { dateRange, istDate } from "@/lib/attendance";
 import { audit } from "@/lib/audit";
 
@@ -135,6 +135,54 @@ export async function POST(req: Request) {
     // above them, and never means deciding your own.
     const allowed = canDecideFor(c.appr, lr.employee_id);
     if (!allowed.ok) return NextResponse.json({ error: allowed.why }, { status: 403 });
+
+    // V46: an admin gifting leave — a long shift covered, a goodwill day,
+    // a correction. Admin only: gifting leave is compensation, and a lead who
+    // could grant it could grant it to themselves.
+    if (b.action === "grant") {
+      if (!c.appr.isAdmin) {
+        return NextResponse.json({ error: "Only an admin can give leave." }, { status: 403 });
+      }
+      const employeeId = String(b.employeeId || "");
+      const code = String(b.code || "");
+      const days = Number(b.days || 0);
+      const year = Number(b.year) || new Date().getFullYear();
+
+      if (!employeeId || !code) return NextResponse.json({ error: "Who's it for, and which type?" }, { status: 400 });
+      if (!LEAVE_CODES.includes(code as any)) return NextResponse.json({ error: "That isn't a leave type." }, { status: 400 });
+      if (!(days > 0)) return NextResponse.json({ error: "How many days?" }, { status: 400 });
+      if (days > 365) return NextResponse.json({ error: "That's more than a year." }, { status: 400 });
+
+      // The balance row may not exist yet for a type nobody has used.
+      const existing = await fetch(`${url}/rest/v1/leave_balances?uid=eq.${uid}&employee_id=eq.${employeeId}&code=eq.${code}&year=eq.${year}&select=id,granted&limit=1`,
+        { headers: H(key), cache: "no-store" }).then((r) => r.json()).then((r) => r?.[0]).catch(() => null);
+
+      if (existing) {
+        await fetch(`${url}/rest/v1/leave_balances?uid=eq.${uid}&id=eq.${existing.id}`, {
+          method: "PATCH", headers: H(key, { Prefer: "return=minimal" }),
+          body: JSON.stringify({ granted: Number(existing.granted || 0) + days }),
+        });
+      } else {
+        await fetch(`${url}/rest/v1/leave_balances`, {
+          method: "POST", headers: H(key, { Prefer: "return=minimal" }),
+          body: JSON.stringify({ uid, employee_id: employeeId, code, year, accrued: 0, used: 0, carried_in: 0, granted: days }),
+        });
+      }
+
+      // Recorded separately, because a balance that changed with no
+      // explanation is what surfaces months later in an argument.
+      await fetch(`${url}/rest/v1/leave_grants`, {
+        method: "POST", headers: H(key, { Prefer: "return=minimal" }),
+        body: JSON.stringify({
+          uid, employee_id: employeeId, code, year, days,
+          reason: String(b.reason || "").slice(0, 300) || null,
+          granted_by: c.appr.meId || "owner",
+        }),
+      }).catch(() => {});
+
+      await audit({ uid, action: "leave.grant", entity: "leave_balances", entityId: employeeId, meta: { code, days, year } });
+      return NextResponse.json({ ok: true, note: `${days} ${days === 1 ? "day" : "days"} added.` });
+    }
 
     if (b.action === "reject") {
       await fetch(`${url}/rest/v1/leave_requests?uid=eq.${uid}&id=eq.${lr.id}`, {

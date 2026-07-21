@@ -132,11 +132,25 @@ function Reporting({ d, onChange }: { d: any; onChange: () => void }) {
 function Departments({ onChange }: { onChange: () => void }) {
   const { toast } = useToast();
   const [d, setD] = useState<any>(null);
+  const [people, setPeople] = useState<any[]>([]);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 
   function load() { fetch("/api/org?view=departments").then((r) => r.json()).then(setD).catch(() => {}); }
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    fetch("/api/org").then((r) => r.json()).then((x) => setPeople(x.nodes || [])).catch(() => {});
+  }, []);
+
+  async function setHead(id: string, headId: string) {
+    const res = await fetch("/api/org", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "dept_update", id, headId: headId || null }),
+    });
+    const out = await res.json();
+    if (out.ok) { load(); onChange(); toast(headId ? "Head set" : "Head removed"); }
+    else toast(out.error || "Couldn't save", "error");
+  }
 
   async function create() {
     if (!name.trim()) return;
@@ -180,12 +194,19 @@ function Departments({ onChange }: { onChange: () => void }) {
         <div className="dawn-card divide-y divide-navy-line/40">
           {d.departments.map((dep: any) => (
             <div key={dep.id} className="flex items-center justify-between gap-3 px-4 py-3">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="font-medium text-navy truncate">{dep.name}</p>
                 <p className="t-micro text-muted">
                   {dep.memberCount} {dep.memberCount === 1 ? "person" : "people"}
-                  {dep.headName && ` · headed by ${dep.headName}`}
                 </p>
+                <label className="flex items-center gap-2 mt-1.5">
+                  <span className="t-micro text-muted shrink-0">Head</span>
+                  <select className="inp py-1 text-sm" defaultValue={dep.head_employee_id || ""}
+                    onChange={(e) => setHead(dep.id, e.target.value)}>
+                    <option value="">— nobody —</option>
+                    {people.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </label>
               </div>
               <button onClick={() => remove(dep.id)} className="btn-icon text-navy/40 hover:text-red-500" aria-label="Delete">
                 <Trash2 className="w-4 h-4" />

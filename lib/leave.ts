@@ -73,9 +73,17 @@ export type Balance = {
 };
 
 /** What's left to book. Carried-forward days are usable, encashed ones aren't. */
-export function availableOf(b: { accrued?: number; used?: number; carried_in?: number; encashed?: number }, infinite = false): number {
+export function availableOf(
+  b: { accrued?: number; used?: number; carried_in?: number; encashed?: number; granted?: number },
+  infinite = false,
+): number {
   if (infinite) return Infinity;
-  const v = Number(b.accrued || 0) + Number(b.carried_in || 0) - Number(b.used || 0) - Number(b.encashed || 0);
+  // V46: `granted` is leave an admin gave outright. It's a separate column
+  // rather than an addition to `accrued` because accrual is recomputed monthly
+  // and at year-end from the policy — anything folded into it would be wiped
+  // the next time that ran, and the person would lose days nobody could explain.
+  const v = Number(b.accrued || 0) + Number(b.carried_in || 0) + Number(b.granted || 0)
+    - Number(b.used || 0) - Number(b.encashed || 0);
   return Math.max(0, Math.round(v * 2) / 2);   // half-day precision
 }
 

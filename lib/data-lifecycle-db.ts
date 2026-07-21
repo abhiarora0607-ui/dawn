@@ -85,16 +85,24 @@ export async function wipeRecords(
     { headers: H(key), cache: "no-store" },
   ).then((r) => r.json()).catch(() => []);
 
-  // The owner's own employee record is never deleted — it's how they appear in
-  // their own business, and removing it would break attendance and payroll for
-  // the one person who can't be re-added from outside.
-  const empIds = (Array.isArray(emps) ? emps : [])
-    .filter((e: any) => !e.is_owner)
-    .map((e: any) => e.id);
+  // Two different questions, previously answered by one list.
+  //
+  // Whose RECORDS get deleted: everyone's, including the owner's. A reset that
+  // leaves the owner's payslips and attendance behind hasn't reset anything —
+  // this was the bug where drafted payroll survived a full wipe.
+  //
+  // Whose employee ROW gets deleted: everyone except the owner. Removing that
+  // would lock them out of their own attendance and payroll, and they can't be
+  // re-added from outside.
+  const allEmpIds = (Array.isArray(emps) ? emps : []).map((e: any) => e.id);
+  const empIds = allEmpIds;
 
   for (const t of OWNED_TABLES) {
     if (!shouldDelete(mode, t)) continue;
-    if (opts.keepEmployees && (t.table === "employees" || t.via === "child")) continue;
+    // "Keep my employees" means keep the PEOPLE, not their records. Skipping
+    // every child table left payslips, attendance and leave behind, which is
+    // not what the checkbox says.
+    if (opts.keepEmployees && t.table === "employees") continue;
 
     try {
       if (t.via === "nested" && t.parent) {
@@ -145,6 +153,26 @@ export async function wipeRecords(
   }
 
   return { deleted, total, failed };
+}
+
+/**
+ * Check the wipe actually finished.
+ *
+ * A reset that silently half-completes is worse than one that admits it — the
+ * business looks empty until an old payslip surfaces in next month's payroll.
+ * This re-counts afterwards and reports whatever is still there.
+ */
+export async function verifyWipe(
+  url: string, key: string, uid: string, mode: WipeMode,
+): Promise<{ clean: boolean; remaining: Record<string, number> }> {
+  const { counts } = await countRecords(url, key, uid, mode);
+  // The owner's own employee row is meant to survive, so it isn't a leftover.
+  const remaining: Record<string, number> = {};
+  for (const [table, n] of Object.entries(counts)) {
+    if (table === "employees" && n <= 1) continue;
+    remaining[table] = n;
+  }
+  return { clean: Object.keys(remaining).length === 0, remaining };
 }
 
 /** Counts for the confirmation screen, in the order a person thinks of them. */

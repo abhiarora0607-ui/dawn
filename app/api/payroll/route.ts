@@ -13,6 +13,8 @@ import { requireArea } from "@/lib/entitlements";
 import { getEmployee } from "@/lib/employee-auth";
 import { loadOrg } from "@/lib/org-db";
 import { buildPayslip, totalsOf, canTransition, transitionError, expenseNoteFor, STATUS_LABEL } from "@/lib/payroll";
+import { revenueByEmployee, commissionFor, commissionLabel, monthGuardError, latestDraftableMonth } from "@/lib/commission";
+import { subtreeOf } from "@/lib/org";
 import { istDate } from "@/lib/attendance";
 import { LEAVE_LABEL } from "@/lib/leave";
 import { audit } from "@/lib/audit";
@@ -115,8 +117,37 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "You don't have permission to draft payslips." }, { status: 403 });
       }
 
-      const employees = await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&status=eq.active&select=id,name,monthly_salary,joining_date`,
+      // V46: June's payroll is drafted in July, not in June. A payslip built
+      // halfway through a month uses half its attendance and a fraction of its
+      // revenue — a number that looks authoritative and is simply wrong.
+      const guard = monthGuardError(month, istDate());
+      if (guard) return NextResponse.json({ error: guard }, { status: 400 });
+
+      const employees = await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&status=eq.active&select=id,name,monthly_salary,joining_date,commission_eligible,commission_basis,commission_rate`,
         { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
+
+      // Revenue and unpaid days for the whole month, fetched once rather than
+      // per employee — a 200-person business would otherwise make 400 requests.
+      const monthStart = `${month}-01`;
+      const monthEnd = `${month}-31`;
+      const [orders, unpaidRows] = await Promise.all([
+        fetch(`${url}/rest/v1/sales?uid=eq.${uid}&deleted_at=is.null&date=gte.${monthStart}&date=lte.${monthEnd}&select=employee_id,amount_paid,order_status`,
+          { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+        // Unpaid leave is recorded on the attendance day, so it can be counted
+        // without re-deriving it from leave requests.
+        fetch(`${url}/rest/v1/attendance_days?uid=eq.${uid}&work_date=gte.${monthStart}&work_date=lte.${monthEnd}&leave_code=eq.unpaid&select=employee_id,work_date`,
+          { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+      ]);
+
+      const revenue = revenueByEmployee((Array.isArray(orders) ? orders : []).map((o: any) => ({
+        employeeId: o.employee_id, amountPaid: Number(o.amount_paid || 0), status: o.order_status,
+      })));
+      const unpaidBy: Record<string, number> = {};
+      for (const r of Array.isArray(unpaidRows) ? unpaidRows : []) {
+        unpaidBy[r.employee_id] = (unpaidBy[r.employee_id] || 0) + 1;
+      }
+      // Commission on team basis needs the org tree.
+      const treeFor = (id: string) => subtreeOf(id, org.employees);
       const existing = await fetch(`${url}/rest/v1/payslips?uid=eq.${uid}&month=eq.${month}&select=employee_id`,
         { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
       const have = new Set((Array.isArray(existing) ? existing : []).map((s: any) => s.employee_id));
@@ -136,9 +167,23 @@ export async function POST(req: Request) {
             { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
         ]);
 
+        const comm = commissionFor(
+          {
+            employeeId: e.id,
+            eligible: !!e.commission_eligible,
+            basis: (e.commission_basis === "team" ? "team" : "own"),
+            rate: Number(e.commission_rate || 0),
+          },
+          revenue, treeFor,
+        );
+
         const built = buildPayslip({
           employeeName: e.name,
           monthlySalary: Number(e.monthly_salary || 0),
+          unpaidDays: unpaidBy[e.id] || 0,
+          commission: comm.amount > 0
+            ? { amount: comm.amount, label: commissionLabel(comm, e.commission_basis === "team" ? "team" : "own") }
+            : null,
           bonuses: (Array.isArray(bonuses) ? bonuses : []).map((x: any) => ({ id: x.id, amount: Number(x.amount || 0), reason: x.reason })),
           encashments: (Array.isArray(encash) ? encash : []).map((x: any) => ({
             id: x.id, days: Number(x.days || 0), amount: Number(x.amount || 0), label: LEAVE_LABEL[x.code] || x.code,
@@ -152,6 +197,7 @@ export async function POST(req: Request) {
             uid, employee_id: e.id, month, status: "draft",
             base_amount: built.totals.base, additions: built.totals.additions,
             deductions: built.totals.deductions, net_amount: built.totals.net,
+            commission_base: comm.base, unpaid_days: unpaidBy[e.id] || 0,
           }),
         }).then((r) => r.json()).catch(() => null);
 

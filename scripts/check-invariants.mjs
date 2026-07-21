@@ -407,6 +407,64 @@ console.log("\n[14] A lead's team view hides salary without permission");
   if (bad === 0) pass("salary stays behind salary_view on the server");
 }
 
+// ---- 15. PAYROLL DRAFTS ONLY COMPLETED MONTHS (V46) -------------------------
+// A payslip drafted mid-month uses half the attendance and a fraction of the
+// revenue. It looks authoritative and is simply wrong, which is worse than
+// refusing.
+console.log("\n[15] Payroll cannot draft an unfinished month");
+{
+  let bad = 0;
+  const route = read("app/api/payroll/route.ts");
+  if (!/monthGuardError/.test(route)) { fail("payroll generation has no month guard"); bad++; }
+  const lib = read("lib/commission.ts");
+  if (!/return month < today\.slice\(0, 7\)/.test(lib)) {
+    fail("month completion check must require the month to have ended"); bad++;
+  }
+  if (bad === 0) pass("only a finished month can be drafted");
+}
+
+// ---- 16. COMMISSION PAYS ONLY ON MONEY RECEIVED (V46) -----------------------
+// Commission on an invoice nobody has paid hands out cash the business hasn't
+// collected, and then has to claw back. Cancelled orders must never count.
+console.log("\n[16] Commission is calculated on collected revenue only");
+{
+  let bad = 0;
+  const lib = read("lib/commission.ts");
+  if (!/o\.status !== "Cancelled"/.test(lib)) { fail("cancelled orders are not excluded"); bad++; }
+  if (!/Number\(o\.amountPaid \|\| 0\) > 0/.test(lib)) {
+    fail("commission must require money actually received"); bad++;
+  }
+  if (!/if \(!o\.employeeId\) continue;/.test(lib)) {
+    fail("unattributed revenue must pay nobody"); bad++;
+  }
+  const route = read("app/api/payroll/route.ts");
+  if (!/amount_paid/.test(route)) { fail("payroll must read amount_paid, not an order total"); bad++; }
+  if (bad === 0) pass("commission follows collected revenue");
+}
+
+// ---- 17. GIFTED LEAVE SURVIVES ACCRUAL (V46) --------------------------------
+// Accrual is recomputed monthly and at year-end from policy. Gifted days folded
+// into `accrued` would be silently erased the next time that ran, and the
+// employee would lose days nobody could explain.
+console.log("\n[17] Gifted leave is stored separately from accrual");
+{
+  let bad = 0;
+  const leave = read("lib/leave.ts");
+  if (!/granted\?: number/.test(leave)) { fail("availableOf does not account for granted days"); bad++; }
+  if (!/Number\(b\.granted \|\| 0\)/.test(leave)) {
+    fail("granted days are not added to the balance"); bad++;
+  }
+  const route = read("app/api/leave/route.ts");
+  if (!/action === "grant"/.test(route)) { fail("no way to grant leave"); bad++; }
+  // Writing a gift into accrued is the bug this exists to prevent.
+  const grantBlock = route.slice(route.indexOf('action === "grant"'), route.indexOf('action === "grant"') + 2200);
+  if (/accrued: Number\(existing\.accrued/.test(grantBlock)) {
+    fail("a gift must not be written into accrued — accrual recompute would erase it"); bad++;
+  }
+  if (!/c\.appr\.isAdmin/.test(grantBlock)) { fail("granting leave must be admin only"); bad++; }
+  if (bad === 0) pass("gifted leave is its own column and admin-only");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

@@ -9,9 +9,10 @@
 import { useEffect, useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
+import { GrantLeave } from "@/components/GrantLeave";
 import { ToastProvider, useToast } from "@/components/Toast";
 import {
-  Loader2, Check, X, Inbox, Users, Wallet, SlidersHorizontal, AlertTriangle,
+  Loader2, Check, X, Inbox, Users, Wallet, SlidersHorizontal, AlertTriangle, Gift,
 } from "lucide-react";
 
 const TABS = [
@@ -35,6 +36,7 @@ export default function LeavePage() {
 
 function Inner() {
   const [tab, setTab] = useState<TabId>("requests");
+  const [granting, setGranting] = useState(false);
   const [pending, setPending] = useState(0);
 
   useEffect(() => {
@@ -59,7 +61,17 @@ function Inner() {
       </div>
 
       {tab === "requests" && <Requests onChange={() => setPending((p) => Math.max(0, p - 1))} />}
-      {tab === "balances" && <BalancesTab />}
+      {tab === "balances" && (
+        <>
+          <div className="flex justify-end mb-3">
+            <button onClick={() => setGranting(true)} className="btn btn-quiet btn-sm">
+              <Gift className="w-4 h-4" /> Give leave
+            </button>
+          </div>
+          <BalancesTab />
+        </>
+      )}
+      {granting && <GrantLeave onClose={() => setGranting(false)} onDone={() => window.location.reload()} />}
       {tab === "encash" && <EncashTab />}
       {tab === "policy" && <PolicyTab />}
     </div>

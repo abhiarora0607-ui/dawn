@@ -99,7 +99,7 @@ export async function POST(req: Request) {
     if (b.monthlySalary != null && Number(b.monthlySalary) < 0) return NextResponse.json({ error: "Salary can't be negative." }, { status: 400 });
     const res = await fetch(`${url}/rest/v1/employees`, {
       method: "POST", headers: H(key, { Prefer: "return=representation" }),
-      body: JSON.stringify(attendanceFields(b, { uid, name: b.name.trim(), status: b.status || "active", monthly_salary: Number(b.monthlySalary) || 0, joining_date: b.joiningDate || null, phone: b.phone || "", role: b.role || "", email: b.email || "" })),
+      body: JSON.stringify(attendanceFields(b, { uid, name: b.name.trim(), status: b.status || "active", monthly_salary: Number(b.monthlySalary) || 0, joining_date: b.joiningDate || null, phone: b.phone || "", role: b.role || "", email: b.email || "", department_id: b.departmentId || null, commission_eligible: !!b.commissionEligible, commission_basis: b.commissionBasis === "team" ? "team" : "own", commission_rate: Number(b.commissionRate) || 0 })),
     });
     const emp = (await res.json())?.[0];
     if (emp) await syncSalaryRecurring(url, key, uid, emp);
@@ -123,6 +123,10 @@ export async function PATCH(req: Request) {
     if (b.joiningDate !== undefined) patch.joining_date = b.joiningDate || null;
     if (b.phone !== undefined) patch.phone = b.phone;
     if (b.role !== undefined) patch.role = b.role;
+    if (b.departmentId !== undefined) patch.department_id = b.departmentId || null;
+    if (b.commissionEligible !== undefined) patch.commission_eligible = !!b.commissionEligible;
+    if (b.commissionBasis !== undefined) patch.commission_basis = b.commissionBasis === "team" ? "team" : "own";
+    if (b.commissionRate !== undefined) patch.commission_rate = Number(b.commissionRate) || 0;
     attendanceFields(b, patch);
     if (b.email !== undefined) patch.email = b.email;
     await fetch(`${url}/rest/v1/employees?id=eq.${b.id}&uid=eq.${uid}`, {

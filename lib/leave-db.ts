@@ -71,6 +71,7 @@ export async function getBalances(
       accrued: Number(b.accrued || 0),
       used: Number(b.used || 0),
       carried_in: Number(b.carried_in || 0),
+      granted: Number(b.granted || 0),
       encashed: Number(b.encashed || 0),
       available: availableOf(b, infinite),
       infinite,
