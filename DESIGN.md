@@ -67,6 +67,24 @@ for status. `.dawn-empty` for empty states. `.pb-safe` and `.dawn-bottom-nav`
 for anything fixed to the bottom edge — phones with a home indicator clip
 content otherwise.
 
+## The employee portal
+
+Navigation is **derived from the person**, not a fixed list:
+
+- Hide what doesn't apply — My Team only exists if you actually manage someone.
+- Promote by what they do. The bottom bar takes four items chosen by a priority
+  list per role, not the first four in declaration order. A salesperson reaches
+  Leads in one tap; a warehouse worker gets attendance and pay instead of empty
+  CRM counters.
+- Four is the ceiling. A fifth item makes every target too narrow for a thumb.
+- If the selected tab stops being available mid-session, fall back to Home
+  rather than rendering a blank pane.
+
+Use `.inp` here like everywhere else. The portal had its own `.tinp` class for
+twenty-four fields, which looked identical but lacked the 16px mobile size —
+so iOS zoomed the viewport on every focus, on the one surface that is almost
+entirely used on phones.
+
 ## The guard
 
 `node scripts/check-layout.mjs` — seven checks, run before shipping:

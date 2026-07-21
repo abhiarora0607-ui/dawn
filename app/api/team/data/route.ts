@@ -28,7 +28,21 @@ export async function GET(req: Request) {
     mustChange = !!acc?.must_change_password;
   } catch {}
 
-  const out: any = { me: { name: ctx.name, permissions: ctx.permissions, mustChangePassword: mustChange } };
+  let directReports = 0;
+  try {
+    const kids = await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&reports_to=eq.${ctx.employeeId}&status=eq.active&select=id`,
+      { headers: H(key), cache: "no-store" }).then((r) => r.json());
+    directReports = Array.isArray(kids) ? kids.length : 0;
+  } catch { /* a nav hint must never break the dashboard */ }
+
+  const out: any = {
+    me: {
+      name: ctx.name, permissions: ctx.permissions, mustChangePassword: mustChange,
+      // Drives which tabs appear. Someone with no reports never sees My Team.
+      isManager: directReports > 0,
+      directReports,
+    },
+  };
 
   try {
     // Contacts / leads / customers assigned to this employee

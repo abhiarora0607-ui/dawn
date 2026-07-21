@@ -91,21 +91,62 @@ export default function TeamDashboard() {
     { id: "reports", label: "Reports", icon: BarChart3, perm: "reports" },
     { id: "settings", label: "Profile", icon: SettingsIcon, perm: "settings" },
   ];
-  const allowed = ALL_TABS.filter((t) => can(t.perm));
-  const mainTabs = allowed.slice(0, 4);
-  const moreTabs = allowed.slice(4);
+  // V41: the bottom bar is chosen, not sliced.
+  //
+  // Before this, the first four permitted tabs went to the bar in declaration
+  // order — so a salesperson got Home, Attendance, Leave and My Team while
+  // Leads, the thing they open twenty times a day, sat buried under "More".
+  // And every member saw a My Team tab that only ever told them nobody
+  // reported to them.
+  //
+  // So: hide what doesn't apply, then promote by what this person actually
+  // does. Four is the ceiling — a fifth item on a phone makes every target
+  // too narrow for a thumb.
+  const isManager = !!me?.isManager;
+
+  const allowed = ALL_TABS
+    .filter((t) => can(t.perm))
+    .filter((t) => t.id !== "myteam" || isManager);
+
+  // Everyone gets Home. After that, whichever of these they hold, in the order
+  // they'd reach for them.
+  const PRIORITY = isManager
+    ? ["dashboard", "myteam", "attendance", "leads", "orders", "customers", "leave"]
+    : ["dashboard", "leads", "attendance", "orders", "customers", "tasks", "leave"];
+
+  const byId: Record<string, any> = {};
+  for (const t of allowed) byId[t.id] = t;
+
+  const mainTabs: any[] = [];
+  for (const id of PRIORITY) {
+    if (mainTabs.length >= 4) break;
+    if (byId[id]) mainTabs.push(byId[id]);
+  }
+  // A business with no CRM permissions granted may not fill four slots.
+  for (const t of allowed) {
+    if (mainTabs.length >= 4) break;
+    if (!mainTabs.includes(t)) mainTabs.push(t);
+  }
+  const moreTabs = allowed.filter((t) => !mainTabs.includes(t));
+
+  // If the selected tab stops being available — reports reassigned, a
+  // permission revoked mid-session — fall back to Home instead of a blank pane.
+  useEffect(() => {
+    if (!me) return;
+    if (!allowed.some((t) => t.id === tab)) setTab("dashboard");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me, tab, allowed.length]);
 
   function contactChanged() { loadAll(); }
 
   return (
     <div className="min-h-screen bg-surface pb-20">
-      <style jsx global>{`.tinp{width:100%;padding:0.6rem 0.75rem;border:1px solid #E4E8F0;border-radius:0.75rem;font-size:0.875rem;color:#16233F;outline:none;background:#fff}.tinp:focus{border-color:#FF9E43}`}</style>
       <header className="bg-white border-b border-navy-line sticky top-0 z-20">
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
           <DawnLogo className="h-8" />
           <div className="flex items-center gap-3">
             <span className="text-sm text-navy/60 hidden sm:inline">Hi, {me.name || "there"}</span>
-            <button onClick={logout} className="p-2 text-navy/40 hover:text-navy" title="Sign out"><LogOut className="w-4 h-4" /></button>
+            <button onClick={logout} className="btn-icon text-navy/40 hover:text-navy" title="Sign out" aria-label="Sign out"><LogOut className="w-4 h-4" /></button>
           </div>
         </div>
       </header>
@@ -113,6 +154,9 @@ export default function TeamDashboard() {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-5 pb-28">
         {tab === "dashboard" && can("dashboard") && (
           <>
+            {/* The first thing anyone opens this app to check. */}
+            <TodayCard onGoToAttendance={() => setTab("attendance")} />
+
             {myScore && !myScore.tooNew && (
               <div className="bg-navy rounded-2xl p-4 text-white flex items-center justify-between mb-3">
                 <div>
@@ -122,11 +166,17 @@ export default function TeamDashboard() {
                 <p className="text-3xl font-bold text-amber">{myScore.score}<span className="text-sm text-white/40 font-normal">/100</span></p>
               </div>
             )}
-            <div className="grid grid-cols-3 gap-3">
-              <Stat label="My leads" value={stats.leads ?? leads.length} icon={Users} />
-              <Stat label="My customers" value={stats.customers ?? customers.length} icon={Users} />
-              <Stat label="My orders" value={stats.orders ?? orders.length} icon={ShoppingBag} />
-            </div>
+            {/* V41: the home screen was three CRM counters, so a warehouse
+                packer with only attendance and leave landed on a row of
+                zeros. Show the CRM block only to people who actually have CRM
+                permissions; everyone else gets what matters to them. */}
+            {(can("leads") || can("customers") || can("orders")) && (
+              <div className="grid grid-cols-3 gap-3">
+                <Stat label="My leads" value={stats.leads ?? leads.length} icon={Users} />
+                <Stat label="My customers" value={stats.customers ?? customers.length} icon={Users} />
+                <Stat label="My orders" value={stats.orders ?? orders.length} icon={ShoppingBag} />
+              </div>
+            )}
             {stats.revenue != null && (
               <div className="bg-navy rounded-2xl p-5 text-white flex items-center justify-between">
                 <div><p className="text-xs text-white/50 uppercase tracking-wide">My collected revenue</p><p className="text-2xl font-bold text-amber">₹{stats.revenue}</p></div>
@@ -180,7 +230,7 @@ export default function TeamDashboard() {
         {tab === "messages" && can("messaging") && <Messages />}
         {tab === "attendance" && <TeamAttendance />}
         {tab === "leave" && <TeamLeave />}
-        {tab === "myteam" && <TeamMyTeam />}
+        {tab === "myteam" && isManager && <TeamMyTeam />}
         {tab === "salary" && <TeamSalary />}
         {tab === "people" && <PeopleTab />}
         {tab === "tasks" && can("tasks") && <Tasks contacts={[...leads, ...customers]} />}
@@ -207,6 +257,7 @@ export default function TeamDashboard() {
       {moreOpen && (
         <div className="dawn-scrim z-50" onClick={() => setMoreOpen(false)}>
           <div className="dawn-sheet dawn-sheet-wide relative" onClick={(e) => e.stopPropagation()}>
+            <p className="t-label mb-3">Everything else</p>
             <div className="grid grid-cols-3 gap-3">
               {moreTabs.map((t) => (
                 <button key={t.id} onClick={() => { setTab(t.id); setMoreOpen(false); }} className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border ${tab === t.id ? "border-amber bg-amber/5 text-navy" : "border-navy-line text-navy/70"}`}>
@@ -303,7 +354,7 @@ function ContactList({ title, items, canEdit, isLeads, onAdd, onEdit, onQuickSta
         <h2 className="font-display font-semibold text-lg text-navy">{title}</h2>
         {onAdd && <button onClick={onAdd} className="flex items-center gap-1.5 text-sm font-medium bg-navy text-white px-3 py-1.5 rounded-lg"><Plus className="w-4 h-4" /> Add</button>}
       </div>
-      {items.length > 3 && <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, phone, handle…" className="tinp" />}
+      {items.length > 3 && <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, phone, handle…" className="inp" />}
       {isLeads && items.length > 0 && (
         <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
           {PILLS.map((p) => (
@@ -368,19 +419,19 @@ function EditContactModal({ contact, onClose, onSaved }: { contact: any; onClose
   return (
     <>
       <Sheet title="Edit" onClose={onClose}>
-        <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Name *" className="tinp" />
-        <input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="Phone" className="tinp" />
-        <input value={f.instagramHandle} onChange={(e) => setF({ ...f, instagramHandle: e.target.value.replace("@", "") })} placeholder="Instagram handle" className="tinp" />
-        <select value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} className="tinp">{["Instagram DM", "WhatsApp", "Referral", "Walk-in", "Website", "Other"].map((s) => <option key={s}>{s}</option>)}</select>
+        <input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Name *" className="inp" />
+        <input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="Phone" className="inp" />
+        <input value={f.instagramHandle} onChange={(e) => setF({ ...f, instagramHandle: e.target.value.replace("@", "") })} placeholder="Instagram handle" className="inp" />
+        <select value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} className="inp">{["Instagram DM", "WhatsApp", "Referral", "Walk-in", "Website", "Other"].map((s) => <option key={s}>{s}</option>)}</select>
         <div>
           <label className="block text-xs font-semibold text-navy mb-1">Stage</label>
-          <select value={f.stage} onChange={(e) => setF({ ...f, stage: e.target.value })} className="tinp">{STAGES.map((s) => <option key={s}>{s}</option>)}</select>
+          <select value={f.stage} onChange={(e) => setF({ ...f, stage: e.target.value })} className="inp">{STAGES.map((s) => <option key={s}>{s}</option>)}</select>
         </div>
         <div>
           <label className="block text-xs font-semibold text-navy mb-1">Follow up on</label>
-          <input type="date" value={f.followUpDate || ""} onChange={(e) => setF({ ...f, followUpDate: e.target.value })} className="tinp" />
+          <input type="date" value={f.followUpDate || ""} onChange={(e) => setF({ ...f, followUpDate: e.target.value })} className="inp" />
         </div>
-        <textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} rows={2} placeholder="Notes" className="tinp resize-none" />
+        <textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} rows={2} placeholder="Notes" className="inp resize-none" />
         {err && <p className="text-sm text-red-600">{err}</p>}
         <button onClick={() => save()} disabled={busy} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl disabled:opacity-60">{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Save changes</button>
       </Sheet>
@@ -456,9 +507,9 @@ function Tasks({ contacts }: { contacts: any[] }) {
     <div className="space-y-3">
       <h2 className="font-display font-semibold text-lg text-navy">Tasks</h2>
       <div className="dawn-card p-3 space-y-2">
-        <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="Add a task…" className="tinp" />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="Add a task…" className="inp" />
         <div className="flex gap-2">
-          <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="tinp flex-1" />
+          <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="inp flex-1" />
           <button onClick={add} className="bg-navy text-white px-4 rounded-xl text-sm font-medium">Add</button>
         </div>
       </div>
@@ -553,7 +604,7 @@ function Notes() {
     <div className="space-y-3">
       <h2 className="font-display font-semibold text-lg text-navy">Notes</h2>
       <div className="dawn-card p-3 space-y-2">
-        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Write a note…" className="tinp resize-none" />
+        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Write a note…" className="inp resize-none" />
         <button onClick={add} className="w-full bg-navy text-white py-2.5 rounded-xl text-sm font-medium">Save note</button>
       </div>
       <div className="grid gap-2">
@@ -643,15 +694,15 @@ function LeadModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => v
   }
   return (
     <Sheet title="Add lead" onClose={onClose}>
-      <input autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Name *" className="tinp" />
-      <input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="Phone" className="tinp" />
-      <input value={f.instagramHandle} onChange={(e) => setF({ ...f, instagramHandle: e.target.value })} placeholder="Instagram handle" className="tinp" />
-      <select value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} className="tinp">{["Instagram DM", "WhatsApp", "Referral", "Walk-in", "Website", "Other"].map((s) => <option key={s}>{s}</option>)}</select>
+      <input autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Name *" className="inp" />
+      <input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="Phone" className="inp" />
+      <input value={f.instagramHandle} onChange={(e) => setF({ ...f, instagramHandle: e.target.value })} placeholder="Instagram handle" className="inp" />
+      <select value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} className="inp">{["Instagram DM", "WhatsApp", "Referral", "Walk-in", "Website", "Other"].map((s) => <option key={s}>{s}</option>)}</select>
       <div>
         <label className="block text-xs font-semibold text-navy mb-1">Follow up on (optional)</label>
-        <input type="date" value={f.followUpDate} onChange={(e) => setF({ ...f, followUpDate: e.target.value })} className="tinp" />
+        <input type="date" value={f.followUpDate} onChange={(e) => setF({ ...f, followUpDate: e.target.value })} className="inp" />
       </div>
-      <textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} rows={2} placeholder="Notes" className="tinp resize-none" />
+      <textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} rows={2} placeholder="Notes" className="inp resize-none" />
       {err && <p className="text-sm text-red-600">{err}</p>}
       <button onClick={save} disabled={busy} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl disabled:opacity-60">{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Add lead</button>
     </Sheet>
@@ -680,12 +731,12 @@ function OrderModal({ customers, onClose, onSaved }: { customers: any[]; onClose
   }
   return (
     <Sheet title="New order" onClose={onClose}>
-      <select value={contactId} onChange={(e) => { setContactId(e.target.value); setWalkIn(""); }} className="tinp">
+      <select value={contactId} onChange={(e) => { setContactId(e.target.value); setWalkIn(""); }} className="inp">
         <option value="">Select my customer…</option>
         {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
       </select>
-      {!contactId && <input value={walkIn} onChange={(e) => setWalkIn(e.target.value)} placeholder="…or walk-in name" className="tinp" />}
-      <select onChange={(e) => { if (e.target.value) { addLine(e.target.value); e.target.value = ""; } }} className="tinp">
+      {!contactId && <input value={walkIn} onChange={(e) => setWalkIn(e.target.value)} placeholder="…or walk-in name" className="inp" />}
+      <select onChange={(e) => { if (e.target.value) { addLine(e.target.value); e.target.value = ""; } }} className="inp">
         <option value="">Add item…</option>
         {catalog.map((i) => <option key={i.id} value={i.id}>{i.name} — ₹{i.price ?? 0}</option>)}
       </select>
@@ -697,7 +748,7 @@ function OrderModal({ customers, onClose, onSaved }: { customers: any[]; onClose
         </div>
       ))}
       <div className="flex justify-between font-semibold text-navy"><span>Total</span><span>₹{total}</span></div>
-      <select value={status} onChange={(e) => setStatus(e.target.value)} className="tinp">{["Paid", "Pending"].map((s) => <option key={s}>{s}</option>)}</select>
+      <select value={status} onChange={(e) => setStatus(e.target.value)} className="inp">{["Paid", "Pending"].map((s) => <option key={s}>{s}</option>)}</select>
       {err && <p className="text-sm text-red-600">{err}</p>}
       <button onClick={save} disabled={busy} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl disabled:opacity-60">{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Create order</button>
     </Sheet>
@@ -717,8 +768,8 @@ function PasswordModal({ force, onClose }: { force?: boolean; onClose: () => voi
     <Sheet title={force ? "Set your password" : "Change password"} onClose={force ? () => {} : onClose}>
       {force && <p className="text-sm text-muted">Please set your own password to continue.</p>}
       {done ? <p className="text-emerald-600 font-medium">Password updated.</p> : <>
-        <input type="password" value={cur} onChange={(e) => setCur(e.target.value)} placeholder="Current password" className="tinp" />
-        <input type="password" value={nw} onChange={(e) => setNw(e.target.value)} placeholder="New password (min 6 chars)" className="tinp" />
+        <input type="password" value={cur} onChange={(e) => setCur(e.target.value)} placeholder="Current password" className="inp" />
+        <input type="password" value={nw} onChange={(e) => setNw(e.target.value)} placeholder="New password (min 6 chars)" className="inp" />
         {err && <p className="text-sm text-red-600">{err}</p>}
         <button onClick={save} disabled={busy} className="w-full flex items-center justify-center gap-2 bg-navy text-white font-medium py-3 rounded-xl disabled:opacity-60">{busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Save password</button>
       </>}
@@ -791,7 +842,6 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
         <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-navy">{title}</h3><button aria-label="Close" onClick={onClose} className="btn-icon p-1.5 text-navy/40"><X className="w-5 h-5" /></button></div>
         <div className="space-y-3">{children}</div>
       </div>
-      <style jsx global>{`.tinp{width:100%;padding:0.6rem 0.75rem;border:1px solid #E4E8F0;border-radius:0.75rem;font-size:0.875rem;color:#16233F;outline:none;background:#fff}.tinp:focus{border-color:#FF9E43}`}</style>
     </div>
   );
 }
@@ -902,4 +952,38 @@ function PeopleTab() {
         <button onClick={() => setOpen(true)} className="btn btn-primary">Find a colleague</button>
       </div>
     );
+}
+
+
+// A compact answer to "am I punched in, and what's waiting on me?" — the two
+// things every employee opens the portal for, whatever else their job involves.
+function TodayCard({ onGoToAttendance }: { onGoToAttendance: () => void }) {
+  const [d, setD] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/api/team/attendance").then((r) => r.json()).then(setD).catch(() => {});
+  }, []);
+
+  if (!d || d.error || d.enabled === false) return null;
+
+  const worked = Number(d.todayMinutes || 0);
+  const hrs = Math.floor(worked / 60), mins = worked % 60;
+
+  return (
+    <button onClick={onGoToAttendance} className="dawn-card p-4 w-full text-left hover:border-amber/40 transition-colors">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="t-micro text-muted">
+            {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
+          </p>
+          <p className="font-display font-semibold text-2xl text-navy mt-0.5">
+            {worked > 0 ? `${hrs}h ${mins}m` : "Not started"}
+          </p>
+        </div>
+        <span className={`pill ${d.punchedIn ? "pill-green" : worked > 0 ? "pill-grey" : "pill-amber"} shrink-0`}>
+          {d.punchedIn ? "Punched in" : worked > 0 ? "Punched out" : "Not in yet"}
+        </span>
+      </div>
+    </button>
+  );
 }
