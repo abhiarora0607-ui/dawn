@@ -20,6 +20,7 @@ const CRM_NAV = [
   { href: "/dashboard/attendance", label: "Attendance", icon: CalendarClock },
   { href: "/dashboard/leave", label: "Leave", icon: Palmtree },
   { href: "/dashboard/org", label: "Organisation", icon: Network },
+  { href: "/dashboard/payroll", label: "Payroll", icon: Wallet },
   { href: "/dashboard/performance", label: "Team Performance", icon: BarChart3 },
   { href: "/dashboard/team-work", label: "Team Work", icon: CheckSquare },
   { href: "/dashboard/records", label: "Records", icon: Database },

@@ -22,11 +22,12 @@ export async function GET() {
   const { ctx, url, key } = g;
 
   try {
-    const [empRows, expenses, encashments] = await Promise.all([
+    const [empRows, slips, encashments] = await Promise.all([
       fetch(`${url}/rest/v1/employees?uid=eq.${ctx.uid}&id=eq.${ctx.employeeId}&select=name,monthly_salary,joining_date,job_title&limit=1`,
         { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()),
-      // Salary rows the cron posted for this person.
-      fetch(`${url}/rest/v1/expenses?uid=eq.${ctx.uid}&source=eq.salary&source_id=eq.${ctx.employeeId}&deleted_at=is.null&select=id,date,amount,note&order=date.desc&limit=24`,
+      // The payslips themselves — approved or paid only. A draft is a working
+      // document and showing it would promise money nobody has agreed to yet.
+      fetch(`${url}/rest/v1/payslips?uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&status=in.(approved,paid)&select=*&order=month.desc&limit=24`,
         { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
       fetch(`${url}/rest/v1/encashment_requests?uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&select=*&order=created_at.desc&limit=12`,
         { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
@@ -37,20 +38,32 @@ export async function GET() {
 
     const monthly = Number(emp.monthly_salary || 0);
 
+    // The lines are what answer "why was last month different?" without the
+    // employee having to ask anyone.
+    const S = Array.isArray(slips) ? slips : [];
+    let linesBySlip: Record<string, any[]> = {};
+    if (S.length) {
+      const rows = await fetch(`${url}/rest/v1/payslip_lines?uid=eq.${ctx.uid}&payslip_id=in.(${S.map((s: any) => s.id).join(",")})&select=payslip_id,kind,label,amount`,
+        { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
+      for (const l of Array.isArray(rows) ? rows : []) (linesBySlip[l.payslip_id] ||= []).push(l);
+    }
+
     return NextResponse.json({
       name: emp.name,
       jobTitle: emp.job_title || null,
       joiningDate: emp.joining_date || null,
       monthly,
       perDay: Math.round((monthly / 30) * 100) / 100,
-      payments: (Array.isArray(expenses) ? expenses : []).map((x: any) => ({
+      payslips: (Array.isArray(slips) ? slips : []).map((x: any) => ({
         id: x.id,
-        date: x.date,
-        amount: Number(x.amount || 0),
-        // The cron writes encashment into the note, so an employee can see why
-        // a month was larger than usual without needing a separate statement.
-        note: x.note || null,
-        hasExtra: /encashment/i.test(x.note || ""),
+        month: x.month,
+        status: x.status,
+        base: Number(x.base_amount || 0),
+        additions: Number(x.additions || 0),
+        deductions: Number(x.deductions || 0),
+        net: Number(x.net_amount || 0),
+        paidAt: x.paid_at,
+        lines: linesBySlip[x.id] || [],
       })),
       encashments: (Array.isArray(encashments) ? encashments : []).map((e: any) => ({
         id: e.id, days: e.days, amount: e.amount, status: e.status,

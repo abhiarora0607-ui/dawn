@@ -44,21 +44,38 @@ export function TeamSalary() {
       )}
 
       <div>
-        <p className="t-label mb-2">Payment history</p>
-        {d.payments?.length === 0 ? (
-          <p className="dawn-empty">Nothing recorded yet. Salary payments appear here once they&apos;re paid.</p>
+        <p className="t-label mb-2">Payslips</p>
+        {d.payslips?.length === 0 ? (
+          <p className="dawn-empty">No payslips yet. They appear here once your employer has approved them.</p>
         ) : (
-          <div className="dawn-card divide-y divide-navy-line/40">
-            {d.payments.map((p: any) => (
-              <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-navy flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-navy/30" />
-                    {new Date(p.date).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
-                  </p>
-                  {p.hasExtra && <p className="t-micro text-amber-deep mt-0.5">Includes leave encashment</p>}
+          <div className="space-y-2">
+            {d.payslips.map((p: any) => (
+              <div key={p.id} className="dawn-card p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-navy">
+                      {new Date(`${p.month}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" })}
+                    </p>
+                    <span className={`pill ${p.status === "paid" ? "pill-green" : "pill-sky"} mt-1`}>
+                      {p.status === "paid" ? "Paid" : "Approved"}
+                    </span>
+                  </div>
+                  <p className="font-display font-semibold text-xl text-navy">₹{p.net.toLocaleString("en-IN")}</p>
                 </div>
-                <p className="font-semibold text-navy shrink-0">₹{p.amount.toLocaleString("en-IN")}</p>
+
+                {p.lines?.length > 0 && (
+                  <div className="dawn-card-inset p-3 mt-3 space-y-1">
+                    {p.lines.map((l: any, i: number) => (
+                      <div key={i} className="flex justify-between t-small">
+                        <span className={l.kind === "deduction" ? "text-red-600" : "text-navy/70"}>{l.label}</span>
+                        <span className={l.kind === "deduction" ? "text-red-600" : "text-navy"}>
+                          {l.kind === "deduction" ? "−" : ""}₹{Math.abs(Number(l.amount)).toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {p.paidAt && <p className="t-micro text-muted mt-2">Paid {new Date(p.paidAt).toLocaleDateString()}</p>}
               </div>
             ))}
           </div>

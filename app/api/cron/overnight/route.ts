@@ -58,44 +58,24 @@ export async function GET(req: Request) {
     for (const r of recs || []) {
       if (r.last_generated === month) continue; // already done this month
 
-      // V31b: an approved leave encashment rides along on the next salary
-      // expense rather than posting its own row. Two Salaries rows for the
-      // same person in the same month would read as a double payment, and
-      // the owner pays from what this page tells them.
-      let amount = Number(r.amount || 0);
-      let note = r.note || "Recurring expense";
-      let paidEncashments: string[] = [];
-      if (r.source === "salary" && r.employee_id) {
-        try {
-          const pend = await (await fetch(
-            `${url}/rest/v1/encashment_requests?uid=eq.${r.uid}&employee_id=eq.${r.employee_id}&status=eq.approved&paid_in_month=is.null&select=id,amount`,
-            { headers: sbHeaders(key), cache: "no-store" },
-          )).json();
-          const extra = (Array.isArray(pend) ? pend : []).reduce((sum: number, e: any) => sum + Number(e.amount || 0), 0);
-          if (extra > 0) {
-            paidEncashments = (pend as any[]).map((e) => e.id);
-            note = `${note} (₹${amount.toLocaleString("en-IN")} + ₹${extra.toLocaleString("en-IN")} leave encashment)`;
-            amount += extra;
-          }
-        } catch { /* an encashment lookup must never stop payroll posting */ }
-      }
+      // V39: salary no longer posts itself. It flows through a payslip that a
+      // human approves and then marks paid, and the expense is created at that
+      // moment — so the books record money that actually left, rather than
+      // money the system assumed would.
+      //
+      // Rent, subscriptions and the rest still post automatically: they have no
+      // approval step to wait for, and holding them back would just mean
+      // someone re-entering the same figure every month.
+      if (r.source === "salary") continue;
 
       await fetch(`${url}/rest/v1/expenses`, {
         method: "POST", headers: sbHeaders(key),
         body: JSON.stringify({
-          uid: r.uid, date: today, category: r.category || (r.source === "salary" ? "Salaries" : "Recurring"),
-          amount, note,
-          source: r.source === "salary" ? "salary" : "recurring", source_id: r.employee_id || r.id, recurring: true,
+          uid: r.uid, date: today, category: r.category || "Recurring",
+          amount: Number(r.amount || 0), note: r.note || "Recurring expense",
+          source: "recurring", source_id: r.id, recurring: true,
         }),
       });
-
-      // Only mark encashments paid once the expense actually exists.
-      for (const id of paidEncashments) {
-        await fetch(`${url}/rest/v1/encashment_requests?id=eq.${id}`, {
-          method: "PATCH", headers: sbHeaders(key),
-          body: JSON.stringify({ status: "paid", paid_in_month: month }),
-        }).catch(() => {});
-      }
       await fetch(`${url}/rest/v1/recurring_expenses?id=eq.${r.id}`, {
         method: "PATCH", headers: sbHeaders(key), body: JSON.stringify({ last_generated: month }),
       });
@@ -129,6 +109,52 @@ export async function GET(req: Request) {
           });
         }
       } catch { /* one business failing must not stop the rest */ }
+    }
+  } catch { /* non-fatal */ }
+
+  // V39: payroll no longer runs itself, so it can be forgotten. Once a month
+  // has begun and nobody has drafted payslips, flag it where the owner will
+  // see it. Silence would mean staff unpaid and books showing no salaries.
+  try {
+    const { istDate } = await import("@/lib/attendance");
+    const todayIST = istDate();
+    const dayOfMonth = Number(todayIST.slice(8, 10));
+    const monthTag = todayIST.slice(0, 7);
+
+    if (dayOfMonth >= 2) {
+      const settingsRows = await (await fetch(`${url}/rest/v1/attendance_settings?select=uid,payroll_enabled`, { headers: sbHeaders(key), cache: "no-store" })).json();
+      for (const srow of Array.isArray(settingsRows) ? settingsRows : []) {
+        if (srow.payroll_enabled === false) continue;
+        try {
+          const [staff, slips] = await Promise.all([
+            (await fetch(`${url}/rest/v1/employees?uid=eq.${srow.uid}&status=eq.active&select=id&limit=1`, { headers: sbHeaders(key), cache: "no-store" })).json(),
+            (await fetch(`${url}/rest/v1/payslips?uid=eq.${srow.uid}&month=eq.${monthTag}&select=id&limit=1`, { headers: sbHeaders(key), cache: "no-store" })).json(),
+          ]);
+          const hasStaff = Array.isArray(staff) && staff.length > 0;
+          const hasSlips = Array.isArray(slips) && slips.length > 0;
+          if (hasStaff && !hasSlips) {
+            // The suggestions feed is computed on read rather than stored, so
+            // the durable signal is an email — and it goes only once, on the
+            // second of the month, rather than nagging daily.
+            if (dayOfMonth === 2) {
+              try {
+                const { sendMail } = await import("@/lib/mailer");
+                const ownerRow = await (await fetch(`${url}/rest/v1/dawn_users?uid=eq.${srow.uid}&select=email&limit=1`, { headers: sbHeaders(key), cache: "no-store" })).json();
+                const to = ownerRow?.[0]?.email;
+                if (to) {
+                  await sendMail(
+                    to,
+                    "Payroll is ready to run",
+                    `<p>It's a new month and this month's payslips haven't been drafted yet.</p>
+                     <p>Draft them, check the numbers, and mark them paid once the money has gone out — that's what puts the salary into your books.</p>
+                     <p><a href="https://dawn-jet.vercel.app/dashboard/payroll">Run payroll</a></p>`,
+                  );
+                }
+              } catch { /* a failed email must not stop the cron */ }
+            }
+          }
+        } catch { /* one business must not stop the rest */ }
+      }
     }
   } catch { /* non-fatal */ }
 

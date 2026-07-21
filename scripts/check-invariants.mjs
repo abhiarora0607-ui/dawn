@@ -36,7 +36,7 @@ const read = (p) => readFileSync(p, "utf8");
 
 // ---- 1. TENANT ISOLATION ----------------------------------------------------
 console.log("\n[1] Tenant isolation — every tenant-table read filters by uid");
-const TENANT_TABLES = ["contacts", "sales", "catalog_items", "expenses", "employees", "tasks", "activities", "subscriptions", "payments", "events", "feedback", "attendance_logs", "attendance_days", "holidays", "remote_grants", "regularization_requests", "leave_requests", "leave_balances", "leave_types", "encashment_requests", "departments"];
+const TENANT_TABLES = ["contacts", "sales", "catalog_items", "expenses", "employees", "tasks", "activities", "subscriptions", "payments", "events", "feedback", "attendance_logs", "attendance_days", "holidays", "remote_grants", "regularization_requests", "leave_requests", "leave_balances", "leave_types", "encashment_requests", "departments", "payslips", "payslip_lines", "bonus_requests"];
 {
   let bad = 0;
   for (const p of files.filter((f) => f.includes("/api/"))) {
@@ -136,7 +136,7 @@ console.log("\n[6] Service key never referenced in client components");
 // ---- 7. AREA GATES (V26) ----------------------------------------------------
 console.log("\n[7] Billing area gates — every area API carries its guard");
 {
-  const CRM = ["contacts","sales","catalog","expenses","employees","contacts/import","admin-tasks","employee-accounts","employee-detail","employee-performance","finance","pulse","records","recovery","scores","search","item-detail","onboarding","demo","audit","attendance","attendance/settings","attendance/requests","leave","leave/settings","org"];
+  const CRM = ["contacts","sales","catalog","expenses","employees","contacts/import","admin-tasks","employee-accounts","employee-detail","employee-performance","finance","pulse","records","recovery","scores","search","item-detail","onboarding","demo","audit","attendance","attendance/settings","attendance/requests","leave","leave/settings","org","payroll","bonus"];
   const IG  = ["brief","suggestions","analyze-image","automation","brand-voice","calendar","carousel","competitors","content","persona","schedule","saved","value"];
   let bad = 0;
   for (const r of CRM) {
@@ -193,6 +193,33 @@ console.log("\n[8] Permissions-Policy allows the browser features Dawn actually 
     }
     if (bad === 0) pass("every browser capability Dawn calls is permitted by the header");
   } catch { fail("couldn't read next.config.mjs"); }
+}
+
+// ---- 9. MONEY ENTERS THE BOOKS ONLY WHEN PAID (V39) -------------------------
+// The whole point of payslips: an expense is created at the transition to
+// `paid` and nowhere else. If the cron ever posts salary again, every salary
+// would be counted twice — once by the cron and once by payroll — and the
+// error would look like a business problem rather than a bug.
+console.log("\n[9] Salary reaches the books only through a paid payslip");
+{
+  let bad = 0;
+  const cron = read("app/api/cron/overnight/route.ts");
+  if (!/if \(r\.source === "salary"\) continue;/.test(cron)) {
+    fail("the overnight cron must skip salary recurring expenses — payroll owns that now"); bad++;
+  }
+  if (/encashment_requests/.test(cron)) {
+    fail("the cron still references encashment; that belongs to payroll now"); bad++;
+  }
+  const pay = read("app/api/payroll/route.ts");
+  if (!/to === "paid"/.test(pay) || !/rest\/v1\/expenses/.test(pay)) {
+    fail("payroll must create the expense on the transition to paid"); bad++;
+  }
+  // A draft must never be payable directly.
+  const engine = read("lib/payroll.ts");
+  if (!/draft: \["approved", "cancelled"\]/.test(engine)) {
+    fail("a draft payslip must not be markable paid without approval"); bad++;
+  }
+  if (bad === 0) pass("salary flows only through an approved, paid payslip");
 }
 
 // ---- RESULT -----------------------------------------------------------------
