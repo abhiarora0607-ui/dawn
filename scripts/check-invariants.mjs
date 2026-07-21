@@ -219,13 +219,21 @@ console.log("\n[9] Salary reaches the books only through a paid payslip");
     fail("the cron still references encashment; that belongs to payroll now"); bad++;
   }
   const pay = read("app/api/payroll/route.ts");
-  if (!/to === "paid"/.test(pay) || !/rest\/v1\/expenses/.test(pay)) {
-    fail("payroll must create the expense on the transition to paid"); bad++;
+  if (!/if \(to === "paid" && !slip\.expense_id\)/.test(pay)) {
+    fail("the expense must be created on the transition to paid, and only once"); bad++;
+  }
+  // Approving must NOT post money — that's the whole point of the third hand.
+  if (/to === "approved" \|\| to === "paid"/.test(pay)) {
+    fail("approving must not post the expense — paying does"); bad++;
   }
   // A draft must never be payable directly.
   const engine = read("lib/payroll.ts");
-  if (!/draft: \["approved", "cancelled"\]/.test(engine)) {
+  const draftLine = (engine.match(/draft: \[([^\]]*)\]/) || [])[1] || "";
+  if (draftLine.includes('"paid"')) {
     fail("a draft payslip must not be markable paid without approval"); bad++;
+  }
+  if (!draftLine.includes('"approved"')) {
+    fail("a draft payslip must be approvable"); bad++;
   }
   if (bad === 0) pass("salary flows only through an approved, paid payslip");
 }
@@ -463,6 +471,39 @@ console.log("\n[17] Gifted leave is stored separately from accrual");
   }
   if (!/c\.appr\.isAdmin/.test(grantBlock)) { fail("granting leave must be admin only"); bad++; }
   if (bad === 0) pass("gifted leave is its own column and admin-only");
+}
+
+// ---- 18. REJECTION IS A ROUND TRIP (V47) ------------------------------------
+// A rejected payslip that couldn't be corrected would force the whole month to
+// be cancelled and redrafted over one wrong figure. Rejection returns it to
+// draft, carrying the reason — and only a draft may be edited, or approving
+// would sign off a number that can still change afterwards.
+console.log("\n[18] Rejected payslips return to draft, and only drafts are editable");
+{
+  let bad = 0;
+  const lib = read("lib/payroll.ts");
+  if (!/rejected: \["draft", "cancelled"\]/.test(lib)) {
+    fail("a rejected payslip must be able to return to draft"); bad++;
+  }
+  if (/rejected: \[[^\]]*"approved"/.test(lib)) {
+    fail("a rejected payslip must not jump straight to approved"); bad++;
+  }
+  if (!/return status === "draft";/.test(lib)) {
+    fail("only a draft may be edited"); bad++;
+  }
+  const route = read("app/api/payroll/route.ts");
+  if (!/isEditable\(slip\.status\)/.test(route)) {
+    fail("the edit route does not check editability"); bad++;
+  }
+  // Editing must recompute from the lines, not adjust a stored total.
+  if (!/totalsOf\(\(Array\.isArray\(lines\)/.test(route)) {
+    fail("editing must recompute totals from the lines"); bad++;
+  }
+  // The base line is what the payslip is.
+  if (!/line\?\.kind === "base"/.test(route)) {
+    fail("the salary line must not be removable"); bad++;
+  }
+  if (bad === 0) pass("rejection round-trips and only drafts can change");
 }
 
 // ---- RESULT -----------------------------------------------------------------

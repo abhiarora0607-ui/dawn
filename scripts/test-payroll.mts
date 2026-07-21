@@ -101,3 +101,42 @@ for (const [name, got, want] of t) {
   console.log(`${ok ? "  ok  " : "  FAIL"} ${name} → ${got}${ok ? "" : ` (want ${want})`}`);
 }
 console.log(bad === 0 ? `\n*** ALL ${t.length} PAYROLL RULES CORRECT ***` : `\n*** ${bad} PAYROLL FAILURE(S) ***`);
+
+// ---- V47: reject as a round trip, and what may be edited ----
+const t2: [string, any, string][] = [];
+
+// rejection is not a dead end
+t2.push(["draft can be rejected", String(P.canTransition("draft", "rejected")), "true"]);
+t2.push(["rejected returns to draft", String(P.canTransition("rejected", "draft")), "true"]);
+t2.push(["rejected cannot skip to approved", String(P.canTransition("rejected", "approved")), "false"]);
+t2.push(["rejected cannot skip to paid", String(P.canTransition("rejected", "paid")), "false"]);
+t2.push(["rejected can be abandoned", String(P.canTransition("rejected", "cancelled")), "true"]);
+t2.push(["rejection explains the route back", String(P.transitionError("rejected", "approved")).includes("back to draft"), "true"]);
+
+// approving still does not pay
+t2.push(["approved is not paid", String(P.canTransition("approved", "paid")), "true"]);
+t2.push(["draft cannot be paid directly", String(P.canTransition("draft", "paid")), "false"]);
+t2.push(["approved can be sent back", String(P.canTransition("approved", "draft")), "true"]);
+t2.push(["paid stays final", String(P.canTransition("paid", "draft")), "false"]);
+t2.push(["paid cannot be rejected", String(P.canTransition("paid", "rejected")), "false"]);
+
+// editability
+t2.push(["a draft is editable", String(P.isEditable("draft")), "true"]);
+t2.push(["an approved payslip is not", String(P.isEditable("approved")), "false"]);
+t2.push(["a paid payslip is not", String(P.isEditable("paid")), "false"]);
+t2.push(["a rejected payslip is not directly editable", String(P.isEditable("rejected")), "false"]);
+t2.push(["a cancelled payslip is not", String(P.isEditable("cancelled")), "false"]);
+
+// labels
+t2.push(["rejected reads as sent back", P.STATUS_LABEL.rejected, "Sent back"]);
+t2.push(["rejected is visually distinct", P.STATUS_PILL.rejected, "pill-amber"]);
+t2.push(["every status has a label", String(["draft","approved","paid","cancelled","rejected"].every((s) => !!(P.STATUS_LABEL as any)[s])), "true"]);
+t2.push(["every status has a pill", String(["draft","approved","paid","cancelled","rejected"].every((s) => !!(P.STATUS_PILL as any)[s])), "true"]);
+
+let bad2 = 0;
+for (const [name, got, want] of t2) {
+  const ok = String(got) === want;
+  if (!ok) bad2++;
+  console.log(`${ok ? "  ok  " : "  FAIL"} ${name} → ${got}${ok ? "" : ` (want ${want})`}`);
+}
+console.log(bad2 === 0 ? `*** ALL ${t2.length} REJECT/EDIT RULES CORRECT ***` : `*** ${bad2} REJECT/EDIT FAILURE(S) ***`);

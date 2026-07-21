@@ -12,7 +12,7 @@ import { getUid } from "@/lib/auth";
 import { requireArea } from "@/lib/entitlements";
 import { getEmployee } from "@/lib/employee-auth";
 import { loadOrg } from "@/lib/org-db";
-import { buildPayslip, totalsOf, canTransition, transitionError, expenseNoteFor, STATUS_LABEL } from "@/lib/payroll";
+import { buildPayslip, totalsOf, canTransition, transitionError, expenseNoteFor, isEditable, STATUS_LABEL } from "@/lib/payroll";
 import { revenueByEmployee, commissionFor, commissionLabel, monthGuardError, latestDraftableMonth } from "@/lib/commission";
 import { subtreeOf } from "@/lib/org";
 import { istDate } from "@/lib/attendance";
@@ -228,8 +228,8 @@ export async function POST(req: Request) {
 
       // Approving is an admin act; paying is a separate permission, because at
       // two people that's the owner and at two hundred it's a finance clerk.
-      if (to === "approved" && !(org.isAdmin || permissions.includes("payroll_approve"))) {
-        return NextResponse.json({ error: "You don't have permission to approve payslips." }, { status: 403 });
+      if ((to === "approved" || to === "rejected") && !(org.isAdmin || permissions.includes("payroll_approve"))) {
+        return NextResponse.json({ error: "You don't have permission to approve or reject payslips." }, { status: 403 });
       }
       if (to === "paid" && !(org.isAdmin || permissions.includes("payroll_pay"))) {
         return NextResponse.json({ error: "You don't have permission to mark payslips paid." }, { status: 403 });
@@ -239,12 +239,20 @@ export async function POST(req: Request) {
       const now = new Date().toISOString();
 
       if (to === "approved") { patch.approved_at = now; patch.approved_by = meId || "owner"; }
+      if (to === "rejected") {
+        patch.note = String(b.reason || "").slice(0, 300) || "Sent back without a reason given";
+        // Clear the earlier sign-off: a rejected payslip has not been approved.
+        patch.approved_at = null; patch.approved_by = null;
+      }
+      // Returning to draft keeps the rejection note so the person fixing it
+      // can still see what was wrong.
+      if (to === "draft") { patch.approved_at = null; patch.approved_by = null; }
 
       // ---- the moment money enters the books ----
       // Approving posts the expense (V45: paying is withdrawn for now). A
       // payslip that already created one must never create a second — the
       // approved → paid path would otherwise double-count every salary.
-      if ((to === "approved" || to === "paid") && !slip.expense_id) {
+      if (to === "paid" && !slip.expense_id) {
         const emp = await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&id=eq.${slip.employee_id}&select=name&limit=1`,
           { headers: H(key), cache: "no-store" }).then((r) => r.json()).then((r) => r?.[0]).catch(() => null);
         const lines = await fetch(`${url}/rest/v1/payslip_lines?uid=eq.${uid}&payslip_id=eq.${slip.id}&select=*`,
@@ -285,9 +293,109 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         ok: true,
-        note: to === "approved" ? "Approved — the salary is now in your books."
-          : to === "paid" ? "Marked paid." : null,
+        note: to === "paid" ? "Marked paid — the salary is now in your books."
+          : to === "approved" ? "Approved. It's ready to be paid."
+          : to === "rejected" ? "Sent back for changes."
+          : null,
       });
+    }
+
+    // ------------------------------------------------------ EDIT A DRAFT
+    // Rejection is only useful if the figure can then be corrected. Whoever
+    // may draft may edit — finance prepares the numbers, so finance fixes them.
+    if (b.action === "edit_line") {
+      if (!(org.isAdmin || permissions.includes("payroll_prepare"))) {
+        return NextResponse.json({ error: "You don't have permission to change payslips." }, { status: 403 });
+      }
+
+      const slip = await fetch(`${url}/rest/v1/payslips?uid=eq.${uid}&id=eq.${b.id}&select=*&limit=1`,
+        { headers: H(key), cache: "no-store" }).then((r) => r.json()).then((r) => r?.[0]).catch(() => null);
+      if (!slip) return NextResponse.json({ error: "Payslip not found." }, { status: 404 });
+
+      // Only a draft. Editing an approved payslip would make the approval
+      // meaningless — someone signed off a number that no longer exists.
+      if (!isEditable(slip.status)) {
+        return NextResponse.json({
+          error: slip.status === "paid"
+            ? "This is already paid — correct it with an expense adjustment."
+            : "Send it back to draft before changing the figures.",
+        }, { status: 400 });
+      }
+
+      const label = String(b.label || "").trim().slice(0, 120);
+      const amount = Number(b.amount || 0);
+      const kind = ["bonus", "deduction"].includes(String(b.kind)) ? String(b.kind) : null;
+      if (!kind) return NextResponse.json({ error: "Add it as a bonus or a deduction." }, { status: 400 });
+      if (!label) return NextResponse.json({ error: "What is this line for?" }, { status: 400 });
+      if (!(amount > 0)) return NextResponse.json({ error: "How much?" }, { status: 400 });
+
+      if (b.lineId) {
+        await fetch(`${url}/rest/v1/payslip_lines?uid=eq.${uid}&id=eq.${b.lineId}`, {
+          method: "PATCH", headers: H(key, { Prefer: "return=minimal" }),
+          body: JSON.stringify({ label, amount, kind }),
+        });
+      } else {
+        await fetch(`${url}/rest/v1/payslip_lines`, {
+          method: "POST", headers: H(key, { Prefer: "return=minimal" }),
+          body: JSON.stringify({ uid, payslip_id: slip.id, kind, label, amount, source_id: null }),
+        });
+      }
+
+      // Recompute from the lines rather than adjusting the stored total: the
+      // lines are the truth, and a total maintained separately drifts.
+      const lines = await fetch(`${url}/rest/v1/payslip_lines?uid=eq.${uid}&payslip_id=eq.${slip.id}&select=kind,label,amount`,
+        { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
+      const totals = totalsOf((Array.isArray(lines) ? lines : []).map((l: any) => ({
+        kind: l.kind, label: l.label, amount: Number(l.amount || 0),
+      })));
+
+      await fetch(`${url}/rest/v1/payslips?uid=eq.${uid}&id=eq.${slip.id}`, {
+        method: "PATCH", headers: H(key, { Prefer: "return=minimal" }),
+        body: JSON.stringify({
+          base_amount: totals.base, additions: totals.additions,
+          deductions: totals.deductions, net_amount: totals.net,
+        }),
+      });
+      await audit({ uid, action: "payroll.edit_line", entity: "payslips", entityId: slip.id, meta: { kind, label, amount } });
+      return NextResponse.json({ ok: true, note: "Updated." });
+    }
+
+    if (b.action === "delete_line") {
+      if (!(org.isAdmin || permissions.includes("payroll_prepare"))) {
+        return NextResponse.json({ error: "You don't have permission to change payslips." }, { status: 403 });
+      }
+      const slip = await fetch(`${url}/rest/v1/payslips?uid=eq.${uid}&id=eq.${b.id}&select=*&limit=1`,
+        { headers: H(key), cache: "no-store" }).then((r) => r.json()).then((r) => r?.[0]).catch(() => null);
+      if (!slip) return NextResponse.json({ error: "Payslip not found." }, { status: 404 });
+      if (!isEditable(slip.status)) {
+        return NextResponse.json({ error: "Send it back to draft before changing the figures." }, { status: 400 });
+      }
+
+      // The base salary line is what the payslip IS. Removing it would leave a
+      // document that pays somebody nothing for a month they worked.
+      const line = await fetch(`${url}/rest/v1/payslip_lines?uid=eq.${uid}&id=eq.${b.lineId}&select=kind&limit=1`,
+        { headers: H(key), cache: "no-store" }).then((r) => r.json()).then((r) => r?.[0]).catch(() => null);
+      if (line?.kind === "base") {
+        return NextResponse.json({ error: "The salary line can't be removed. Change the amount instead." }, { status: 400 });
+      }
+
+      await fetch(`${url}/rest/v1/payslip_lines?uid=eq.${uid}&id=eq.${b.lineId}`,
+        { method: "DELETE", headers: H(key, { Prefer: "return=minimal" }) });
+
+      const lines = await fetch(`${url}/rest/v1/payslip_lines?uid=eq.${uid}&payslip_id=eq.${slip.id}&select=kind,label,amount`,
+        { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
+      const totals = totalsOf((Array.isArray(lines) ? lines : []).map((l: any) => ({
+        kind: l.kind, label: l.label, amount: Number(l.amount || 0),
+      })));
+      await fetch(`${url}/rest/v1/payslips?uid=eq.${uid}&id=eq.${slip.id}`, {
+        method: "PATCH", headers: H(key, { Prefer: "return=minimal" }),
+        body: JSON.stringify({
+          base_amount: totals.base, additions: totals.additions,
+          deductions: totals.deductions, net_amount: totals.net,
+        }),
+      });
+      await audit({ uid, action: "payroll.delete_line", entity: "payslips", entityId: slip.id });
+      return NextResponse.json({ ok: true, note: "Removed." });
     }
 
     // ---------------------------------------------------- BULK APPROVE

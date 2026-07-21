@@ -12,7 +12,7 @@
 // encashment — because two salary rows for one person in one month reads as a
 // double payment to whoever is doing the paying.
 
-export type PayslipStatus = "draft" | "approved" | "paid" | "cancelled";
+export type PayslipStatus = "draft" | "approved" | "paid" | "cancelled" | "rejected";
 
 export type PayslipLine = {
   kind: "base" | "bonus" | "encashment" | "deduction";
@@ -50,8 +50,15 @@ function round(n: number) { return Math.round(n * 100) / 100; }
  * accounting correction, not a status change.
  */
 const TRANSITIONS: Record<PayslipStatus, PayslipStatus[]> = {
-  draft: ["approved", "cancelled"],
-  approved: ["paid", "draft", "cancelled"],   // back to draft if something was wrong
+  draft: ["approved", "rejected", "cancelled"],
+  // Approving does not release money. Paying is a separate act by a separate
+  // hand — the maker-checker split that stops one person drafting, approving
+  // and paying their own figure.
+  approved: ["paid", "draft", "cancelled"],
+  // V47: rejection is a round trip, not a dead end. The usual cause is a wrong
+  // number, and the fix is to correct the draft and resubmit — so rejected
+  // returns to draft carrying the reason it was sent back.
+  rejected: ["draft", "cancelled"],
   paid: [],
   cancelled: [],
 };
@@ -65,7 +72,15 @@ export function transitionError(from: PayslipStatus, to: PayslipStatus): string 
   if (from === "paid") return "This payslip is already paid — correct it with an expense adjustment instead.";
   if (from === "cancelled") return "This payslip was cancelled.";
   if (from === "draft" && to === "paid") return "Approve it before marking it paid.";
+  if (from === "rejected" && to === "approved") return "Send it back to draft and fix the figures first.";
   return `Can't move a ${from} payslip to ${to}.`;
+}
+
+/** Whether the figures on a payslip can still be changed. */
+export function isEditable(status: PayslipStatus): boolean {
+  // Only a draft. Once approved, changing the number behind the approval would
+  // make the sign-off meaningless.
+  return status === "draft";
 }
 
 /**
@@ -161,9 +176,11 @@ export function expenseNoteFor(employeeName: string, month: string, totals: { ba
 }
 
 export const STATUS_LABEL: Record<PayslipStatus, string> = {
-  draft: "Draft", approved: "Approved", paid: "Paid", cancelled: "Cancelled",
+  draft: "Draft", approved: "Approved", paid: "Paid",
+  cancelled: "Cancelled", rejected: "Sent back",
 };
 
 export const STATUS_PILL: Record<PayslipStatus, string> = {
-  draft: "pill-grey", approved: "pill-sky", paid: "pill-green", cancelled: "pill-red",
+  draft: "pill-grey", approved: "pill-sky", paid: "pill-green",
+  cancelled: "pill-red", rejected: "pill-amber",
 };
