@@ -130,12 +130,11 @@ export default function TeamDashboard() {
   const moreTabs = allowed.filter((t) => !mainTabs.includes(t));
 
   // If the selected tab stops being available — reports reassigned, a
-  // permission revoked mid-session — fall back to Home instead of a blank pane.
-  useEffect(() => {
-    if (!me) return;
-    if (!allowed.some((t) => t.id === tab)) setTab("dashboard");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me, tab, allowed.length]);
+  // permission revoked mid-session — fall back to Home rather than a blank
+  // pane. Derived rather than stored: this sits after the early returns above,
+  // and a hook here would not run on the loading pass, which is the classic
+  // "rendered more hooks than during the previous render" crash.
+  const activeTab: Tab = allowed.some((t) => t.id === tab) ? tab : "dashboard";
 
   function contactChanged() { loadAll(); }
 
@@ -152,7 +151,7 @@ export default function TeamDashboard() {
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-5 pb-28">
-        {tab === "dashboard" && can("dashboard") && (
+        {activeTab === "dashboard" && can("dashboard") && (
           <>
             {/* The first thing anyone opens this app to check. */}
             <TodayCard onGoToAttendance={() => setTab("attendance")} />
@@ -210,45 +209,45 @@ export default function TeamDashboard() {
           </>
         )}
 
-        {(tab === "leads" || tab === "customers") && (
+        {(activeTab === "leads" || activeTab === "customers") && (
           <ContactList
-            title={tab === "leads" ? "My leads" : "My customers"}
-            items={tab === "leads" ? leads : customers}
-            canEdit={can(tab === "leads" ? "edit_leads" : "edit_customers")}
-            isLeads={tab === "leads"}
-            onAdd={tab === "leads" && can("leads") ? () => setModal("lead") : undefined}
+            title={activeTab === "leads" ? "My leads" : "My customers"}
+            items={activeTab === "leads" ? leads : customers}
+            canEdit={can(activeTab === "leads" ? "edit_leads" : "edit_customers")}
+            isLeads={activeTab === "leads"}
+            onAdd={activeTab === "leads" && can("leads") ? () => setModal("lead") : undefined}
             onEdit={setEditContact}
             onQuickStage={quickStage}
             onOpen={(c) => setDetailId(c.id)}
           />
         )}
 
-        {tab === "orders" && can("orders") && (
+        {activeTab === "orders" && can("orders") && (
           <OrderList orders={orders} canEdit={can("edit_orders")} onAdd={() => setModal("order")} onChanged={loadAll} onPay={setPayOrder} />
         )}
 
-        {tab === "messages" && can("messaging") && <Messages />}
-        {tab === "attendance" && <TeamAttendance />}
-        {tab === "leave" && <TeamLeave />}
-        {tab === "myteam" && isManager && <TeamMyTeam />}
-        {tab === "salary" && <TeamSalary />}
-        {tab === "people" && <PeopleTab />}
-        {tab === "tasks" && can("tasks") && <Tasks contacts={[...leads, ...customers]} />}
-        {tab === "calendar" && can("calendar") && <CalendarView leads={leads} />}
-        {tab === "notes" && can("notes") && <Notes />}
-        {tab === "reports" && can("reports") && <Reports />}
-        {tab === "settings" && can("settings") && <Profile me={me} canExport={can("data_export")} onChangePassword={() => setPwModal(true)} onLogout={logout} />}
+        {activeTab === "messages" && can("messaging") && <Messages />}
+        {activeTab === "attendance" && <TeamAttendance />}
+        {activeTab === "leave" && <TeamLeave />}
+        {activeTab === "myteam" && isManager && <TeamMyTeam />}
+        {activeTab === "salary" && <TeamSalary />}
+        {activeTab === "people" && <PeopleTab />}
+        {activeTab === "tasks" && can("tasks") && <Tasks contacts={[...leads, ...customers]} />}
+        {activeTab === "calendar" && can("calendar") && <CalendarView leads={leads} />}
+        {activeTab === "notes" && can("notes") && <Notes />}
+        {activeTab === "reports" && can("reports") && <Reports />}
+        {activeTab === "settings" && can("settings") && <Profile me={me} canExport={can("data_export")} onChangePassword={() => setPwModal(true)} onLogout={logout} />}
       </div>
 
       {/* Bottom nav: up to 4 main tabs + More */}
       <nav className="dawn-bottom-nav fixed bottom-0 inset-x-0 flex items-center justify-around min-h-16 z-20">
         {mainTabs.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`flex flex-col items-center gap-0.5 flex-1 py-1 ${tab === t.id ? "text-amber-deep" : "text-navy/50"}`}>
+          <button key={t.id} onClick={() => setTab(t.id)} className={`flex flex-col items-center gap-0.5 flex-1 py-1 ${activeTab === t.id ? "text-amber-deep" : "text-navy/50"}`}>
             <t.icon className="w-5 h-5" /><span className="text-[12px] font-medium">{t.label}</span>
           </button>
         ))}
         {moreTabs.length > 0 && (
-          <button onClick={() => setMoreOpen(true)} className={`flex flex-col items-center gap-0.5 flex-1 py-1 ${moreTabs.some((t) => t.id === tab) ? "text-amber-deep" : "text-navy/50"}`}>
+          <button onClick={() => setMoreOpen(true)} className={`flex flex-col items-center gap-0.5 flex-1 py-1 ${moreTabs.some((t) => t.id === activeTab) ? "text-amber-deep" : "text-navy/50"}`}>
             <MoreHorizontal className="w-5 h-5" /><span className="text-[12px] font-medium">More</span>
           </button>
         )}
@@ -260,7 +259,7 @@ export default function TeamDashboard() {
             <p className="t-label mb-3">Everything else</p>
             <div className="grid grid-cols-3 gap-3">
               {moreTabs.map((t) => (
-                <button key={t.id} onClick={() => { setTab(t.id); setMoreOpen(false); }} className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border ${tab === t.id ? "border-amber bg-amber/5 text-navy" : "border-navy-line text-navy/70"}`}>
+                <button key={t.id} onClick={() => { setTab(t.id); setMoreOpen(false); }} className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border ${activeTab === t.id ? "border-amber bg-amber/5 text-navy" : "border-navy-line text-navy/70"}`}>
                   <t.icon className="w-5 h-5" /><span className="text-xs font-medium">{t.label}</span>
                 </button>
               ))}

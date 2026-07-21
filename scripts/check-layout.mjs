@@ -142,6 +142,39 @@ console.log("\n[7] Icon-only controls have accessible names");
   else pass("every icon-only control has an accessible name");
 }
 
+// ---- 8. NO HOOKS AFTER AN EARLY RETURN --------------------------------------
+// React requires hooks to run in the same order on every render. A hook placed
+// after an `if (loading) return` never registers on the first pass, then
+// appears once data arrives — "rendered more hooks than during the previous
+// render", and the whole page white-screens.
+//
+// This shipped in V41 and took the employee portal down. It compiled cleanly,
+// passed every test, and broke no route: exactly the class of failure these
+// checks exist for.
+console.log("\n[8] No hooks placed after an early return");
+{
+  let bad = 0;
+  for (const f of files) {
+    const lines = read(f).split("\n");
+    let depth = 0, guardLine = -1, fnStart = -1;
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i];
+      if (/^(export )?(default )?function [A-Z]/.test(l)) { fnStart = i; guardLine = -1; }
+      // a bare `return null` / `return <…>` at function top level
+      if (fnStart >= 0 && guardLine < 0 && /^\s{2}if \([^)]*\) return /.test(l)) guardLine = i;
+      if (guardLine >= 0 && /^\s{2}const .*= (useState|useEffect|useMemo|useRef|useCallback)\(/.test(l)) {
+        fail(`${f}:${i + 1} hook after an early return — it won't run on every render`);
+        bad++; guardLine = -1;
+      }
+      if (guardLine >= 0 && /^\s{2}(useEffect|useMemo|useCallback)\(/.test(l)) {
+        fail(`${f}:${i + 1} hook after an early return — it won't run on every render`);
+        bad++; guardLine = -1;
+      }
+    }
+  }
+  if (bad === 0) pass("every hook runs unconditionally");
+}
+
 console.log("\n================================================");
 console.log(failures === 0 ? `  ${GREEN}*** LAYOUT CHECKS PASS ***${RESET}` : `  ${RED}*** ${failures} LAYOUT FAILURE(S) ***${RESET}`);
 console.log("================================================\n");
