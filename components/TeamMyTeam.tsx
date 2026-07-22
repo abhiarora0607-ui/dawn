@@ -6,7 +6,8 @@
 // an empty section wondering what it's for. Approvals sit here rather than in
 // a separate queue: the decision belongs next to the person it's about.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useApi } from "@/lib/use-api";
 import {
   Loader2, Phone, Mail, Check, X, AlertTriangle, Inbox, Users,
 } from "lucide-react";
@@ -17,14 +18,26 @@ const PRESENCE: Record<string, string> = {
   "No record yet": "pill-grey",
 };
 
+function ApiError({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <div className="dawn-card p-6 text-center">
+      <p className="font-semibold text-navy text-sm">Couldn&apos;t load this</p>
+      <p className="t-small text-muted mt-1">{error}</p>
+      <button onClick={onRetry} className="btn btn-quiet btn-sm mt-3">Try again</button>
+    </div>
+  );
+}
+
 export function TeamMyTeam() {
-  const [d, setD] = useState<any>(null);
   const [view, setView] = useState<"people" | "requests">("people");
+  // Was: fetch().then(setD).catch(() => {}) — on a server error the response
+  // was {error}, `!d` was false, and it fell straight through to d.team.map(),
+  // white-screening the tab. The hook returns an error state instead.
+  const state = useApi<any>("/api/team/my-team");
 
-  function load() { fetch("/api/team/my-team").then((r) => r.json()).then(setD).catch(() => {}); }
-  useEffect(() => { load(); }, []);
-
-  if (!d) return <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (state.loading) return <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (state.error) return <ApiError error={state.error} onRetry={state.retry} />;
+  const d = state.data!;
 
   if (!d.isManager) {
     return (
@@ -55,7 +68,7 @@ export function TeamMyTeam() {
 
       {view === "people" ? (
         <div className="space-y-2">
-          {d.totals && <TeamTotals t={d.totals} canSeeSalary={d.canSeeSalary} month={d.month} />}
+          {state.data && d.totals && <TeamTotals t={d.totals} canSeeSalary={d.canSeeSalary} month={d.month} />}
           {d.team.map((p: any) => (
             <div key={p.id} className="dawn-card p-4">
               <div className="flex items-start justify-between gap-3">
@@ -100,7 +113,7 @@ export function TeamMyTeam() {
           ))}
         </div>
       ) : (
-        <Requests onChange={load} />
+        <Requests onChange={state.retry} />
       )}
     </div>
   );
@@ -109,16 +122,13 @@ export function TeamMyTeam() {
 /* ---------------------------------------------------------------- requests */
 
 function Requests({ onChange }: { onChange: () => void }) {
-  const [leave, setLeave] = useState<any>(null);
-  const [fixes, setFixes] = useState<any>(null);
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
 
-  function load() {
-    fetch("/api/leave?status=pending").then((r) => r.json()).then(setLeave).catch(() => {});
-    fetch("/api/attendance/requests?status=pending").then((r) => r.json()).then(setFixes).catch(() => {});
-  }
-  useEffect(() => { load(); }, []);
+  const leaveState = useApi<any>("/api/leave?status=pending");
+  const fixState = useApi<any>("/api/attendance/requests?status=pending");
+  const leave = leaveState.data, fixes = fixState.data;
+  function reload() { leaveState.retry(); fixState.retry(); }
 
   async function decide(kind: "leave" | "fix", id: string, action: "approve" | "reject") {
     setBusy(id); setMsg("");
@@ -129,11 +139,11 @@ function Requests({ onChange }: { onChange: () => void }) {
     });
     const out = await res.json();
     setBusy("");
-    if (out.ok) { load(); onChange(); setMsg(out.note || ""); }
+    if (out.ok) { reload(); onChange(); setMsg(out.note || ""); }
     else setMsg(out.error || "Couldn't do that");
   }
 
-  if (!leave || !fixes) return <div className="py-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-navy/30" /></div>;
+  if (leaveState.loading || fixState.loading) return <div className="py-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-navy/30" /></div>;
 
   const lr = leave.requests || [], fr = fixes.requests || [];
   if (lr.length === 0 && fr.length === 0) {

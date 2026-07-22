@@ -6,16 +6,19 @@
 // not an edit field. What this does is remove the need to ask "was I paid this
 // month?" — a question people are often uncomfortable raising.
 
-import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import { Loader2, Wallet, Calendar, TrendingUp } from "lucide-react";
 
 export function TeamSalary() {
-  const [d, setD] = useState<any>(null);
-
-  useEffect(() => { fetch("/api/team/salary").then((r) => r.json()).then(setD).catch(() => {}); }, []);
-
-  if (!d) return <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
-  if (d.error) return <p className="dawn-empty">{d.error}</p>;
+  const state = useApi<any>("/api/team/salary");
+  if (state.loading) return <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (state.error) return (
+    <div className="dawn-card p-6 text-center">
+      <p className="t-small text-muted">{state.error}</p>
+      <button onClick={state.retry} className="btn btn-quiet btn-sm mt-3">Try again</button>
+    </div>
+  );
+  const d = state.data!;
 
   const pending = (d.encashments || []).filter((e: any) => e.status === "approved" && !e.paidInMonth);
 

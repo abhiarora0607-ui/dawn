@@ -6,15 +6,13 @@
 // here is an owner believing they're acting as someone and being surprised
 // later. Nothing on this screen can change anything.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useApi } from "@/lib/use-api";
 import { Loader2, Eye, X, Phone, Mail, Wallet, CalendarClock } from "lucide-react";
 
 export function ViewAs({ employeeId, onClose }: { employeeId: string; onClose: () => void }) {
-  const [d, setD] = useState<any>(null);
-
-  useEffect(() => {
-    fetch(`/api/view-as?employeeId=${employeeId}`).then((r) => r.json()).then(setD).catch(() => {});
-  }, [employeeId]);
+  const state = useApi<any>(`/api/view-as?employeeId=${employeeId}`);
+  const d = state.data;
 
   return (
     <div className="dawn-scrim" onClick={onClose}>
@@ -32,11 +30,14 @@ export function ViewAs({ employeeId, onClose }: { employeeId: string; onClose: (
           <button onClick={onClose} className="btn-icon" aria-label="Close"><X className="w-5 h-5" /></button>
         </div>
 
-        {!d ? (
+        {state.loading ? (
           <div className="py-12 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-navy/30" /></div>
-        ) : d.error ? (
-          <p className="dawn-empty">{d.error}</p>
-        ) : (
+        ) : state.error ? (
+          <div className="text-center py-6">
+            <p className="t-small text-muted">{state.error}</p>
+            <button onClick={state.retry} className="btn btn-quiet btn-sm mt-3">Try again</button>
+          </div>
+        ) : d ? (
           <div className="space-y-4">
             <div className="dawn-card-inset p-3">
               <p className="t-small text-navy">
@@ -124,7 +125,7 @@ export function ViewAs({ employeeId, onClose }: { employeeId: string; onClose: (
               Opening this view is recorded in your audit log.
             </p>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
