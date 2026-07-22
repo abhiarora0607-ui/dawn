@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from "react";
 import { useApi } from "@/lib/use-api";
+import { BONUS_KINDS } from "@/lib/bonus";
 import type { PayrollResponse } from "@/lib/api-types";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
@@ -95,6 +96,11 @@ function Inner() {
                 Approve all {drafts}
               </button>
             )}
+            {d.canApprove && (
+              <button onClick={() => setBonusFor({})} className="btn btn-quiet">
+                <Gift className="w-4 h-4" /> Give bonus
+              </button>
+            )}
           </div>
         </div>
 
@@ -125,6 +131,10 @@ function Inner() {
       {editing && (
         <EditLinesSheet slip={editing} onClose={() => setEditing(null)}
           onDone={() => { setEditing(null); load(); }} />
+      )}
+      {bonusFor && (
+        <GiveBonusSheet onClose={() => setBonusFor(null)}
+          onDone={() => { setBonusFor(null); load(); }} />
       )}
 
       {/* Payslips */}
@@ -381,6 +391,95 @@ function EditLinesSheet({ slip, onClose, onDone }: { slip: any; onClose: () => v
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add"}
           </button>
           <button onClick={onClose} className="btn btn-quiet btn-sm flex-1">Done</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Giving a bonus, admin/finance side.
+ *
+ * The kind picker forks the form: cash kinds ask for an amount and ride the
+ * next payslip; a gift of leave asks for days and adds earned leave instead —
+ * it never becomes a cash line. The one entry point keeps both in one place,
+ * so "reward this person" isn't split across two screens.
+ */
+function GiveBonusSheet({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const { toast } = useToast();
+  const emps = useApi<any>("/api/employees");
+  const [employeeId, setEmployeeId] = useState("");
+  const [kind, setKind] = useState<string>("cash");
+  const [amount, setAmount] = useState("");
+  const [days, setDays] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const def = BONUS_KINDS.find((k) => k.id === kind);
+  const isLeave = kind === "leave_gift";
+  const people = (emps.data?.employees || emps.data?.rows || []).filter((e: any) => e.status !== "inactive" && !e.is_owner);
+
+  async function submit() {
+    setBusy(true);
+    const body: any = { action: "create", employeeId, kind, reason };
+    if (isLeave) body.days = Number(days);
+    else body.amount = Number(amount);
+    const res = await fetch("/api/bonus", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const out = await res.json();
+    setBusy(false);
+    if (out.ok) { toast(out.note || "Done"); onDone(); }
+    else toast(out.error || "Couldn't do that", "error");
+  }
+
+  const ready = employeeId && (isLeave ? Number(days) > 0 : Number(amount) > 0);
+
+  return (
+    <div className="dawn-scrim z-50" onClick={onClose}>
+      <div className="dawn-sheet" onClick={(e) => e.stopPropagation()}>
+        <p className="font-semibold text-navy">Give a bonus</p>
+        <p className="t-small text-muted mt-1">Cash bonuses ride the next payslip. A gift of leave adds earned-leave days instead.</p>
+
+        <label className="t-label block mt-3 mb-1">Who</label>
+        <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="inp">
+          <option value="">Choose someone…</option>
+          {people.map((e: any) => <option key={e.id} value={e.id}>{e.name}</option>)}
+        </select>
+
+        <label className="t-label block mt-3 mb-1">Type</label>
+        <div className="grid grid-cols-2 gap-2">
+          {BONUS_KINDS.map((k) => (
+            <button key={k.id} onClick={() => setKind(k.id)}
+              className={`text-left p-2.5 rounded-xl border transition ${kind === k.id ? "border-amber bg-amber/5" : "border-navy-line hover:border-navy/20"}`}>
+              <p className="t-small font-medium text-navy">{k.label}</p>
+              <p className="t-micro text-muted mt-0.5">{k.hint}</p>
+            </button>
+          ))}
+        </div>
+
+        {isLeave ? (
+          <>
+            <label className="t-label block mt-3 mb-1">Days of leave</label>
+            <input type="number" min="0" step="0.5" value={days} onChange={(e) => setDays(e.target.value)} className="inp" placeholder="2" />
+          </>
+        ) : (
+          <>
+            <label className="t-label block mt-3 mb-1">Amount</label>
+            <input type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} className="inp" placeholder="5000" />
+          </>
+        )}
+
+        <label className="t-label block mt-3 mb-1">Reason {def ? `(${def.label})` : ""}</label>
+        <input value={reason} onChange={(e) => setReason(e.target.value)} className="inp"
+          placeholder={isLeave ? "Extra days off for the festival" : "Great quarter"} />
+
+        <div className="flex gap-2 mt-4">
+          <button onClick={submit} disabled={busy || !ready} className="btn btn-primary btn-sm flex-1">
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : (isLeave ? "Add leave" : "Add bonus")}
+          </button>
+          <button onClick={onClose} disabled={busy} className="btn btn-quiet btn-sm flex-1">Cancel</button>
         </div>
       </div>
     </div>

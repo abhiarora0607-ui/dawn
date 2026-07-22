@@ -80,15 +80,24 @@ t.push(["earlier joiner is full pay", String(earlier.totals.net), "18000"]);
 // bonuses and encashment ride the same slip
 const combined = P.buildPayslip({
   employeeName: "Priya", monthlySalary: 18000,
-  bonuses: [{ id: "b1", amount: 5000, reason: "Diwali" }],
+  bonuses: [{ id: "b1", amount: 5000, reason: "Diwali", kind: "gift" }],
   encashments: [{ id: "e1", days: 2, amount: 1200, label: "Earned Leave" }],
   joiningDate: "2020-01-01", month: "2026-07",
 });
 t.push(["everything on one slip", String(combined.lines.length), "3"]);
 t.push(["combined net", String(combined.totals.net), "24200"]);
-t.push(["bonus reason surfaces", String(combined.lines[1].label), "Bonus — Diwali"]);
+// V49: a bonus line names its kind, so a gift reads differently from plain cash.
+t.push(["gift bonus label names the kind", String(combined.lines[1].label), "Gift / festival — Diwali"]);
 t.push(["encashment reads plainly", String(combined.lines[2].label), "2 days of Earned Leave encashed"]);
 t.push(["line keeps its source", String(combined.lines[1].sourceId), "b1"]);
+
+// a bonus with no kind falls back to cash labelling (old rows stay valid)
+const cashSlip = P.buildPayslip({
+  employeeName: "X", monthlySalary: 10000,
+  bonuses: [{ id: "b2", amount: 1000, reason: "Spot award" }],
+  encashments: [], joiningDate: "2020-01-01", month: "2026-07",
+});
+t.push(["untyped bonus labels as cash", String(cashSlip.lines[1].label), "Cash bonus — Spot award"]);
 
 // ---- expense note ----
 t.push(["note names the month", P.expenseNoteFor("Priya", "2026-07", { base: 18000, additions: 0 }), "Salary — Priya, July 2026"]);

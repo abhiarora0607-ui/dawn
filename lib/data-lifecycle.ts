@@ -49,8 +49,10 @@ export const OWNED_TABLES: OwnedTable[] = [
   { table: "remote_grants", via: "child", label: "Remote-work grants" },
   { table: "leave_requests", via: "child", label: "Leave requests" },
   { table: "leave_balances", via: "child", label: "Leave balances" },
+  { table: "leave_grants", via: "child", label: "Leave grants" },
   { table: "encashment_requests", via: "child", label: "Encashment requests" },
   { table: "bonus_requests", via: "child", label: "Bonus requests" },
+  { table: "salary_change_requests", via: "child", label: "Salary change requests" },
   { table: "payslips", via: "child", label: "Payslips" },
   { table: "employee_accounts", via: "child", label: "Portal logins" },
   // Owned, not assigned: a salary row outliving its employee would keep

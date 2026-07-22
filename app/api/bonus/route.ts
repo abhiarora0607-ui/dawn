@@ -1,4 +1,5 @@
 // app/api/bonus/route.ts
+import { isBonusKind } from "@/lib/bonus";
 // Bonuses: a manager proposes, an admin approves, a payslip pays.
 //
 // The split matters. A lead who could award money directly is a lead who could
@@ -81,33 +82,69 @@ export async function POST(req: Request) {
     // ---- propose ----
     if (!b.action || b.action === "create") {
       const employeeId = String(b.employeeId || "");
-      const amount = Number(b.amount || 0);
-      if (!employeeId || amount <= 0) return NextResponse.json({ error: "Who's it for, and how much?" }, { status: 400 });
+      const kind = String(b.kind || "cash");
+      if (!isBonusKind(kind)) return NextResponse.json({ error: "Unknown bonus type." }, { status: 400 });
 
-      // You may only propose for your own people.
+      // You may only give to your own people, never yourself — for every kind.
       if (!org.isAdmin && !org.myTeam.includes(employeeId)) {
-        return NextResponse.json({ error: "You can only propose a bonus for someone on your team." }, { status: 403 });
+        return NextResponse.json({ error: "You can only give a bonus to someone on your team." }, { status: 403 });
       }
       if (!org.isAdmin && !permissions.includes("bonus_request") && org.myTeam.length === 0) {
-        return NextResponse.json({ error: "You don't have permission to propose bonuses." }, { status: 403 });
+        return NextResponse.json({ error: "You don't have permission to give bonuses." }, { status: 403 });
       }
-      // Proposing for yourself is the one case that has to be blocked outright.
       if (employeeId === meId) {
-        return NextResponse.json({ error: "You can't propose a bonus for yourself." }, { status: 403 });
+        return NextResponse.json({ error: "You can't give a bonus to yourself." }, { status: 403 });
       }
+
+      // ---- leave gift: not cash. It grants earned leave and never touches a
+      // payslip. Only an admin can give leave, matching the grant rule. ----
+      if (kind === "leave_gift") {
+        if (!org.isAdmin) {
+          return NextResponse.json({ error: "Only an admin can gift leave." }, { status: 403 });
+        }
+        const days = Number(b.days || 0);
+        if (!(days > 0)) return NextResponse.json({ error: "How many days of leave?" }, { status: 400 });
+        if (days > 365) return NextResponse.json({ error: "That's more than a year." }, { status: 400 });
+
+        const year = new Date().getFullYear();
+        const reason = String(b.reason || "").slice(0, 300) || "Gift of leave";
+        // Reuse the exact leave-grant path: bump the earned balance and log it.
+        const existing = await fetch(`${url}/rest/v1/leave_balances?uid=eq.${uid}&employee_id=eq.${employeeId}&code=eq.earned&year=eq.${year}&select=id,granted&limit=1`,
+          { headers: H(key), cache: "no-store" }).then((r) => r.json()).then((r) => r?.[0]).catch(() => null);
+        if (existing) {
+          await fetch(`${url}/rest/v1/leave_balances?uid=eq.${uid}&id=eq.${existing.id}`, {
+            method: "PATCH", headers: H(key, { Prefer: "return=minimal" }),
+            body: JSON.stringify({ granted: Number(existing.granted || 0) + days }),
+          });
+        } else {
+          await fetch(`${url}/rest/v1/leave_balances`, {
+            method: "POST", headers: H(key, { Prefer: "return=minimal" }),
+            body: JSON.stringify({ uid, employee_id: employeeId, code: "earned", year, accrued: 0, used: 0, carried_in: 0, granted: days }),
+          });
+        }
+        await fetch(`${url}/rest/v1/leave_grants`, {
+          method: "POST", headers: H(key, { Prefer: "return=minimal" }),
+          body: JSON.stringify({ uid, employee_id: employeeId, code: "earned", year, days, reason, granted_by: meId || "owner" }),
+        }).catch(() => {});
+        await audit({ uid, action: "bonus.leave_gift", entity: "leave_balances", entityId: employeeId, meta: { days } });
+        return NextResponse.json({ ok: true, note: `${days} ${days === 1 ? "day" : "days"} of leave added.` });
+      }
+
+      // ---- cash-bearing kinds: the original path, now tagged with kind. ----
+      const amount = Number(b.amount || 0);
+      if (!employeeId || amount <= 0) return NextResponse.json({ error: "Who's it for, and how much?" }, { status: 400 });
 
       await fetch(`${url}/rest/v1/bonus_requests`, {
         method: "POST", headers: H(key, { Prefer: "return=minimal" }),
         body: JSON.stringify({
-          uid, employee_id: employeeId, amount,
+          uid, employee_id: employeeId, amount, kind,
           reason: String(b.reason || "").slice(0, 300) || null,
           requested_by: meId, status: org.isAdmin ? "approved" : "pending",
-          // An admin proposing is the approval — there's nobody above them.
           decided_at: org.isAdmin ? new Date().toISOString() : null,
           decided_by: org.isAdmin ? (meId || "owner") : null,
         }),
       });
-      await audit({ uid, action: "bonus.create", entity: "bonus_requests", entityId: employeeId, meta: { amount, auto: org.isAdmin } });
+      await audit({ uid, action: "bonus.create", entity: "bonus_requests", entityId: employeeId, meta: { amount, kind, auto: org.isAdmin } });
       return NextResponse.json({
         ok: true,
         note: org.isAdmin

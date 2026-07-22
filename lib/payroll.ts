@@ -8,6 +8,7 @@
 //
 //   draft ──approve──> approved ──mark paid──> paid ──> expense row created
 //
+import { bonusLineLabel } from "@/lib/bonus";
 // Everything owed to a person in a month rides the same payslip — base, bonus,
 // encashment — because two salary rows for one person in one month reads as a
 // double payment to whoever is doing the paying.
@@ -94,7 +95,7 @@ export function isEditable(status: PayslipStatus): boolean {
 export function buildPayslip(opts: {
   employeeName: string;
   monthlySalary: number;
-  bonuses: { id: string; amount: number; reason?: string | null }[];
+  bonuses: { id: string; amount: number; reason?: string | null; kind?: string }[];
   encashments: { id: string; days: number; amount: number; label: string }[];
   joiningDate?: string | null;
   month: string;                       // "2026-07"
@@ -152,7 +153,7 @@ export function buildPayslip(opts: {
   }
 
   for (const b of opts.bonuses) {
-    lines.push({ kind: "bonus", label: b.reason ? `Bonus — ${b.reason}` : "Bonus", amount: Number(b.amount || 0), sourceId: b.id });
+    lines.push({ kind: "bonus", label: bonusLineLabel(b.kind || "cash", b.reason), amount: Number(b.amount || 0), sourceId: b.id });
   }
   for (const e of opts.encashments) {
     lines.push({

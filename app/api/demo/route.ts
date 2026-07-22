@@ -81,15 +81,36 @@ export async function POST(req: Request) {
   try {
     const ownerEmp = await ensureOwnerEmployee(url, key, uid);
 
-    // 1) EMPLOYEES (3)
+    // 1) EMPLOYEES (9) — a small business with real reporting depth so the
+    // approval-escalation and org views have something to show. The first three
+    // keep their ids and roles; six more add an admin, finance, a second lead,
+    // and more team members. Tree is wired below once ids exist.
     const emps = await insert(url, key, "employees", [
-      { uid, name: "Priya Sharma", role: "Sales", phone: "9876543210", email: "priya@example.com", status: "active", monthly_salary: 22000, joining_date: daysAgo(240), is_demo: true, shift_start: "09:30", shift_end: "18:30", weekly_offs: [0] },
-      { uid, name: "Rahul Verma", role: "Sales", phone: "9811122233", email: "rahul@example.com", status: "active", monthly_salary: 20000, joining_date: daysAgo(120), is_demo: true, shift_start: "10:00", shift_end: "19:00", weekly_offs: [0] },
-      { uid, name: "Neha Bhatt", role: "Support", phone: "9700011122", email: "neha@example.com", status: "active", monthly_salary: 18000, joining_date: daysAgo(60), is_demo: true, remote_permanent: true, weekly_offs: [0] },
+      { uid, name: "Priya Sharma", role: "Sales", phone: "9876543210", email: "priya@example.com", status: "active", monthly_salary: 28000, joining_date: daysAgo(300), is_demo: true, job_title: "Sales Lead", shift_start: "09:30", shift_end: "18:30", weekly_offs: [0] },
+      { uid, name: "Rahul Verma", role: "Sales", phone: "9811122233", email: "rahul@example.com", status: "active", monthly_salary: 20000, joining_date: daysAgo(200), is_demo: true, shift_start: "10:00", shift_end: "19:00", weekly_offs: [0] },
+      { uid, name: "Neha Bhatt", role: "Support", phone: "9700011122", email: "neha@example.com", status: "active", monthly_salary: 18000, joining_date: daysAgo(120), is_demo: true, remote_permanent: true, weekly_offs: [0] },
+      { uid, name: "Divya Nair", role: "Admin", phone: "9876500001", email: "divya@example.com", status: "active", monthly_salary: 45000, joining_date: daysAgo(400), is_demo: true, is_admin: true, job_title: "General Manager", shift_start: "09:30", shift_end: "18:30", weekly_offs: [0] },
+      { uid, name: "Karan Iyer", role: "Finance", phone: "9876500002", email: "karan.f@example.com", status: "active", monthly_salary: 38000, joining_date: daysAgo(360), is_demo: true, job_title: "Finance", shift_start: "09:30", shift_end: "18:30", weekly_offs: [0] },
+      { uid, name: "Vikram Singh", role: "Operations", phone: "9876500004", email: "vikram@example.com", status: "active", monthly_salary: 27000, joining_date: daysAgo(280), is_demo: true, job_title: "Operations Lead", shift_start: "09:00", shift_end: "18:00", weekly_offs: [0] },
+      { uid, name: "Sneha Kulkarni", role: "Sales", phone: "9876500006", email: "sneha.k@example.com", status: "active", monthly_salary: 19000, joining_date: daysAgo(150), is_demo: true, shift_start: "10:00", shift_end: "19:00", weekly_offs: [0] },
+      { uid, name: "Arjun Rao", role: "Operations", phone: "9876500008", email: "arjun.r@example.com", status: "active", monthly_salary: 17500, joining_date: daysAgo(90), is_demo: true, shift_start: "09:00", shift_end: "18:00", weekly_offs: [0] },
+      { uid, name: "Fatima Sheikh", role: "Support", phone: "9876500009", email: "fatima.s@example.com", status: "active", monthly_salary: 16000, joining_date: daysAgo(45), is_demo: true, weekly_offs: [0] },
     ], true);
     const priya = emps?.[0]?.id || ownerEmp;
     const rahul = emps?.[1]?.id || ownerEmp;
     const neha = emps?.[2]?.id || ownerEmp;
+    const divya = emps?.[3]?.id || ownerEmp;
+    const karan = emps?.[4]?.id || ownerEmp;
+    const vikram = emps?.[5]?.id || ownerEmp;
+    const sneha = emps?.[6]?.id || ownerEmp;
+    const arjun = emps?.[7]?.id || ownerEmp;
+    const fatima = emps?.[8]?.id || ownerEmp;
+    // All nine, for the history loops below.
+    const allStaff = [priya, rahul, neha, divya, karan, vikram, sneha, arjun, fatima];
+    const salaryOf: Record<string, number> = {
+      [priya]: 28000, [rahul]: 20000, [neha]: 18000, [divya]: 45000, [karan]: 38000,
+      [vikram]: 27000, [sneha]: 19000, [arjun]: 17500, [fatima]: 16000,
+    };
 
     // 2) PRICE LIST (5)
     const items = await insert(url, key, "catalog_items", [
@@ -197,16 +218,25 @@ export async function POST(req: Request) {
         { id: priya, inT: "09:32", outT: "18:35" },
         { id: rahul, inT: "10:14", outT: "19:05" },
         { id: neha, inT: "09:58", outT: "18:40" },
+        { id: divya, inT: "09:28", outT: "18:45" },
+        { id: karan, inT: "09:35", outT: "18:38" },
+        { id: vikram, inT: "09:02", outT: "18:10" },
+        { id: sneha, inT: "10:05", outT: "19:02" },
+        { id: arjun, inT: "09:06", outT: "18:12" },
+        { id: fatima, inT: "09:50", outT: "18:30" },
       ];
       const logs: any[] = [];
-      for (let d = 1; d <= 21; d++) {
+      // Six weeks back, so attendance shows a real stretch, not a fortnight.
+      for (let d = 1; d <= 42; d++) {
         const date = dayOf(d);
         if (new Date(`${date}T00:00:00Z`).getUTCDay() === 0) continue;      // Sunday off
         people.forEach((p, idx) => {
           if (!p.id) return;
+          // A scattering of realistic anomalies rather than a perfect grid.
           if (d === 4 && idx === 1) return;                                  // Rahul absent once
-          const late = d === 7 && idx === 0;                                 // Priya late once
-          const short = d === 11 && idx === 2;                               // Neha half day
+          if (d === 25 && idx === 6) return;                                 // Sneha absent once
+          const late = (d === 7 && idx === 0) || (d === 30 && idx === 4);     // a couple of late days
+          const short = (d === 11 && idx === 2) || (d === 33 && idx === 8);   // a couple of half days
           const forgot = d === 9 && idx === 1;                               // Rahul forgot to punch out
           const offsite = d === 6 && idx === 0;                              // Priya punched off-site
           logs.push({
@@ -239,82 +269,148 @@ export async function POST(req: Request) {
     // nothing to illustrate.
     // ------------------------------------------------------------------
     try {
-      // Departments — enough to make the org page meaningful, few enough to
-      // stay believable for a small business.
+      // Departments — Sales, Operations, and Finance, headed by their leads.
       const depts = await insert(url, key, "departments", [
         { uid, name: "Sales", head_employee_id: priya, sort_order: 0, is_demo: true },
-        { uid, name: "Operations", head_employee_id: null, sort_order: 1, is_demo: true },
+        { uid, name: "Operations", head_employee_id: vikram, sort_order: 1, is_demo: true },
+        { uid, name: "Finance", head_employee_id: karan, sort_order: 2, is_demo: true },
       ], true);
       const salesDept = depts?.[0]?.id || null;
       const opsDept = depts?.[1]?.id || null;
+      const finDept = depts?.[2]?.id || null;
 
-      // A shape with actual depth: Priya leads Sales with Rahul under her,
-      // Neha sits in Operations reporting to the owner. That's the smallest
-      // arrangement where "a lead sees their team" means anything.
-      await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&id=eq.${priya}`, {
-        method: "PATCH", headers: H(key),
-        body: JSON.stringify({ reports_to: ownerEmp, department_id: salesDept, job_title: "Sales Lead" }),
-      }).catch(() => {});
-      await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&id=eq.${rahul}`, {
-        method: "PATCH", headers: H(key),
-        body: JSON.stringify({ reports_to: priya, department_id: salesDept, job_title: "Sales Executive" }),
-      }).catch(() => {});
-      await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&id=eq.${neha}`, {
-        method: "PATCH", headers: H(key),
-        body: JSON.stringify({ reports_to: ownerEmp, department_id: opsDept, job_title: "Support Executive" }),
-      }).catch(() => {});
+      // The tree, with real depth:
+      //   Divya (admin, top) → Karan (finance), Priya (Sales lead), Vikram (Ops lead)
+      //   Priya → Rahul, Sneha        Vikram → Neha, Arjun, Farah
+      // This is the smallest arrangement where a request can escalate PAST a
+      // lead who lacks a permission and land on the admin — the V48b flow.
+      const orgPlan: [string, string | null, string | null, string][] = [
+        [divya, ownerEmp, null, "General Manager"],
+        [karan, divya, finDept, "Finance"],
+        [priya, divya, salesDept, "Sales Lead"],
+        [vikram, divya, opsDept, "Operations Lead"],
+        [rahul, priya, salesDept, "Sales Executive"],
+        [sneha, priya, salesDept, "Sales Executive"],
+        [neha, vikram, opsDept, "Support Executive"],
+        [arjun, vikram, opsDept, "Operations Executive"],
+        [fatima, vikram, opsDept, "Support Executive"],
+      ];
+      for (const [id, boss, dept, title] of orgPlan) {
+        await fetch(`${url}/rest/v1/employees?uid=eq.${uid}&id=eq.${id}`, {
+          method: "PATCH", headers: H(key),
+          body: JSON.stringify({ reports_to: boss, department_id: dept, job_title: title }),
+        }).catch(() => {});
+      }
 
-      // Portal logins with DIFFERENT roles, so the permission system is
-      // visible rather than theoretical. Priya manages, Rahul sells, Neha
-      // has the minimum.
+      // Portal logins with DIFFERENT roles, so the permission system and the
+      // approval escalation are visible rather than theoretical. Divya
+      // administers, Karan holds finance, the two leads manage their teams,
+      // the rest have role-appropriate minimums.
       const { permissionsForRole } = await import("@/lib/roles");
       await insert(url, key, "employee_accounts", [
+        { uid, employee_id: divya, login_id: "divya", password_hash: null, active: false,
+          permissions: permissionsForRole("administrator"), is_demo: true },
+        { uid, employee_id: karan, login_id: "karan", password_hash: null, active: false,
+          permissions: permissionsForRole("finance_manager"), is_demo: true },
         { uid, employee_id: priya, login_id: "priya", password_hash: null, active: false,
+          permissions: permissionsForRole("manager"), is_demo: true },
+        { uid, employee_id: vikram, login_id: "vikram", password_hash: null, active: false,
           permissions: permissionsForRole("manager"), is_demo: true },
         { uid, employee_id: rahul, login_id: "rahul", password_hash: null, active: false,
           permissions: permissionsForRole("sales_rep"), is_demo: true },
+        { uid, employee_id: sneha, login_id: "sneha", password_hash: null, active: false,
+          permissions: permissionsForRole("sales_rep"), is_demo: true },
         { uid, employee_id: neha, login_id: "neha", password_hash: null, active: false,
+          permissions: permissionsForRole("support_staff"), is_demo: true },
+        { uid, employee_id: arjun, login_id: "arjun", password_hash: null, active: false,
+          permissions: permissionsForRole("support_staff"), is_demo: true },
+        { uid, employee_id: fatima, login_id: "fatima", password_hash: null, active: false,
           permissions: permissionsForRole("support_staff"), is_demo: true },
       ], false);
 
       // Last month's payroll, in mixed states — a draft to approve, an
       // approved one to pay, and one already paid. A payroll screen with
       // nothing on it demonstrates nothing.
-      const lastMonth = (() => {
-        const d = new Date(); d.setMonth(d.getMonth() - 1);
+      // 6 MONTHS of payslip history, so payroll shows a real track record, not
+      // a single month. Older months are paid, the two most recent are approved
+      // and draft — so there's something to pay and something to draft/check.
+      const monthKey = (back: number) => {
+        const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - back);
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      })();
-      const slips = await insert(url, key, "payslips", [
-        { uid, employee_id: priya, month: lastMonth, status: "paid",
-          base_amount: 22000, additions: 0, deductions: 0, net_amount: 22000,
-          paid_at: new Date().toISOString() },
-        { uid, employee_id: rahul, month: lastMonth, status: "approved",
-          base_amount: 20000, additions: 2000, deductions: 0, net_amount: 22000 },
-        { uid, employee_id: neha, month: lastMonth, status: "draft",
-          base_amount: 18000, additions: 0, deductions: 0, net_amount: 18000 },
-      ], true);
+      };
+      // back=1 is last month (draft-able), 2 approved, 3..6 paid.
+      const statusForAge = (back: number): string =>
+        back === 1 ? "draft" : back === 2 ? "approved" : "paid";
+
+      const historySlips: any[] = [];
+      for (let back = 6; back >= 1; back--) {
+        const month = monthKey(back);
+        const status = statusForAge(back);
+        for (const id of allStaff) {
+          const base = salaryOf[id] || 18000;
+          // A little variation so the history isn't flat: an occasional bonus
+          // month for a couple of people.
+          const hasBonus = (back % 3 === 0) && (id === priya || id === rahul);
+          const additions = hasBonus ? 2500 : 0;
+          historySlips.push({
+            uid, employee_id: id, month, status,
+            base_amount: base, additions, deductions: 0, net_amount: base + additions,
+            paid_at: status === "paid" ? new Date().toISOString() : null,
+            _bonus: additions,   // stripped before insert; used to build lines
+          });
+        }
+      }
+      // Insert payslips (without the helper field), then their lines.
+      const slips = await insert(url, key, "payslips",
+        historySlips.map(({ _bonus, ...s }) => s), true);
       if (Array.isArray(slips)) {
         const lines: any[] = [];
-        for (const sl of slips) {
+        for (let i = 0; i < slips.length; i++) {
+          const sl = slips[i];
+          const meta = historySlips[i];
           lines.push({ uid, payslip_id: sl.id, kind: "base", label: "Monthly salary", amount: sl.base_amount });
-          if (Number(sl.additions) > 0) {
-            lines.push({ uid, payslip_id: sl.id, kind: "bonus", label: "Bonus — good quarter", amount: sl.additions });
+          if (meta && Number(meta._bonus) > 0) {
+            lines.push({ uid, payslip_id: sl.id, kind: "bonus", label: "Performance bonus — strong month", amount: meta._bonus });
           }
         }
         if (lines.length) await insert(url, key, "payslip_lines", lines, false);
       }
 
-      // A bonus waiting on approval, so the approve/reject path has something
-      // in it.
+      // BONUSES of the new kinds, so the feature is visible working:
+      //   · an approved gift bonus that will ride the next payslip
+      //   · a pending performance bonus a lead proposed, for admin to approve
+      //   · a leave gift already granted (shows as earned-leave balance below)
       await insert(url, key, "bonus_requests", [
-        { uid, employee_id: rahul, amount: 3000, reason: "Closed the Meera Joshi subscription",
+        { uid, employee_id: sneha, amount: 2000, kind: "gift", reason: "Diwali gift",
+          status: "approved", requested_by: divya, decided_by: divya, decided_at: new Date().toISOString() },
+        { uid, employee_id: rahul, amount: 3000, kind: "performance", reason: "Closed the Meera Joshi subscription",
           status: "pending", requested_by: priya },
       ], false);
 
-      // Leave: one approved in the past, one pending for a lead to decide.
+      // The leave gift: 2 earned-leave days granted to Neha, through the same
+      // grant path the bonus route uses. Recorded in leave_grants and reflected
+      // in her balance.
+      const thisYear = new Date().getFullYear();
+      await insert(url, key, "leave_balances", [
+        { uid, employee_id: neha, code: "earned", year: thisYear, accrued: 8, used: 2, carried_in: 0, granted: 2 },
+        { uid, employee_id: priya, code: "earned", year: thisYear, accrued: 12, used: 3, carried_in: 2, granted: 0 },
+        { uid, employee_id: rahul, code: "casual", year: thisYear, accrued: 9, used: 4, carried_in: 0, granted: 0 },
+      ], false);
+      await insert(url, key, "leave_grants", [
+        { uid, employee_id: neha, code: "earned", year: thisYear, days: 2, reason: "Gift of leave — great support scores", granted_by: divya },
+      ], false);
+
+      // LEAVE history: a spread across people and time — approved in the past,
+      // one pending for a lead to decide, one upcoming.
       await insert(url, key, "leave_requests", [
-        { uid, employee_id: neha, code: "casual", from_date: daysAgo(9), to_date: daysAgo(9),
+        { uid, employee_id: neha, code: "casual", from_date: daysAgo(40), to_date: daysAgo(40),
           days: 1, reason: "Family function", status: "approved" },
+        { uid, employee_id: rahul, code: "earned", from_date: daysAgo(20), to_date: daysAgo(18),
+          days: 3, reason: "Short trip", status: "approved" },
+        { uid, employee_id: sneha, code: "sick", from_date: daysAgo(6), to_date: daysAgo(6),
+          days: 1, reason: "Fever", status: "approved" },
+        { uid, employee_id: arjun, code: "casual", from_date: daysAhead(5), to_date: daysAhead(5),
+          days: 1, reason: "Personal work", status: "pending" },
         { uid, employee_id: rahul, code: "sick", from_date: daysAhead(3), to_date: daysAhead(4),
           days: 2, reason: "Minor surgery, doctor advised rest", status: "pending" },
       ], false);

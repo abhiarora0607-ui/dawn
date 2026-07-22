@@ -37,6 +37,10 @@ t.push(["employees are demo-taggable", String(L.DEMO_TAGGED.includes("employees"
 // left behind because departments wasn't demo-tagged, so add/clear cycles piled
 // up duplicate departments.
 t.push(["departments are demo-taggable", String(L.DEMO_TAGGED.includes("departments")), "true"]);
+// V49: leave_grants were orphaned on demo-clear — not in the map at all. A
+// gift of leave (or any grant) must be reachable by employee_id like other
+// employee-owned records.
+t.push(["leave_grants are cleaned by employee", String(L.EMPLOYEE_CHILD_TABLES.includes("leave_grants")), "true"]);
 // the important safety property: clearing demo must not delete untagged business rows
 const untaggedOwn = L.OWNED_TABLES.filter((x) => x.via === "own" && !x.demoTagged);
 t.push(["untagged tables are skipped in demo mode", String(untaggedOwn.every((x) => !L.shouldDelete("demo", x))), "true"]);

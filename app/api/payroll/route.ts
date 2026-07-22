@@ -156,7 +156,7 @@ export async function POST(req: Request) {
       // in two queries, indexed by employee — instead of two queries per person.
       // At fifty employees this replaces a hundred round-trips with two.
       const [allBonuses, allEncash] = await Promise.all([
-        fetch(`${url}/rest/v1/bonus_requests?uid=eq.${uid}&status=eq.approved&paid_in_month=is.null&select=id,employee_id,amount,reason`,
+        fetch(`${url}/rest/v1/bonus_requests?uid=eq.${uid}&status=eq.approved&paid_in_month=is.null&select=id,employee_id,amount,reason,kind`,
           { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
         fetch(`${url}/rest/v1/encashment_requests?uid=eq.${uid}&status=eq.approved&paid_in_month=is.null&select=id,employee_id,days,amount,code`,
           { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
@@ -196,7 +196,7 @@ export async function POST(req: Request) {
           commission: comm.amount > 0
             ? { amount: comm.amount, label: commissionLabel(comm, e.commission_basis === "team" ? "team" : "own") }
             : null,
-          bonuses: (Array.isArray(bonuses) ? bonuses : []).map((x: any) => ({ id: x.id, amount: Number(x.amount || 0), reason: x.reason })),
+          bonuses: (Array.isArray(bonuses) ? bonuses : []).map((x: any) => ({ id: x.id, amount: Number(x.amount || 0), reason: x.reason, kind: x.kind })),
           encashments: (Array.isArray(encash) ? encash : []).map((x: any) => ({
             id: x.id, days: Number(x.days || 0), amount: Number(x.amount || 0), label: LEAVE_LABEL[x.code] || x.code,
           })),
