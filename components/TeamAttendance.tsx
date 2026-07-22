@@ -9,6 +9,7 @@
 // a permissions dialog into a pay dispute.
 
 import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import {
   Loader2, LogIn, LogOut, Clock, AlertTriangle, MapPin,
   CalendarClock, Plus, X, Check, History,
@@ -16,17 +17,14 @@ import {
 import { fmtDuration, minutesToLabel, istMinutes, CLASS_LABEL, istDate } from "@/lib/attendance";
 
 export function TeamAttendance() {
-  const [d, setD] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ text: string; tone: "ok" | "warn" | "err" } | null>(null);
   const [blockedHelp, setBlockedHelp] = useState(false);
   const [view, setView] = useState<"today" | "history" | "fix">("today");
   const [tick, setTick] = useState(0);
-
-  function load() {
-    fetch("/api/team/attendance").then((r) => r.json()).then(setD).catch(() => {});
-  }
-  useEffect(() => { load(); }, []);
+  const state = useApi<any>("/api/team/attendance");
+  const d = state.data;
+  function load() { state.retry(); }
   // Keep the running shift timer honest.
   useEffect(() => {
     const t = setInterval(() => setTick((n) => n + 1), 30000);
@@ -85,8 +83,9 @@ export function TeamAttendance() {
     load();
   }
 
-  if (!d) return <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
-  if (d.error) return <p className="dawn-empty">{d.error}</p>;
+  if (state.loading) return <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (state.error) return <div className="dawn-card p-6 text-center"><p className="t-small text-muted">{state.error}</p><button onClick={state.retry} className="btn btn-quiet btn-sm mt-3">Try again</button></div>;
+  if (!d) return null;
   if (d.exempt) return <p className="dawn-empty">You&apos;re not required to mark attendance.</p>;
   if (!d.enabled) return <p className="dawn-empty">Attendance isn&apos;t switched on for this business yet.</p>;
 

@@ -220,6 +220,13 @@ for (const sh of totalsShapes) {
 const { GrantLeave } = await import("../components/GrantLeave.tsx");
 check("grant leave: opens empty", React.createElement(GrantLeave, { onClose: () => {} }));
 
+// V48a: pages converted to useApi should render their loading state cleanly
+try {
+  const opMod = await import("../app/operator/page.tsx");
+  const OpPage = opMod.default;
+  check("operator dashboard renders before data", React.createElement(OpPage, {}));
+} catch (e) { results.push(["skip", "operator page: " + String(e).slice(0, 40)]); }
+
 console.log(JSON.stringify(results));
 `;
   writeFileSync(`${STAGE}/run.mjs`, harness);

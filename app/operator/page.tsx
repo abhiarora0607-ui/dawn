@@ -6,6 +6,7 @@
 // reason in plain words, and one action.
 
 import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import Link from "next/link";
 import { OperatorGate } from "@/components/OperatorGate";
 import { Hero, HealthPill, PlanPill, Empty } from "@/components/OperatorTabs";
@@ -22,14 +23,13 @@ const URGENCY: Record<string, { label: string; cls: string }> = {
 };
 
 function Today() {
-  const [d, setD] = useState<any>(null);
+  const state = useApi<any>("/api/operator/overview");
+  const d = state.data;
   const [done, setDone] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    fetch("/api/operator/overview").then((r) => r.json()).then(setD).catch(() => {});
-  }, []);
-
-  if (!d) return <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (state.loading) return <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (state.error) return <div className="dawn-card p-6 text-center max-w-sm mx-auto my-8"><p className="t-small text-muted">{state.error}</p><button onClick={state.retry} className="btn btn-quiet btn-sm mt-3">Try again</button></div>;
+  if (!d) return null;
 
   const work = (d.worklist || []).filter((w: any) => !done[w.uid]);
   const nowCount = work.filter((w: any) => w.urgency === "now").length;

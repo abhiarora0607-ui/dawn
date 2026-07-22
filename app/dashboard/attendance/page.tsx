@@ -9,6 +9,7 @@
 //   Setup    — where's the shop, how long is a day, when are the holidays?
 
 import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import Link from "next/link";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
@@ -75,13 +76,23 @@ function Inner() {
   );
 }
 
+function ErrCard({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <div className="dawn-card p-6 text-center my-4">
+      <p className="font-semibold text-navy text-sm">Couldn&apos;t load this</p>
+      <p className="t-small text-muted mt-1">{error}</p>
+      <button onClick={onRetry} className="btn btn-quiet btn-sm mt-3">Try again</button>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ TODAY */
 
 function TodayTab() {
-  const [d, setD] = useState<any>(null);
-  useEffect(() => { fetch("/api/attendance?view=today").then((r) => r.json()).then(setD).catch(() => {}); }, []);
-  if (!d) return <Loading />;
-  if (d.error) return <p className="text-muted text-sm py-8">{d.error}</p>;
+  const state = useApi<any>("/api/attendance?view=today");
+  if (state.loading) return <Loading />;
+  if (state.error) return <ErrCard error={state.error} onRetry={state.retry} />;
+  const d = state.data!;
 
   const s = d.summary || {};
   const line = d.holidayName
@@ -144,14 +155,11 @@ function TodayTab() {
 
 function MonthTab() {
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
-  const [d, setD] = useState<any>(null);
-
-  useEffect(() => {
-    setD(null);
-    fetch(`/api/attendance?view=month&month=${month}`).then((r) => r.json()).then(setD).catch(() => {});
-  }, [month]);
+  const state = useApi<any>(`/api/attendance?view=month&month=${month}`, [month]);
 
   function exportCsv() {
+    const d = state.data;
+    if (!d) return;
     const head = ["Employee", "Present days", "Half days", "Absent", "Leave", "Off", "Hours"];
     const rows = d.grid.map((g: any) => [g.name, g.totals.presentDays, g.totals.halfDays, g.totals.absentDays, g.totals.leaveDays, g.totals.offDays, (g.totals.workedMinutes / 60).toFixed(1)]);
     const csv = [head, ...rows].map((r: any[]) => r.map((c: any) => `"${String(c ?? "")}"`).join(",")).join("\n");
@@ -164,10 +172,10 @@ function MonthTab() {
     <>
       <div className="flex items-center gap-2 flex-wrap">
         <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="inp w-44" />
-        {d?.grid?.length > 0 && <button onClick={exportCsv} className="text-sm font-medium text-navy/60 hover:text-navy border border-navy-line px-3 py-2 rounded-xl">Export CSV</button>}
+        {(state.data as any)?.grid?.length > 0 && <button onClick={exportCsv} className="text-sm font-medium text-navy/60 hover:text-navy border border-navy-line px-3 py-2 rounded-xl">Export CSV</button>}
       </div>
 
-      {!d ? <Loading /> : d.grid.length === 0 ? <Empty>No employees to show.</Empty> : (
+      {state.loading ? <Loading /> : state.error ? <ErrCard error={state.error} onRetry={state.retry} /> : !state.data ? null : state.data.grid.length === 0 ? <Empty>No employees to show.</Empty> : ((d: any) => (
         <>
         <MonthSummary d={d} />
         <MonthCards d={d} />
@@ -213,7 +221,7 @@ function MonthTab() {
           </div>
         </div>
         </>
-      )}
+      ))(state.data)}
     </>
   );
 }
@@ -307,15 +315,11 @@ function Legend({ cls, label }: { cls: string; label: string }) {
 
 function RequestsTab({ onChange }: { onChange: () => void }) {
   const { toast } = useToast();
-  const [d, setD] = useState<any>(null);
   const [status, setStatus] = useState("pending");
   const [busy, setBusy] = useState("");
-
-  function load() {
-    setD(null);
-    fetch(`/api/attendance/requests?status=${status}`).then((r) => r.json()).then(setD).catch(() => {});
-  }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [status]);
+  const state = useApi<any>(`/api/attendance/requests?status=${status}`, [status]);
+  const d = state.data;
+  function load() { state.retry(); }
 
   async function decide(id: string, action: "approve" | "reject") {
     setBusy(id);
@@ -338,7 +342,7 @@ function RequestsTab({ onChange }: { onChange: () => void }) {
         ))}
       </div>
 
-      {!d ? <Loading /> : d.requests?.length === 0 ? (
+      {state.loading ? <Loading /> : state.error ? <ErrCard error={state.error} onRetry={state.retry} /> : !d ? null : d.requests?.length === 0 ? (
         <Empty>{status === "pending" ? "No requests waiting. Nothing to do." : `No ${status} requests.`}</Empty>
       ) : (
         <div className="space-y-2">
@@ -385,7 +389,8 @@ function RequestsTab({ onChange }: { onChange: () => void }) {
 
 function SetupTab() {
   const { toast } = useToast();
-  const [d, setD] = useState<any>(null);
+  const state = useApi<any>("/api/attendance/settings");
+  const d = state.data;
   const [f, setF] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [hol, setHol] = useState({ date: "", name: "" });
@@ -396,10 +401,11 @@ function SetupTab() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<any[]>([]);
 
-  function load() {
-    fetch("/api/attendance/settings").then((r) => r.json()).then((x) => { setD(x); setF(x.settings); }).catch(() => {});
-  }
-  useEffect(() => { load(); }, []);
+  // The form is editable, so it's seeded from the loaded settings rather than
+  // bound to them directly — the user's in-progress edits mustn't be clobbered
+  // by a background refetch.
+  useEffect(() => { if (d?.settings) setF(d.settings); }, [d]);
+  function load() { state.retry(); }
 
   async function save() {
     setSaving(true);

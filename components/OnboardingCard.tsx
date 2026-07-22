@@ -6,18 +6,19 @@
 // complete, which is the gentle nudge we want.
 
 import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import Link from "next/link";
 import { CheckCircle2, Circle, X, Rocket } from "lucide-react";
 
 export function OnboardingCard() {
-  const [d, setD] = useState<any>(null);
   const [dismissed, setDismissed] = useState(false);
+  const state = useApi<any>("/api/onboarding");
+  const d = state.data;
 
-  useEffect(() => {
-    fetch("/api/onboarding").then((r) => r.json()).then(setD).catch(() => {});
-  }, []);
-
-  if (dismissed || !d?.available || d.complete) return null;
+  // A failed load simply hides the card — onboarding is a nudge, not core data,
+  // so there's nothing to retry in the user's face. But d is only read once
+  // present, so the render can't crash on { error }.
+  if (dismissed || state.error || !d?.available || d.complete) return null;
 
   return (
     <div className="dawn-card p-5 border-amber/30 bg-gradient-to-br from-amber/5 to-transparent">

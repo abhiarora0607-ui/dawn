@@ -8,21 +8,26 @@
 // out. When a balance is short, the form says exactly what will be unpaid
 // before they send it — surprises about pay are the worst kind.
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import {
   Loader2, Plus, Check, X, CalendarDays, Wallet, AlertTriangle, Clock,
 } from "lucide-react";
 import { istDate } from "@/lib/attendance";
 
 export function TeamLeave() {
-  const [d, setD] = useState<any>(null);
   const [view, setView] = useState<"balances" | "apply" | "encash">("balances");
+  const state = useApi<any>("/api/team/leave");
+  const d = state.data;
+  function load() { state.retry(); }
 
-  function load() { fetch("/api/team/leave").then((r) => r.json()).then(setD).catch(() => {}); }
-  useEffect(() => { load(); }, []);
-
-  if (!d) return <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
-  if (d.error) return <p className="dawn-empty">{d.error}</p>;
+  if (state.loading) return <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (state.error) return (
+    <div className="dawn-card p-6 text-center">
+      <p className="t-small text-muted">{state.error}</p>
+      <button onClick={state.retry} className="btn btn-quiet btn-sm mt-3">Try again</button>
+    </div>
+  );
   if (!d.enabled) return <p className="dawn-empty">Leave isn&apos;t switched on for this business yet.</p>;
 
   const pending = (d.requests || []).filter((r: any) => r.status === "pending");
@@ -209,15 +214,14 @@ function Apply({ d, onDone }: { d: any; onDone: () => void }) {
 /* ---------------------------------------------------------------- encash */
 
 function Encash() {
-  const [d, setD] = useState<any>(null);
   const [code, setCode] = useState("");
   const [days, setDays] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [sent, setSent] = useState(false);
-
-  function load() { fetch("/api/team/encash").then((r) => r.json()).then(setD).catch(() => {}); }
-  useEffect(() => { load(); }, []);
+  const state = useApi<any>("/api/team/encash");
+  const d = state.data;
+  function load() { state.retry(); }
 
   async function submit() {
     setErr(""); setBusy(true);
@@ -230,7 +234,9 @@ function Encash() {
     setSent(true); setDays(""); load();
   }
 
-  if (!d) return <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-navy/30" /></div>;
+  if (state.loading) return <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-navy/30" /></div>;
+  if (state.error) return <p className="dawn-empty">{state.error} <button onClick={state.retry} className="underline ml-1">Retry</button></p>;
+  if (!d) return null;
 
   const estimate = code && days ? Math.round(d.perDay * Number(days)) : 0;
 

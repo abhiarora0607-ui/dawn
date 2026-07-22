@@ -4,6 +4,7 @@
 // which orders used it, who buys it.
 
 import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -16,15 +17,11 @@ export default function ItemDetail() {
   const router = useRouter();
   const id = params.id as string;
   const { currency } = useSettings();
-  const [d, setD] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const state = useApi<any>(`/api/item-detail?id=${id}`, [id]);
+  const d = state.data;
 
-  useEffect(() => {
-    fetch(`/api/item-detail?id=${id}`).then((r) => r.json()).then((res) => { setD(res); setLoading(false); }).catch(() => setLoading(false));
-  }, [id]);
-
-  if (loading) return <DashboardShell><DashTopbar pageTitle="Item" /><div className="p-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div></DashboardShell>;
-  if (!d || d.error) return <DashboardShell><DashTopbar pageTitle="Item" /><div className="p-12 text-center text-muted">Couldn&apos;t load this item.</div></DashboardShell>;
+  if (state.loading) return <DashboardShell><DashTopbar pageTitle="Item" /><div className="p-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div></DashboardShell>;
+  if (state.error || !d) return <DashboardShell><DashTopbar pageTitle="Item" /><div className="p-12 text-center"><p className="text-muted">{state.error || "Couldn\u2019t load this item."}</p><button onClick={state.retry} className="btn btn-quiet btn-sm mt-3">Try again</button></div></DashboardShell>;
 
   const it = d.item, s = d.stats;
 

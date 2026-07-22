@@ -5,6 +5,7 @@
 // history, and polite cancel/resume.
 
 import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { ToastProvider, useToast } from "@/components/Toast";
@@ -17,8 +18,6 @@ const FEATURE_LABELS: Record<string, string> = {
 
 function Inner() {
   const { toast } = useToast();
-  const [d, setD] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
   const [checkout, setCheckout] = useState<any>(null); // plan being bought
   const [paying, setPaying] = useState(false);
@@ -28,10 +27,10 @@ function Inner() {
   const [cancelModal, setCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
-  function load() {
-    fetch("/api/billing").then((r) => r.json()).then((res) => { setD(res); setLoading(false); }).catch(() => setLoading(false));
-  }
-  useEffect(() => { load(); }, []);
+  const state = useApi<any>("/api/billing");
+  const d = state.data;
+  const loading = state.loading;
+  function load() { state.retry(); }
 
   async function pay() {
     setPaying(true);
@@ -52,7 +51,7 @@ function Inner() {
   }
 
   if (loading) return <div className="p-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
-  if (!d || d.error) return <div className="p-12 text-center text-muted">Couldn&apos;t load billing.</div>;
+  if (state.error || !d) return <div className="p-12 text-center"><p className="text-muted">{state.error || "Couldn\u2019t load billing."}</p><button onClick={state.retry} className="btn btn-quiet btn-sm mt-3">Try again</button></div>;
 
   const e = d.ent;
   const statusLine =

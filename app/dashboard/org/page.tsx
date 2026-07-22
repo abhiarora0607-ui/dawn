@@ -7,6 +7,7 @@
 // enough people for them to mean anything. Same code, same schema.
 
 import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { ToastProvider, useToast } from "@/components/Toast";
@@ -26,12 +27,19 @@ export default function OrgPage() {
 
 function Inner() {
   const [tab, setTab] = useState<"tree" | "reporting" | "departments">("tree");
-  const [d, setD] = useState<any>(null);
+  const state = useApi<any>("/api/org");
+  const d = state.data;
+  function load() { state.retry(); }
 
-  function load() { fetch("/api/org").then((r) => r.json()).then(setD).catch(() => {}); }
-  useEffect(() => { load(); }, []);
-
-  if (!d) return <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (state.loading) return <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (state.error) return (
+    <div className="dawn-card p-6 text-center max-w-sm mx-auto my-8">
+      <p className="font-semibold text-navy text-sm">Couldn&apos;t load your team</p>
+      <p className="t-small text-muted mt-1">{state.error}</p>
+      <button onClick={state.retry} className="btn btn-quiet btn-sm mt-3">Try again</button>
+    </div>
+  );
+  if (!d) return null;
 
   const tiny = !d.complexity?.showOrgTree;
 
@@ -131,14 +139,13 @@ function Reporting({ d, onChange }: { d: any; onChange: () => void }) {
 
 function Departments({ onChange }: { onChange: () => void }) {
   const { toast } = useToast();
-  const [d, setD] = useState<any>(null);
   const [people, setPeople] = useState<any[]>([]);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-
-  function load() { fetch("/api/org?view=departments").then((r) => r.json()).then(setD).catch(() => {}); }
+  const state = useApi<any>("/api/org?view=departments");
+  const d = state.data;
+  function load() { state.retry(); }
   useEffect(() => {
-    load();
     fetch("/api/org").then((r) => r.json()).then((x) => setPeople(x.nodes || [])).catch(() => {});
   }, []);
 
@@ -173,7 +180,9 @@ function Departments({ onChange }: { onChange: () => void }) {
     load(); onChange(); toast("Removed — nobody was deleted, they're just unassigned");
   }
 
-  if (!d) return <div className="py-12 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-navy/30" /></div>;
+  if (state.loading) return <div className="py-12 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-navy/30" /></div>;
+  if (state.error) return <div className="dawn-card p-5 text-center"><p className="t-small text-muted">{state.error}</p><button onClick={state.retry} className="btn btn-quiet btn-sm mt-2">Try again</button></div>;
+  if (!d) return null;
 
   return (
     <div className="space-y-4 max-w-2xl">

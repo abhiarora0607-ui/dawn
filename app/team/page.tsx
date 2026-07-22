@@ -5,6 +5,7 @@
 // APIs already allow.
 
 import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import { useRouter } from "next/navigation";
 import { TeamAttendance } from "@/components/TeamAttendance";
 import { TeamLeave } from "@/components/TeamLeave";
@@ -862,19 +863,16 @@ function ConfirmSheet({ title, body, onConfirm, onCancel }: { title: string; bod
 }
 
 function ContactDetail({ id, canEdit, onClose, onEdit }: { id: string; canEdit: boolean; onClose: () => void; onEdit: (c: any) => void }) {
-  const [d, setD] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    fetch(`/api/team/contact-detail?id=${id}`).then((r) => r.json()).then((res) => { setD(res); setLoading(false); }).catch(() => setLoading(false));
-  }, [id]);
-
+  const state = useApi<any>(`/api/team/contact-detail?id=${id}`, [id]);
+  const d = state.data;
+  const loading = state.loading;
   const c = d?.contact;
   const wa = (c?.phone || "").replace(/[^0-9]/g, "");
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
       <div className="absolute inset-0 bg-navy/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md p-5 animate-rise max-h-[92vh] overflow-y-auto">
-        {loading ? <Spinner /> : !c ? <p className="dawn-empty">Couldn&apos;t load this contact.</p> : (
+        {loading ? <Spinner /> : state.error ? <div className="text-center py-6"><p className="dawn-empty">{state.error}</p><button onClick={state.retry} className="btn btn-quiet btn-sm mt-2">Try again</button></div> : !c ? <p className="dawn-empty">Couldn&apos;t load this contact.</p> : (
           <>
             <div className="flex items-start justify-between mb-3">
               <div>

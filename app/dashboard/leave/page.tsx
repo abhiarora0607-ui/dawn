@@ -7,6 +7,7 @@
 //   Policy    — how much does each type give, and what happens at year end?
 
 import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { GrantLeave } from "@/components/GrantLeave";
@@ -82,12 +83,11 @@ function Inner() {
 
 function Requests({ onChange }: { onChange: () => void }) {
   const { toast } = useToast();
-  const [d, setD] = useState<any>(null);
   const [status, setStatus] = useState("pending");
   const [busy, setBusy] = useState("");
-
-  function load() { setD(null); fetch(`/api/leave?status=${status}`).then((r) => r.json()).then(setD).catch(() => {}); }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [status]);
+  const state = useApi<any>(`/api/leave?status=${status}`, [status]);
+  const d = state.data;
+  function load() { state.retry(); }
 
   async function decide(id: string, action: "approve" | "reject") {
     setBusy(id);
@@ -107,7 +107,7 @@ function Requests({ onChange }: { onChange: () => void }) {
         ))}
       </div>
 
-      {!d ? <Loading /> : d.requests?.length === 0 ? (
+      {state.loading ? <Loading /> : state.error ? <LeaveErr error={state.error} onRetry={state.retry} /> : !d ? null : d.requests?.length === 0 ? (
         <Empty>{status === "pending" ? "No leave requests waiting." : `No ${status} requests.`}</Empty>
       ) : (
         <div className="space-y-2">
@@ -155,10 +155,21 @@ function Requests({ onChange }: { onChange: () => void }) {
 
 /* -------------------------------------------------------------- balances */
 
+function LeaveErr({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <div className="dawn-card p-6 text-center my-4">
+      <p className="font-semibold text-navy text-sm">Couldn&apos;t load this</p>
+      <p className="t-small text-muted mt-1">{error}</p>
+      <button onClick={onRetry} className="btn btn-quiet btn-sm mt-3">Try again</button>
+    </div>
+  );
+}
+
 function BalancesTab() {
-  const [d, setD] = useState<any>(null);
-  useEffect(() => { fetch("/api/leave?view=balances").then((r) => r.json()).then(setD).catch(() => {}); }, []);
-  if (!d) return <Loading />;
+  const state = useApi<any>("/api/leave?view=balances");
+  if (state.loading) return <Loading />;
+  if (state.error) return <LeaveErr error={state.error} onRetry={state.retry} />;
+  const d = state.data!;
   if (!d.rows?.length) return <Empty>No employees yet.</Empty>;
 
   return (
@@ -204,11 +215,10 @@ function BalancesTab() {
 
 function EncashTab() {
   const { toast } = useToast();
-  const [d, setD] = useState<any>(null);
   const [busy, setBusy] = useState("");
-
-  function load() { setD(null); fetch("/api/leave?view=encashments").then((r) => r.json()).then(setD).catch(() => {}); }
-  useEffect(() => { load(); }, []);
+  const state = useApi<any>("/api/leave?view=encashments");
+  const d = state.data;
+  function load() { state.retry(); }
 
   async function decide(id: string, action: "encash_approve" | "encash_reject") {
     setBusy(id);
@@ -218,7 +228,9 @@ function EncashTab() {
     if (out.ok) { toast(out.note || "Done"); load(); } else toast(out.error || "Couldn't do that", "error");
   }
 
-  if (!d) return <Loading />;
+  if (state.loading) return <Loading />;
+  if (state.error) return <LeaveErr error={state.error} onRetry={state.retry} />;
+  if (!d) return null;
   if (!d.encashments?.length) return <Empty>Nobody has asked to cash in leave.</Empty>;
 
   return (

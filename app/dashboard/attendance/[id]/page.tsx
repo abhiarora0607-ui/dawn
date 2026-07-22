@@ -6,6 +6,7 @@
 // scan a month in seconds instead of reading numbers.
 
 import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -21,15 +22,11 @@ const RANGES = [
 
 export default function EmployeeAttendancePage() {
   const { id } = useParams<{ id: string }>();
-  const [d, setD] = useState<any>(null);
   const [range, setRange] = useState("30");
-
-  useEffect(() => {
-    const days = RANGES.find((r) => r.key === range)?.days || 30;
-    const to = istDate(), from = addDays(to, -(days - 1));
-    setD(null);
-    fetch(`/api/attendance?view=employee&id=${id}&from=${from}&to=${to}`).then((r) => r.json()).then(setD).catch(() => {});
-  }, [id, range]);
+  const days = RANGES.find((r) => r.key === range)?.days || 30;
+  const to = istDate(), from = addDays(to, -(days - 1));
+  const state = useApi<any>(`/api/attendance?view=employee&id=${id}&from=${from}&to=${to}`, [id, range]);
+  const d = state.data;
 
   return (
     <DashboardShell>
@@ -37,9 +34,11 @@ export default function EmployeeAttendancePage() {
       <div className="dawn-page space-y-5">
         <Link href="/dashboard/attendance" className="flex items-center gap-1.5 text-sm text-muted hover:text-navy"><ArrowLeft className="w-4 h-4" /> All attendance</Link>
 
-        {!d ? (
-          <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>
-        ) : d.error ? (
+        {state.loading ? (
+          <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>
+        ) : state.error ? (
+          <div className="text-center py-6"><p className="text-muted text-sm">{state.error}</p><button onClick={state.retry} className="btn btn-quiet btn-sm mt-2">Try again</button></div>
+        ) : !d ? null : d.error ? (
           <p className="text-muted text-sm">{d.error}</p>
         ) : (
           <>

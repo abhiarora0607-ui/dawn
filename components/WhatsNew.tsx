@@ -9,6 +9,8 @@ import { Megaphone, X } from "lucide-react";
 export function WhatsNew() {
   const [items, setItems] = useState<any[]>([]);
   const [hidden, setHidden] = useState(false);
+  // decorative — a failed load just hides this, which is the right
+  // behaviour for a peripheral banner; no retry card belongs in a nav badge.
   useEffect(() => {
     fetch("/api/announcements").then((r) => r.json()).then((d) => setItems(d.items || [])).catch(() => {});
   }, []);

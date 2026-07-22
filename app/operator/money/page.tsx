@@ -4,6 +4,7 @@
 // coupons, and the ledger. Everything financial lives here and nowhere else.
 
 import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import Link from "next/link";
 import { OperatorGate } from "@/components/OperatorGate";
 import { Hero, Empty } from "@/components/OperatorTabs";
@@ -17,7 +18,8 @@ export default function MoneyPage() {
 }
 
 function Money() {
-  const [d, setD] = useState<any>(null);
+  const billing = useApi<any>("/api/operator/billing");
+  const d = billing.data;
   const [plans, setPlans] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
   const [edit, setEdit] = useState<any>(null);
@@ -25,11 +27,14 @@ function Money() {
   const [cpCode, setCpCode] = useState(""); const [cpKind, setCpKind] = useState("percent"); const [cpValue, setCpValue] = useState("");
 
   function load() {
-    fetch("/api/operator/billing").then((r) => r.json()).then(setD).catch(() => {});
+    billing.retry();
     fetch("/api/operator/plans").then((r) => r.json()).then((x) => setPlans(x.plans || [])).catch(() => {});
     fetch("/api/operator/coupons").then((r) => r.json()).then((x) => setCoupons(x.coupons || [])).catch(() => {});
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    fetch("/api/operator/plans").then((r) => r.json()).then((x) => setPlans(x.plans || [])).catch(() => {});
+    fetch("/api/operator/coupons").then((r) => r.json()).then((x) => setCoupons(x.coupons || [])).catch(() => {});
+  }, []);
 
   async function savePlan() {
     setSaving(true);
@@ -63,7 +68,15 @@ function Money() {
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "dawn-payments.csv"; a.click();
   }
 
-  if (!d) return <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (billing.loading) return <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (billing.error) return (
+    <div className="dawn-card p-6 text-center max-w-sm mx-auto my-8">
+      <p className="font-semibold text-navy text-sm">Couldn&apos;t load billing</p>
+      <p className="t-small text-muted mt-1">{billing.error}</p>
+      <button onClick={billing.retry} className="btn btn-quiet btn-sm mt-3">Try again</button>
+    </div>
+  );
+  if (!d) return null;
   const m = d.metrics;
 
   const line = m.mrr > 0 ? `₹${m.mrr.toLocaleString()} a month` : "No revenue yet";

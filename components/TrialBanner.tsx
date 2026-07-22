@@ -13,6 +13,8 @@ export function TrialBanner() {
   const [e, setE] = useState<any>(null);
   const [hidden, setHidden] = useState(false); // session-only dismiss
 
+  // decorative — a failed load just hides this, which is the right
+  // behaviour for a peripheral banner; no retry card belongs in a nav badge.
   useEffect(() => {
     fetch("/api/billing").then((r) => r.json()).then((d) => setE(d?.ent || null)).catch(() => {});
   }, []);

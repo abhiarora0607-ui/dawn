@@ -4,6 +4,7 @@
 // can navigate into. Reachable by clicking an employee anywhere in the app.
 
 import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -19,23 +20,17 @@ export default function EmployeeHub() {
   const router = useRouter();
   const id = params.id as string;
   const { currency } = useSettings();
-  const [d, setD] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
+  const detail = useApi<any>(`/api/employee-detail?id=${id}`, [id]);
+  const d = detail.data;
   const [live, setLive] = useState<any>(null);
   useEffect(() => {
-    Promise.all([
-      fetch(`/api/employee-detail?id=${id}`).then((r) => r.json()),
-      fetch("/api/scores").then((r) => r.json()).catch(() => null),
-    ]).then(([res, sc]) => {
-      setD(res);
-      setLive(sc?.scores?.find((x: any) => x.employeeId === id) || null);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    fetch("/api/scores").then((r) => r.json())
+      .then((sc) => setLive(sc?.scores?.find((x: any) => x.employeeId === id) || null))
+      .catch(() => setLive(null));
   }, [id]);
 
-  if (loading) return <DashboardShell><DashTopbar pageTitle="Employee" /><div className="p-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div></DashboardShell>;
-  if (!d || d.error) return <DashboardShell><DashTopbar pageTitle="Employee" /><div className="p-12 text-center text-muted">Couldn&apos;t load this employee.</div></DashboardShell>;
+  if (detail.loading) return <DashboardShell><DashTopbar pageTitle="Employee" /><div className="p-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div></DashboardShell>;
+  if (detail.error || !d) return <DashboardShell><DashTopbar pageTitle="Employee" /><div className="p-12 text-center"><p className="text-muted">{detail.error || "Couldn't load this employee."}</p><button onClick={detail.retry} className="btn btn-quiet btn-sm mt-3">Try again</button></div></DashboardShell>;
 
   const e = d.employee, s = d.stats;
   const today = new Date().toISOString().slice(0, 10);

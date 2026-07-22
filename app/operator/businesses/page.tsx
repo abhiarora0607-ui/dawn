@@ -5,6 +5,7 @@
 // filter by health or billing, sort, export.
 
 import { useEffect, useMemo, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import Link from "next/link";
 import { OperatorGate } from "@/components/OperatorGate";
 import { Hero, HealthPill, PlanPill, Empty } from "@/components/OperatorTabs";
@@ -24,14 +25,14 @@ const VIEWS: { key: string; label: string; test: (b: any) => boolean }[] = [
 ];
 
 function Businesses() {
-  const [d, setD] = useState<any>(null);
+  const state = useApi<any>("/api/operator/overview");
+  const d = state.data;
+
   const [q, setQ] = useState("");
   const [view, setView] = useState("all");
   const [sort, setSort] = useState("recent");
 
-  useEffect(() => {
-    fetch("/api/operator/overview").then((r) => r.json()).then(setD).catch(() => {});
-  }, []);
+
 
   const rows: any[] = useMemo(() => {
     if (!d?.businesses) return [] as any[];
@@ -55,7 +56,9 @@ function Businesses() {
     a.download = `dawn-businesses-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
   }
 
-  if (!d) return <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (state.loading) return <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (state.error) return <div className="dawn-card p-6 text-center max-w-sm mx-auto my-8"><p className="t-small text-muted">{state.error}</p><button onClick={state.retry} className="btn btn-quiet btn-sm mt-3">Try again</button></div>;
+  if (!d) return null;
 
   const total = (d.businesses || []).length;
 

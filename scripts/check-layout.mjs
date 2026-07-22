@@ -175,6 +175,55 @@ console.log("\n[8] No hooks placed after an early return");
   if (bad === 0) pass("every hook runs unconditionally");
 }
 
+// ---- 9. NO UNGUARDED ARRAY ACCESS ON API DATA (V48a) ------------------------
+// The crash class behind the V41 portal white-screen and the My Team crash:
+// a component calls d.rows.map() where the API returned { error } and there's
+// no guard. The fix was the useApi hook, which makes the guarded path the only
+// path. This check keeps it that way — it fails when a file reaches into API
+// data with .map/.filter/.reduce while still on the old ungated pattern.
+//
+// The rule is deliberately narrow to avoid false alarms: it only fires when a
+// file BOTH does d.<field>.<array-method>() without optional chaining AND has
+// no error guard (useApi's error branch, or an explicit d.error / state.error
+// check). A file on useApi with an error branch is trusted; a file still doing
+// useState(null)+fetch without a guard is not.
+console.log("\n[9] No unguarded array access on API data");
+{
+  let bad = 0;
+  for (const f of files) {
+    const src = read(f);
+
+    // A file is considered guarded if it either uses the hook's error state or
+    // checks an error field before rendering.
+    const hasErrorGuard = /state\.error|\.error\b.*return|if \(d\??\.error\)|billing\.error|detail\.error/.test(src);
+    const usesHook = /useApi[(<]/.test(src);
+
+    for (const m of src.matchAll(/\bd\.([a-zA-Z_]+)\.(map|filter|reduce)\b/g)) {
+      const at = m.index;
+      // optional-chained access is always safe
+      if (src.slice(at, at + 60).includes("?.")) continue;
+      // a guarded expression on the same line: d.x && / d.x?.length
+      const lineStart = src.lastIndexOf("\n", at);
+      const line = src.slice(lineStart, src.indexOf("\n", at));
+      if (line.includes(`d.${m[1]} &&`) || line.includes(`d.${m[1]}?.`)) continue;
+      if (line.includes(`d.${m[1]}.length === 0 ?`) || line.includes(`d.${m[1]}.length > 0 &&`)) continue;
+      // a wrapping guard just above: {d.x?.length > 0 && ( ... d.x.map
+      // JSX often opens the guard a few lines before the .map inside it.
+      const above = src.slice(Math.max(0, at - 240), at);
+      if (new RegExp(`d\\.${m[1]}\\?\\.length\\s*(>\\s*0\\s*&&|===\\s*0\\s*\\?)`).test(above)) continue;
+      if (new RegExp(`d\\.${m[1]}\\s*&&`).test(above)) continue;
+      // trusted if the file has a real error guard AND uses the hook (so d is
+      // only bound after loading/error are handled)
+      if (hasErrorGuard && usesHook) continue;
+
+      const ln = src.slice(0, at).split("\n").length;
+      fail(`${f}:${ln} d.${m[1]}.${m[2]}() with no error guard — use useApi so { error } can't crash the render`);
+      bad++;
+    }
+  }
+  if (bad === 0) pass("every array access on API data is guarded");
+}
+
 console.log("\n================================================");
 console.log(failures === 0 ? `  ${GREEN}*** LAYOUT CHECKS PASS ***${RESET}` : `  ${RED}*** ${failures} LAYOUT FAILURE(S) ***${RESET}`);
 console.log("================================================\n");

@@ -7,6 +7,7 @@
 // reversible; that step isn't.
 
 import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { ToastProvider, useToast } from "@/components/Toast";
@@ -32,15 +33,14 @@ export default function PayrollPage() {
 function Inner() {
   const { toast } = useToast();
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
-  const [d, setD] = useState<any>(null);
   const [busy, setBusy] = useState("");
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [bonusFor, setBonusFor] = useState<any>(null);
   const [rejecting, setRejecting] = useState<any>(null);
   const [editing, setEditing] = useState<any>(null);
-
-  function load() { setD(null); fetch(`/api/payroll?month=${month}`).then((r) => r.json()).then(setD).catch(() => {}); }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [month]);
+  const state = useApi<any>(`/api/payroll?month=${month}`, [month]);
+  const d = state.data;
+  function load() { state.retry(); }
 
   async function act(body: any, label: string) {
     setBusy(label);
@@ -53,7 +53,9 @@ function Inner() {
     if (out.ok) { toast(out.note || "Done"); load(); } else toast(out.error || "Couldn't do that", "error");
   }
 
-  if (!d) return <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (state.loading) return <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
+  if (state.error) return <div className="dawn-card p-6 text-center max-w-sm mx-auto my-8"><p className="font-semibold text-navy text-sm">Couldn&apos;t load payroll</p><p className="t-small text-muted mt-1">{state.error}</p><button onClick={state.retry} className="btn btn-quiet btn-sm mt-3">Try again</button></div>;
+  if (!d) return null;
   if (d.error) return <div className="dawn-page"><p className="dawn-empty">{d.error}</p></div>;
 
   const drafts = (d.payslips || []).filter((s: any) => s.status === "draft").length;
