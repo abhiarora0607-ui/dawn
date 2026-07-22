@@ -33,6 +33,10 @@ t.push(["nested parents exist in the map", String(nested.every((x) => order.incl
 // ---- demo scoping ----
 t.push(["demo mode targets tagged tables", String(L.DEMO_TAGGED.includes("contacts")), "true"]);
 t.push(["employees are demo-taggable", String(L.DEMO_TAGGED.includes("employees")), "true"]);
+// V48d: demo departments must be cleared with the rest of the demo. They were
+// left behind because departments wasn't demo-tagged, so add/clear cycles piled
+// up duplicate departments.
+t.push(["departments are demo-taggable", String(L.DEMO_TAGGED.includes("departments")), "true"]);
 // the important safety property: clearing demo must not delete untagged business rows
 const untaggedOwn = L.OWNED_TABLES.filter((x) => x.via === "own" && !x.demoTagged);
 t.push(["untagged tables are skipped in demo mode", String(untaggedOwn.every((x) => !L.shouldDelete("demo", x))), "true"]);

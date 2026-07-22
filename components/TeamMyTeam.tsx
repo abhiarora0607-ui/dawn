@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { useApi } from "@/lib/use-api";
+import type { MyTeamResponse } from "@/lib/api-types";
 import {
   Loader2, Phone, Mail, Check, X, AlertTriangle, Inbox, Users, Clock } from "lucide-react";
 
@@ -33,7 +34,7 @@ export function TeamMyTeam() {
   // Was: fetch().then(setD).catch(() => {}) — on a server error the response
   // was {error}, `!d` was false, and it fell straight through to d.team.map(),
   // white-screening the tab. The hook returns an error state instead.
-  const state = useApi<any>("/api/team/my-team");
+  const state = useApi<MyTeamResponse>("/api/team/my-team");
 
   if (state.loading) return <div className="py-16 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
   if (state.error) return <ApiError error={state.error} onRetry={state.retry} />;
@@ -288,7 +289,7 @@ function Fig({ label, value }: { label: string; value: string }) {
  * asked "how did we do" needs to answer for the team, but also to see their
  * own contribution inside it. One figure hides both.
  */
-function TeamTotals({ t, canSeeSalary, month }: { t: any; canSeeSalary: boolean; month: string }) {
+function TeamTotals({ t, canSeeSalary, month }: { t: any; canSeeSalary: boolean; month?: string }) {
   const monthLabel = month
     ? new Date(`${month}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "long", timeZone: "UTC" })
     : "This month";

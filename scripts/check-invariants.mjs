@@ -669,6 +669,39 @@ console.log("\n[22] Payroll and balances don't query per employee");
   if (bad === 0) pass("hot paths batch their queries");
 }
 
+// ---- 23. THE ENDPOINTS THAT BIT ARE TYPED (V48d) ---------------------------
+// V39 and V41 were both shape-mismatch crashes: a component read a field the
+// API never returned, and everything was `any` so nothing caught it. These
+// endpoints now have response contracts in lib/api-types.ts, and their call
+// sites pass the type to useApi. This stops them regressing to useApi<any>,
+// where the compiler goes blind again.
+console.log("\n[23] The endpoints that bit stay typed");
+{
+  let bad = 0;
+  const types = read("lib/api-types.ts");
+  for (const t of ["PayrollResponse", "MyTeamResponse", "LeaveBalancesResponse"]) {
+    if (!new RegExp(`export type ${t}`).test(types)) {
+      fail(`api-types.ts is missing ${t}`); bad++;
+    }
+  }
+  // The wired call sites must still pass the type, not <any>.
+  const sites = [
+    ["components/TeamMyTeam.tsx", "MyTeamResponse"],
+    ["app/dashboard/payroll/page.tsx", "PayrollResponse"],
+    ["app/dashboard/leave/page.tsx", "LeaveBalancesResponse"],
+  ];
+  for (const [file, type] of sites) {
+    const s = read(file);
+    if (new RegExp(`useApi<${type}>`).test(s)) continue;
+    if (/useApi<any>/.test(s)) {
+      fail(`${file} regressed to useApi<any> — should be useApi<${type}>`); bad++;
+    } else if (!new RegExp(type).test(s)) {
+      fail(`${file} no longer uses its ${type} contract`); bad++;
+    }
+  }
+  if (bad === 0) pass("payroll, my-team and leave-balances keep their contracts");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

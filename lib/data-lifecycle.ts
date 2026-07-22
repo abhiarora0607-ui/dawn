@@ -77,7 +77,7 @@ export const OWNED_TABLES: OwnedTable[] = [
   { table: "attachments", via: "own", label: "Attachments" },
   { table: "holidays", via: "own", label: "Holidays" },
   { table: "leave_types", via: "own", label: "Leave settings" },
-  { table: "departments", via: "own", label: "Departments" },
+  { table: "departments", via: "own", demoTagged: true, label: "Departments" },
   { table: "suggestion_state", via: "own", label: "Suggestion history" },
   { table: "brief_cache", via: "own", label: "Cached briefs" },
   { table: "business_stats", via: "own", label: "Business stats" },

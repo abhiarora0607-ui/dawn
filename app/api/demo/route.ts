@@ -242,8 +242,8 @@ export async function POST(req: Request) {
       // Departments — enough to make the org page meaningful, few enough to
       // stay believable for a small business.
       const depts = await insert(url, key, "departments", [
-        { uid, name: "Sales", head_employee_id: priya, sort_order: 0 },
-        { uid, name: "Operations", head_employee_id: null, sort_order: 1 },
+        { uid, name: "Sales", head_employee_id: priya, sort_order: 0, is_demo: true },
+        { uid, name: "Operations", head_employee_id: null, sort_order: 1, is_demo: true },
       ], true);
       const salesDept = depts?.[0]?.id || null;
       const opsDept = depts?.[1]?.id || null;

@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from "react";
 import { useApi } from "@/lib/use-api";
+import type { LeaveBalancesResponse } from "@/lib/api-types";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { GrantLeave } from "@/components/GrantLeave";
@@ -166,7 +167,7 @@ function LeaveErr({ error, onRetry }: { error: string; onRetry: () => void }) {
 }
 
 function BalancesTab() {
-  const state = useApi<any>("/api/leave?view=balances");
+  const state = useApi<LeaveBalancesResponse>("/api/leave?view=balances");
   if (state.loading) return <Loading />;
   if (state.error) return <LeaveErr error={state.error} onRetry={state.retry} />;
   const d = state.data!;

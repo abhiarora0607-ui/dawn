@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from "react";
 import { useApi } from "@/lib/use-api";
+import type { PayrollResponse } from "@/lib/api-types";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { ToastProvider, useToast } from "@/components/Toast";
@@ -38,7 +39,7 @@ function Inner() {
   const [bonusFor, setBonusFor] = useState<any>(null);
   const [rejecting, setRejecting] = useState<any>(null);
   const [editing, setEditing] = useState<any>(null);
-  const state = useApi<any>(`/api/payroll?month=${month}`, [month]);
+  const state = useApi<PayrollResponse>(`/api/payroll?month=${month}`, [month]);
   const d = state.data;
   function load() { state.retry(); }
 
@@ -56,7 +57,6 @@ function Inner() {
   if (state.loading) return <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
   if (state.error) return <div className="dawn-card p-6 text-center max-w-sm mx-auto my-8"><p className="font-semibold text-navy text-sm">Couldn&apos;t load payroll</p><p className="t-small text-muted mt-1">{state.error}</p><button onClick={state.retry} className="btn btn-quiet btn-sm mt-3">Try again</button></div>;
   if (!d) return null;
-  if (d.error) return <div className="dawn-page"><p className="dawn-empty">{d.error}</p></div>;
 
   const drafts = (d.payslips || []).filter((s: any) => s.status === "draft").length;
   const approved = (d.payslips || []).filter((s: any) => s.status === "approved").length;
