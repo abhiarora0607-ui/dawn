@@ -30,6 +30,17 @@ export type PermissionDef = {
   sensitive?: boolean;
   /** Implied by this one, so the UI can tick them automatically. */
   implies?: string[];
+  /**
+   * Where this permission has effect:
+   *   "portal" — gates an employee-facing route; grantable to employees.
+   *   "owner"  — an owner-dashboard action. The owner has it by definition;
+   *              granting it to an employee does nothing, so it's hidden from
+   *              the picker rather than offered as a checkbox that lies.
+   * V48b: several permissions were owner-only but still appeared grantable.
+   * Marking scope makes the picker honest and lets an invariant demand that
+   * every PORTAL permission has a real enforcement site.
+   */
+  scope?: "portal" | "owner";
 };
 
 export const GROUP_LABELS: Record<PermissionGroup, string> = {
@@ -51,33 +62,33 @@ export const PERMISSIONS: PermissionDef[] = [
   // ---- basics ----
   { id: "dashboard", group: "core", label: "Sign in to the portal", hint: "Without this they can't use the employee app at all." },
   { id: "tasks", group: "core", label: "Tasks" },
-  { id: "calendar", group: "core", label: "Calendar" },
+  { id: "calendar", group: "core", label: "Calendar", scope: "owner" },
   { id: "notes", group: "core", label: "Notes" },
-  { id: "settings", group: "core", label: "Edit their own profile" },
+  { id: "settings", group: "core", label: "Edit their own profile", scope: "owner" },
 
   // ---- contacts ----
   { id: "leads", group: "crm", label: "See leads" },
   { id: "leads_edit", group: "crm", label: "Add and edit leads", implies: ["leads"] },
   { id: "customers", group: "crm", label: "See customers" },
   { id: "customers_edit", group: "crm", label: "Add and edit customers", implies: ["customers"] },
-  { id: "contacts_delete", group: "crm", label: "Delete contacts", hint: "Deleted contacts can be restored for 30 days.", sensitive: true },
+  { id: "contacts_delete", group: "crm", label: "Delete contacts", hint: "Deleted contacts can be restored for 30 days.", sensitive: true, scope: "owner" },
   { id: "messaging", group: "crm", label: "Send messages" },
 
   // ---- orders ----
   { id: "orders", group: "sales", label: "See orders" },
   { id: "orders_edit", group: "sales", label: "Create and edit orders", implies: ["orders"] },
-  { id: "orders_cancel", group: "sales", label: "Cancel orders", sensitive: true },
+  { id: "orders_cancel", group: "sales", label: "Cancel orders", sensitive: true, scope: "owner" },
   { id: "catalogue", group: "sales", label: "See the price list" },
-  { id: "catalogue_edit", group: "sales", label: "Change prices", hint: "Affects every future quote and order.", sensitive: true, implies: ["catalogue"] },
+  { id: "catalogue_edit", group: "sales", label: "Change prices", hint: "Affects every future quote and order.", sensitive: true, implies: ["catalogue"], scope: "owner" },
 
   // ---- money ----
   // The split that `financials` was hiding. Seeing a number, recording a cost,
   // approving someone else's, and taking payment are four different jobs.
   { id: "finance_view", group: "finance", label: "See revenue figures", hint: "Money figures on dashboards and reports.", sensitive: true },
-  { id: "expense_view", group: "finance", label: "See expenses", sensitive: true },
-  { id: "expense_create", group: "finance", label: "Record an expense", implies: ["expense_view"] },
-  { id: "expense_approve", group: "finance", label: "Approve expenses", hint: "Sign off costs someone else recorded.", sensitive: true, implies: ["expense_view"] },
-  { id: "payment_record", group: "finance", label: "Record a payment received", hint: "Marks an order paid.", sensitive: true },
+  { id: "expense_view", group: "finance", label: "See expenses", sensitive: true, scope: "owner" },
+  { id: "expense_create", group: "finance", label: "Record an expense", implies: ["expense_view"], scope: "owner" },
+  { id: "expense_approve", group: "finance", label: "Approve expenses", hint: "Sign off costs someone else recorded.", sensitive: true, implies: ["expense_view"], scope: "owner" },
+  { id: "payment_record", group: "finance", label: "Record a payment received", hint: "Marks an order paid.", sensitive: true, scope: "owner" },
   { id: "reports", group: "finance", label: "See reports" },
   { id: "data_export", group: "finance", label: "Export data", hint: "Download contacts, orders and figures as a file.", sensitive: true },
 
@@ -89,27 +100,27 @@ export const PERMISSIONS: PermissionDef[] = [
   { id: "payroll_approve", group: "payroll", label: "Approve payslips", hint: "Sign off that the figures are right.", sensitive: true },
   { id: "payroll_pay", group: "payroll", label: "Mark payslips paid", hint: "This is what puts the salary into your books.", sensitive: true },
   { id: "salary_view", group: "payroll", label: "See salaries", sensitive: true },
-  { id: "salary_edit", group: "payroll", label: "Change salaries", hint: "Never delegated — admins only.", sensitive: true, implies: ["salary_view"] },
+  { id: "salary_edit", group: "payroll", label: "Change salaries", hint: "Never delegated — admins only.", sensitive: true, implies: ["salary_view"], scope: "owner" },
   { id: "bonus_request", group: "payroll", label: "Propose a bonus", hint: "Still needs an admin to approve it." },
-  { id: "bonus_approve", group: "payroll", label: "Approve bonuses", sensitive: true },
+  { id: "bonus_approve", group: "payroll", label: "Approve bonuses", sensitive: true, scope: "owner" },
 
   // ---- team ----
-  { id: "team_view", group: "people", label: "See their team's records", hint: "Attendance and leave for people reporting to them." },
-  { id: "team_edit", group: "people", label: "Edit their team's records", implies: ["team_view"] },
+  { id: "team_view", group: "people", label: "See their team's records", hint: "Attendance and leave for people reporting to them.", scope: "owner" },
+  { id: "team_edit", group: "people", label: "Edit their team's records", implies: ["team_view"], scope: "owner" },
   { id: "leave_approve", group: "people", label: "Approve leave", hint: "For their own team only.", implies: ["team_view"] },
   { id: "attendance_approve", group: "people", label: "Approve attendance fixes", implies: ["team_view"] },
-  { id: "people_directory", group: "people", label: "Look up colleagues", hint: "Names, roles and contact details." },
+  { id: "people_directory", group: "people", label: "Look up colleagues", hint: "Names, roles and contact details.", scope: "owner" },
 
   // ---- organisation ----
-  { id: "org_view", group: "org", label: "See the org chart" },
-  { id: "org_manage", group: "org", label: "Change departments and reporting lines", sensitive: true, implies: ["org_view"] },
-  { id: "employee_view", group: "org", label: "See the employee list" },
-  { id: "employee_edit", group: "org", label: "Add and edit employees", sensitive: true, implies: ["employee_view"] },
+  { id: "org_view", group: "org", label: "See the org chart", scope: "owner" },
+  { id: "org_manage", group: "org", label: "Change departments and reporting lines", sensitive: true, implies: ["org_view"], scope: "owner" },
+  { id: "employee_view", group: "org", label: "See the employee list", scope: "owner" },
+  { id: "employee_edit", group: "org", label: "Add and edit employees", sensitive: true, implies: ["employee_view"], scope: "owner" },
 
   // ---- administration ----
-  { id: "access_manage", group: "admin", label: "Grant and revoke access", hint: "They can only ever pass on what they hold themselves.", sensitive: true },
-  { id: "business_settings", group: "admin", label: "Change business settings", sensitive: true },
-  { id: "billing", group: "admin", label: "Billing", hint: "Never delegated — the account owner only.", sensitive: true },
+  { id: "access_manage", group: "admin", label: "Grant and revoke access", hint: "They can only ever pass on what they hold themselves.", sensitive: true, scope: "owner" },
+  { id: "business_settings", group: "admin", label: "Change business settings", sensitive: true, scope: "owner" },
+  { id: "billing", group: "admin", label: "Billing", hint: "Never delegated — the account owner only.", sensitive: true, scope: "owner" },
 ];
 
 export const PERMISSION_IDS = PERMISSIONS.map((p) => p.id);
@@ -120,6 +131,17 @@ export const permissionLabel = (id: string) => BY_ID[id]?.label || id;
 
 /** Never handed to anyone but the owner, whoever asks. */
 export const NEVER_DELEGATED = ["salary_edit", "billing"];
+
+/** Permissions that gate an employee-facing route — the ones worth offering. */
+export const PORTAL_PERMISSIONS = PERMISSIONS.filter((p) => p.scope !== "owner").map((p) => p.id);
+
+/** Owner-dashboard permissions — hidden from the employee picker. */
+export const OWNER_PERMISSIONS = PERMISSIONS.filter((p) => p.scope === "owner").map((p) => p.id);
+
+/** Is this permission worth offering to an employee at all? */
+export function isGrantable(id: string): boolean {
+  return BY_ID[id]?.scope !== "owner";
+}
 
 // ---------------------------------------------------------------- implication
 

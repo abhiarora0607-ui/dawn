@@ -506,6 +506,134 @@ console.log("\n[18] Rejected payslips return to draft, and only drafts are edita
   if (bad === 0) pass("rejection round-trips and only drafts can change");
 }
 
+// ---- 19. APPROVAL AUTHORITY REQUIRES THE PERMISSION (V48b) ------------------
+// The hole this closes: a lead could approve their team's requests merely by
+// having a team, permission or not. Now holding the approval permission is
+// required, and a request escalates up the tree — past the subject, past
+// anyone lacking the permission — to the first holder, admin as backstop.
+console.log("\n[19] Approvals require the permission and can escalate");
+{
+  let bad = 0;
+  const appr = read("lib/approvals.ts");
+
+  // canDecideWith must require the permission and DENY when it's absent.
+  const cdw = appr.slice(appr.indexOf("export function canDecideWith"), appr.indexOf("export function escalateApprover"));
+  if (!/if \(!ctx\.permissions\.includes\(permission\)\)\s*\{\s*return \{ ok: false/.test(cdw)) {
+    fail("canDecideWith must return {ok:false} when the permission is missing"); bad++;
+  }
+  if (/ctx\.org\.myTeam\.length > 0/.test(appr) && /team_edit.*myTeam\.length/.test(appr)) {
+    fail("the 'has a team is enough' hole is still open"); bad++;
+  }
+  // The escalation must skip the subject and climb.
+  if (!/escalateApprover/.test(appr)) { fail("no escalation walk exists"); bad++; }
+  if (!/is_admin \|\| person\.is_owner/.test(appr)) {
+    fail("escalation must treat admin/owner as the backstop"); bad++;
+  }
+  if (!/seen\.has\(cur\)/.test(appr)) {
+    fail("escalation must guard against a reports_to cycle"); bad++;
+  }
+
+  // Attendance fixes must use their own permission, not default to leave.
+  const att = read("app/api/attendance/requests/route.ts");
+  if (!/attendance_approve/.test(att)) {
+    fail("attendance fixes don't require attendance_approve"); bad++;
+  }
+  if (bad === 0) pass("approval needs the permission, escalates, and can't loop");
+}
+
+// ---- 20. SALARY CHANGES CAN'T SELF-APPROVE (V48b) ---------------------------
+// A lead may propose a salary change; finance or admin must approve it before
+// it takes effect. The proposer can never be the approver — the same
+// maker-checker split as payroll. Finance and admin edit directly because they
+// ARE the authority.
+console.log("\n[20] Salary changes need a second hand");
+{
+  let bad = 0;
+  const auth = read("lib/salary-authority.ts");
+  if (!/meId === proposerId/.test(auth)) {
+    fail("nothing stops someone approving their own salary proposal"); bad++;
+  }
+  const route = read("app/api/salary-change/route.ts");
+  // The write to the real salary must happen ONLY on approve, never on propose.
+  const proposeBlock = route.slice(route.indexOf('action === "propose"'), route.indexOf('action === "approve"'));
+  if (/monthly_salary:/.test(proposeBlock)) {
+    fail("proposing a change writes the salary directly — it must wait for approval"); bad++;
+  }
+  if (!/canApproveSalaryChange/.test(route)) {
+    fail("the approve path doesn't check approval authority"); bad++;
+  }
+  // A lead proposing for themselves must be refused.
+  if (!/employeeId === appr\.meId/.test(route)) {
+    fail("a lead could propose a change to their own salary"); bad++;
+  }
+  if (bad === 0) pass("salary changes are proposed and approved by different hands");
+}
+
+// ---- 21. EVERY PORTAL PERMISSION IS ENFORCED SOMEWHERE (V48b) ---------------
+// The catalogue's own stated principle: "an unenforced permission is a lie told
+// to whoever grants it." A permission marked portal-scope must be checked by
+// some route — via guardEmployee, hasPermission, canDecideWith, or an explicit
+// includes(). Owner-scope permissions are exempt: the owner holds them by
+// definition and they gate dashboard actions, not employee routes.
+console.log("\n[21] Every grantable permission actually gates something");
+{
+  let bad = 0;
+  const perms = read("lib/permissions.ts");
+
+  // Collect portal-scope permission ids (scope !== "owner").
+  const allIds = [...perms.matchAll(/\{ id: "([a-z_]+)", group: "[a-z]+"/g)].map((m) => m[1]);
+  const ownerIds = new Set(
+    [...perms.matchAll(/\{ id: "([a-z_]+)"[^}]*scope: "owner"/g)].map((m) => m[1]),
+  );
+  const portalIds = allIds.filter((id) => !ownerIds.has(id));
+
+  // Everything a route ENFORCES — the actual guard calls, not permission lists
+  // that appear in role templates or default grants. A permission named only in
+  // roles.ts or a DEFAULT_ list is granted, not enforced.
+  let checked = "";
+  for (const f of files.filter((f) => f.startsWith("app/api"))) {
+    checked += read(f);
+  }
+  // Guard patterns that constitute real enforcement.
+  const guardIds = new Set();
+  for (const re of [
+    /guardEmployee\("([a-z_]+)"\)/g,
+    /hasPermission\([^,]+, "([a-z_]+)"\)/g,
+    /permissions\.includes\("([a-z_]+)"\)/g,
+    /canDecideWith\([^,]+,[^,]+, "([a-z_]+)"\)/g,
+    /requireArea\([^,]+,[^,]+,[^,]+, "([a-z_]+)"\)/g,
+  ]) {
+    for (const m of checked.matchAll(re)) guardIds.add(m[1]);
+  }
+  // Permissions chosen into a variable then checked: `const needed = ... "x" ...`
+  // followed by hasPermission(ctx, needed). Count the literals in such assigns.
+  for (const m of checked.matchAll(/const needed = [^;]*"([a-z_]+)"[^;]*"([a-z_]+)"/g)) {
+    if (/hasPermission\(ctx, needed\)/.test(checked)) { guardIds.add(m[1]); guardIds.add(m[2]); }
+  }
+  // canDecideFor delegates to a fixed permission inside approvals.ts. If a route
+  // calls it, that permission is enforced.
+  const apprLib = read("lib/approvals.ts");
+  if (/canDecideFor/.test(checked)) {
+    for (const m of apprLib.matchAll(/canDecideWith\(ctx, subjectId, "([a-z_]+)"\)/g)) guardIds.add(m[1]);
+  }
+
+  // Some permissions are enforced through migration aliases (an old name maps
+  // to the new one, and the route checks the old). Treat the alias target as
+  // enforced too.
+  const aliasTargets = new Set();
+  for (const m of perms.matchAll(/([a-z_]+): \["([a-z_,\s"]+)"\]/g)) {
+    if (guardIds.has(m[1])) for (const t of m[2].split(/",\s*"/)) aliasTargets.add(t.replace(/"/g, ""));
+  }
+
+  for (const id of portalIds) {
+    if (!guardIds.has(id) && !aliasTargets.has(id)) {
+      fail(`portal permission "${id}" is granted but never enforced by a route guard`);
+      bad++;
+    }
+  }
+  if (bad === 0) pass(`all ${portalIds.length} grantable permissions gate a real route`);
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

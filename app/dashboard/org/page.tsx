@@ -8,11 +8,12 @@
 
 import { useEffect, useState } from "react";
 import { useApi } from "@/lib/use-api";
+import { AccessReview } from "@/components/AccessReview";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { ToastProvider, useToast } from "@/components/Toast";
 import { OrgTree } from "@/components/OrgTree";
-import { Loader2, Network, Building2, Plus, Trash2, Users } from "lucide-react";
+import { Loader2, Network, Building2, Plus, Trash2, Users, ShieldCheck } from "lucide-react";
 
 export default function OrgPage() {
   return (
@@ -26,7 +27,7 @@ export default function OrgPage() {
 }
 
 function Inner() {
-  const [tab, setTab] = useState<"tree" | "reporting" | "departments">("tree");
+  const [tab, setTab] = useState<"tree" | "reporting" | "departments" | "access">("tree");
   const state = useApi<any>("/api/org");
   const d = state.data;
   function load() { state.retry(); }
@@ -65,7 +66,7 @@ function Inner() {
       ) : (
         <>
           <div className="flex gap-1 border-b border-navy-line overflow-x-auto">
-            {([["tree", "Chart", Network], ["reporting", "Reporting lines", Users], ["departments", "Departments", Building2]] as const)
+            {([["tree", "Chart", Network], ["reporting", "Reporting lines", Users], ["departments", "Departments", Building2], ["access", "Access", ShieldCheck]] as const)
               .filter(([id]) => id !== "departments" || d.complexity?.showDepartments)
               .map(([id, label, Icon]) => (
                 <button key={id} onClick={() => setTab(id as any)}
@@ -78,6 +79,7 @@ function Inner() {
           {tab === "tree" && <OrgTree nodes={d.nodes} roots={d.roots} />}
           {tab === "reporting" && <Reporting d={d} onChange={load} />}
           {tab === "departments" && <Departments onChange={load} />}
+          {tab === "access" && <AccessReview />}
         </>
       )}
     </div>

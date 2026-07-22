@@ -9,8 +9,7 @@
 import { useState } from "react";
 import { useApi } from "@/lib/use-api";
 import {
-  Loader2, Phone, Mail, Check, X, AlertTriangle, Inbox, Users,
-} from "lucide-react";
+  Loader2, Phone, Mail, Check, X, AlertTriangle, Inbox, Users, Clock } from "lucide-react";
 
 const PRESENCE: Record<string, string> = {
   "In today": "pill-green", "Half day": "pill-amber", "On leave": "pill-sky",
@@ -30,6 +29,7 @@ function ApiError({ error, onRetry }: { error: string; onRetry: () => void }) {
 
 export function TeamMyTeam() {
   const [view, setView] = useState<"people" | "requests">("people");
+  const [proposeFor, setProposeFor] = useState<any>(null);
   // Was: fetch().then(setD).catch(() => {}) — on a server error the response
   // was {error}, `!d` was false, and it fell straight through to d.team.map(),
   // white-screening the tab. The hook returns an error state instead.
@@ -91,6 +91,12 @@ export function TeamMyTeam() {
                 </div>
               )}
 
+              {d.canProposeSalary && p.salary != null && (
+                <button onClick={() => setProposeFor(p)} className="btn btn-quiet btn-sm mt-2">
+                  Propose salary change
+                </button>
+              )}
+
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
                 {p.hours && Number(p.hours) > 0 && <span className="t-micro text-muted">{p.hours}h today</span>}
                 {p.flagged && (
@@ -115,6 +121,59 @@ export function TeamMyTeam() {
       ) : (
         <Requests onChange={state.retry} />
       )}
+
+      {proposeFor && (
+        <ProposeSalarySheet person={proposeFor} onClose={() => setProposeFor(null)}
+          onDone={() => { setProposeFor(null); state.retry(); }} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * A lead proposing a salary change for someone on their team.
+ *
+ * It doesn't take effect here — it goes to finance or an admin to approve. The
+ * lead is told that plainly, so nobody expects the number to change on submit.
+ */
+function ProposeSalarySheet({ person, onClose, onDone }: { person: any; onClose: () => void; onDone: () => void }) {
+  const [amount, setAmount] = useState(String(person.salary || ""));
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function submit() {
+    setBusy(true); setErr("");
+    const res = await fetch("/api/salary-change", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "propose", employeeId: person.id, proposedSalary: Number(amount), reason }),
+    });
+    const out = await res.json();
+    setBusy(false);
+    if (out.ok) onDone();
+    else setErr(out.error || "Couldn't send that.");
+  }
+
+  return (
+    <div className="dawn-scrim z-50" onClick={onClose}>
+      <div className="dawn-sheet" onClick={(e) => e.stopPropagation()}>
+        <p className="font-semibold text-navy">Propose a change for {person.name}</p>
+        <p className="t-small text-muted mt-1">
+          This goes to finance for approval — it won&apos;t change until they sign off.
+        </p>
+        <label className="t-label block mt-3 mb-1">New monthly salary</label>
+        <input type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} className="inp" />
+        <label className="t-label block mt-3 mb-1">Reason</label>
+        <input value={reason} onChange={(e) => setReason(e.target.value)}
+          placeholder="Took on team-lead duties" className="inp" />
+        {err && <p className="t-small text-red-600 mt-2">{err}</p>}
+        <div className="flex gap-2 mt-4">
+          <button onClick={submit} disabled={busy || !(Number(amount) >= 0)} className="btn btn-primary btn-sm flex-1">
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send to finance"}
+          </button>
+          <button onClick={onClose} disabled={busy} className="btn btn-quiet btn-sm flex-1">Cancel</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -170,14 +229,23 @@ function Requests({ onChange }: { onChange: () => void }) {
             {r.to_date !== r.from_date && ` – ${new Date(r.to_date).toLocaleDateString()}`}
           </p>
           {r.reason && <p className="t-small text-muted mt-1">&ldquo;{r.reason}&rdquo;</p>}
-          <div className="flex gap-2 mt-3">
-            <button onClick={() => decide("leave", r.id, "approve")} disabled={!!busy} className="btn btn-primary btn-sm flex-1">
-              {busy === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Approve
-            </button>
-            <button onClick={() => decide("leave", r.id, "reject")} disabled={!!busy} className="btn btn-quiet btn-sm flex-1">
-              <X className="w-3.5 h-3.5" /> Reject
-            </button>
-          </div>
+          {r.actionable ? (
+            <div className="flex gap-2 mt-3">
+              <button onClick={() => decide("leave", r.id, "approve")} disabled={!!busy} className="btn btn-primary btn-sm flex-1">
+                {busy === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Approve
+              </button>
+              <button onClick={() => decide("leave", r.id, "reject")} disabled={!!busy} className="btn btn-quiet btn-sm flex-1">
+                <X className="w-3.5 h-3.5" /> Reject
+              </button>
+            </div>
+          ) : (
+            // Visible but not actionable: it's escalated past this person to
+            // someone with approval permission. Shown so nothing seems to
+            // vanish, but greyed because they can't act on it.
+            <p className="t-micro text-muted mt-3 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" /> Waiting on approval from your manager
+            </p>
+          )}
         </div>
       ))}
 

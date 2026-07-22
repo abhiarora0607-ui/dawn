@@ -3,7 +3,7 @@
 // (employee_id is stamped server-side, never trusted from the client).
 
 import { NextResponse } from "next/server";
-import { guardEmployee, empHeaders } from "@/lib/employee-auth";
+import { guardEmployee, empHeaders, hasPermission } from "@/lib/employee-auth";
 import { cleanName, cleanPhone, cleanEmail } from "@/lib/validate";
 import { audit } from "@/lib/audit";
 
@@ -83,8 +83,8 @@ export async function PATCH(req: Request) {
     const owned = (await (await fetch(`${url}/rest/v1/contacts?id=eq.${b.id}&uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&select=id,stage,name&limit=1`, { headers: empHeaders(key), cache: "no-store" })).json())?.[0];
     if (!owned) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
-    const needed = owned.stage === "Customer (Won)" ? "edit_customers" : "edit_leads";
-    if (!ctx.permissions.includes(needed)) {
+    const needed = owned.stage === "Customer (Won)" ? "customers_edit" : "leads_edit";
+    if (!hasPermission(ctx, needed)) {
       return NextResponse.json({ error: "You don't have permission to edit this." }, { status: 403 });
     }
 

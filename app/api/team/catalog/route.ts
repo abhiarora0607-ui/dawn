@@ -8,7 +8,7 @@ import { guardEmployee, empHeaders } from "@/lib/employee-auth";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const g = await guardEmployee("orders");
+  const g = await guardEmployee("catalogue");
   if (!g.ok) return NextResponse.json({ items: [] });
   const { ctx, url, key } = g;
   try {

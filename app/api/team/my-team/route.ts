@@ -36,6 +36,13 @@ export async function GET() {
     // different and stays behind salary_view: managing four packers is not a
     // business reason to know what they earn.
     const canSeeSalary = org.isAdmin || hasPermission(ctx, "salary_view");
+    // A lead who holds salary_edit but isn't finance/admin can PROPOSE a change
+    // for their team; it waits for finance to approve. Finance/admin editing
+    // happens on the dashboard, not here.
+    const canProposeSalary = !org.isAdmin
+      && hasPermission(ctx, "salary_edit")
+      && !hasPermission(ctx, "expense_approve")
+      && !hasPermission(ctx, "payment_record");
 
     const [people, days, leaveMap, pendingLeave, pendingFixes, sales, expenses] = await Promise.all([
       fetch(`${url}/rest/v1/employees?uid=eq.${ctx.uid}&id=in.(${team.join(",")})&select=id,name,job_title,phone,email,status&order=name.asc`,
@@ -105,6 +112,7 @@ export async function GET() {
       today,
       month: today.slice(0, 7),
       canSeeSalary,
+      canProposeSalary,
       totals: {
         // Split so a lead can see their own contribution against the team's,
         // rather than one blended figure that hides both.

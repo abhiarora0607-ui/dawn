@@ -78,7 +78,7 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  const g = await guardEmployee("edit_orders");
+  const g = await guardEmployee("orders_edit");
   if (!g.ok) return NextResponse.json({ error: g.error }, { status: g.status });
   const { ctx, url, key } = g;
   try {

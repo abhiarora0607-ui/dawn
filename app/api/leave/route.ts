@@ -70,7 +70,15 @@ export async function GET(req: Request) {
   const pending = await fetch(`${url}/rest/v1/leave_requests?uid=eq.${uid}&status=eq.pending${scope}&select=id`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
 
   return NextResponse.json({
-    requests: (Array.isArray(rows) ? rows : []).map((r: any) => ({ ...r, employee_name: nameById[r.employee_id] || "Unknown", label: LEAVE_LABEL[r.code] || r.code })),
+    requests: (Array.isArray(rows) ? rows : []).map((r: any) => ({
+      ...r,
+      employee_name: nameById[r.employee_id] || "Unknown",
+      label: LEAVE_LABEL[r.code] || r.code,
+      // Visible to everyone up the chain; actionable only by someone who holds
+      // the permission. A lead without leave_approve still SEES their team's
+      // requests — they've simply escalated past them.
+      actionable: canDecideFor(c.appr, r.employee_id).ok,
+    })),
     pendingCount: Array.isArray(pending) ? pending.length : 0,
   });
 }

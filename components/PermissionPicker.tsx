@@ -51,7 +51,13 @@ export function PermissionPicker({
 
   const byGroup = useMemo(() => {
     const m: Record<string, typeof PERMISSIONS> = {};
-    for (const p of PERMISSIONS) (m[p.group] ||= []).push(p);
+    // Only portal-scope permissions are offered. Owner-scope ones gate
+    // dashboard actions the owner holds by definition — showing them as
+    // employee checkboxes was the lie V48b removes.
+    for (const p of PERMISSIONS) {
+      if (p.scope === "owner") continue;
+      (m[p.group] ||= []).push(p);
+    }
     return m;
   }, []);
 

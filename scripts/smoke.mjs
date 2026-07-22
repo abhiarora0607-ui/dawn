@@ -227,6 +227,16 @@ try {
   check("operator dashboard renders before data", React.createElement(OpPage, {}));
 } catch (e) { results.push(["skip", "operator page: " + String(e).slice(0, 40)]); }
 
+try {
+  const { AccessReview } = await import("../components/AccessReview.tsx");
+  check("access review renders before data", React.createElement(AccessReview, {}));
+} catch (e) { results.push(["skip", "access review: " + String(e).slice(0, 40)]); }
+
+try {
+  const { SalaryProposals } = await import("../components/SalaryProposals.tsx");
+  check("salary proposals: renders before data", React.createElement(SalaryProposals, {}));
+} catch (e) { results.push(["skip", "salary proposals: " + String(e).slice(0, 40)]); }
+
 console.log(JSON.stringify(results));
 `;
   writeFileSync(`${STAGE}/run.mjs`, harness);

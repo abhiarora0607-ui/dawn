@@ -7,7 +7,7 @@
 // day is always traceable back to who asked, why, and who approved it.
 
 import { NextResponse } from "next/server";
-import { resolveApprover, canDecideFor, queueFilter } from "@/lib/approvals";
+import { resolveApprover, canDecideFor, canDecideWith, queueFilter } from "@/lib/approvals";
 import { recomputeDay, getAttSettings } from "@/lib/attendance-db";
 import { IST_OFFSET_MIN, hhmmToMinutes } from "@/lib/attendance";
 import { audit } from "@/lib/audit";
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     // Approving a fix rewrites what a day's attendance says, which is why the
     // check is authority over the person rather than mere visibility — and why
     // it can never be your own.
-    const allowed = canDecideFor(appr, rr.employee_id);
+    const allowed = canDecideWith(appr, rr.employee_id, "attendance_approve");
     if (!allowed.ok) return NextResponse.json({ error: allowed.why }, { status: 403 });
 
     if (b.action === "reject") {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
 import { useBrief } from "@/lib/use-brief";
+import { SalaryProposals } from "@/components/SalaryProposals";
 import { ToastProvider, useToast, ConfirmDialog } from "@/components/Toast";
 import { Loader2, Plus, X, Trash2, Users, Pencil, KeyRound, CalendarClock , Eye } from "lucide-react";
 import { TeamAccessModal } from "@/components/TeamAccessModal";
@@ -213,6 +214,8 @@ function EmployeesInner() {
           <div><h1 className="font-display font-semibold text-2xl text-navy">Employees</h1><p className="text-muted text-sm mt-1">Your team. Active salaries auto-post as monthly expenses. Use <span className="font-medium text-navy/70">Login</span> on any row to give someone their own staff portal sign-in.</p></div>
           <button onClick={() => setModal({ open: true, emp: null })} className="flex items-center gap-2 bg-navy text-white font-medium px-4 py-2 rounded-xl hover:bg-navy-soft shrink-0"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span></button>
         </div>
+
+        <SalaryProposals />
 
         {loading ? (
           <div className="p-12 flex items-center justify-center text-muted"><Loader2 className="w-6 h-6 animate-spin mr-3" /> Loading…</div>
