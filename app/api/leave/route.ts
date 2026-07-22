@@ -10,7 +10,7 @@
 import { NextResponse } from "next/server";
 import { resolveApprover, canDecideFor, queueFilter } from "@/lib/approvals";
 import { getAttSettings, recomputeDay, getHolidays } from "@/lib/attendance-db";
-import { getLeaveTypes, getBalances, adjustBalance } from "@/lib/leave-db";
+import { getLeaveTypes, getBalances, getBalancesBulk, adjustBalance } from "@/lib/leave-db";
 import { LEAVE_LABEL, LEAVE_CODES, availableOf, dayRate, CURRENT_YEAR } from "@/lib/leave";
 import { dateRange, istDate } from "@/lib/attendance";
 import { audit } from "@/lib/audit";
@@ -55,10 +55,12 @@ export async function GET(req: Request) {
     const types = await getLeaveTypes(url, key, uid);
     const visible = c.appr.org.visible;
     const scoped = visible === "all" ? EMP : EMP.filter((e: any) => (visible as string[]).includes(e.id));
-    const rows = await Promise.all(scoped.map(async (e: any) => ({
+    // V48c: one query for every employee's balances, not one per employee.
+    const balancesBy = await getBalancesBulk(url, key, uid, scoped.map((e: any) => e.id), year, types);
+    const rows = scoped.map((e: any) => ({
       id: e.id, name: e.name, role: e.role,
-      balances: await getBalances(url, key, uid, e.id, year, types),
-    })));
+      balances: balancesBy[e.id] || [],
+    }));
     return NextResponse.json({ year, types: types.filter((t) => t.enabled).map((t) => ({ code: t.code, label: LEAVE_LABEL[t.code] })), rows });
   }
 

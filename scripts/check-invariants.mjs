@@ -634,6 +634,41 @@ console.log("\n[21] Every grantable permission actually gates something");
   if (bad === 0) pass(`all ${portalIds.length} grantable permissions gate a real route`);
 }
 
+// ---- 22. NO PER-EMPLOYEE QUERY LOOPS IN HOT PATHS (V48c) --------------------
+// Payroll generation and the balances screen both fetched once per employee —
+// 4×N and 1×N round-trips. At fifty people that's hundreds of sequential
+// requests for one action. They're now batched; this stops the pattern
+// creeping back into those two paths.
+console.log("\n[22] Payroll and balances don't query per employee");
+{
+  let bad = 0;
+  const payroll = read("app/api/payroll/route.ts");
+  // The generation loop must contain no fetch — everything is hoisted or
+  // deferred to a bulk write.
+  const genStart = payroll.indexOf("for (const e of Array.isArray(employees)");
+  const genEnd = payroll.indexOf("await audit({ uid, action: \"payroll.generate\"");
+  if (genStart >= 0 && genEnd > genStart) {
+    const loop = payroll.slice(genStart, genEnd);
+    // fetch inside the for-loop body (before the bulk-insert section) is the bug
+    const loopBody = loop.slice(0, loop.indexOf("// One bulk insert"));
+    if (/fetch\(/.test(loopBody)) {
+      fail("payroll generation still fetches inside the per-employee loop"); bad++;
+    }
+  }
+  // The balances view must use the bulk loader, not getBalances in a map.
+  const leave = read("app/api/leave/route.ts");
+  // The N+1 signature: getBalances (singular) called inside a .map over the
+  // scoped employees. Matching the call inside an async map is robust to the
+  // bulk import still being present.
+  if (/\.map\(async[^{]*=>[^}]*getBalances\(url/.test(leave.replace(/\s+/g, " "))) {
+    fail("balances view still calls getBalances per employee inside a map"); bad++;
+  }
+  if (!/getBalancesBulk\(url, key, uid, scoped/.test(leave)) {
+    fail("balances view doesn't use the bulk loader for the scoped set"); bad++;
+  }
+  if (bad === 0) pass("hot paths batch their queries");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

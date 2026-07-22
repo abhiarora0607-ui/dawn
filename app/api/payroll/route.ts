@@ -152,20 +152,32 @@ export async function POST(req: Request) {
         { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
       const have = new Set((Array.isArray(existing) ? existing : []).map((s: any) => s.employee_id));
 
+      // V48c: all approved-unpaid bonuses and encashments for the WHOLE company
+      // in two queries, indexed by employee — instead of two queries per person.
+      // At fifty employees this replaces a hundred round-trips with two.
+      const [allBonuses, allEncash] = await Promise.all([
+        fetch(`${url}/rest/v1/bonus_requests?uid=eq.${uid}&status=eq.approved&paid_in_month=is.null&select=id,employee_id,amount,reason`,
+          { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+        fetch(`${url}/rest/v1/encashment_requests?uid=eq.${uid}&status=eq.approved&paid_in_month=is.null&select=id,employee_id,days,amount,code`,
+          { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+      ]);
+      const bonusBy: Record<string, any[]> = {};
+      for (const x of Array.isArray(allBonuses) ? allBonuses : []) (bonusBy[x.employee_id] ||= []).push(x);
+      const encashBy: Record<string, any[]> = {};
+      for (const x of Array.isArray(allEncash) ? allEncash : []) (encashBy[x.employee_id] ||= []).push(x);
+
       let made = 0;
+      // Payslips and their lines are collected, then written in two bulk
+      // inserts after the loop rather than two writes per person.
+      const slipsToInsert: any[] = [];
+      const linesByEmployee: Record<string, any[]> = {};
       for (const e of Array.isArray(employees) ? employees : []) {
         if (have.has(e.id)) continue;                       // never a second slip for one month
         if (e.joining_date && e.joining_date.slice(0, 7) > month) continue;   // not employed yet
 
-        // Approved-but-unpaid extras get folded in. They're claimed by this
-        // payslip only when it's actually paid, so a cancelled run doesn't
-        // silently consume someone's bonus.
-        const [bonuses, encash] = await Promise.all([
-          fetch(`${url}/rest/v1/bonus_requests?uid=eq.${uid}&employee_id=eq.${e.id}&status=eq.approved&paid_in_month=is.null&select=id,amount,reason`,
-            { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
-          fetch(`${url}/rest/v1/encashment_requests?uid=eq.${uid}&employee_id=eq.${e.id}&status=eq.approved&paid_in_month=is.null&select=id,days,amount,code`,
-            { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
-        ]);
+        // From the hoisted bulk reads — no per-employee round-trip.
+        const bonuses = bonusBy[e.id] || [];
+        const encash = encashBy[e.id] || [];
 
         const comm = commissionFor(
           {
@@ -191,26 +203,41 @@ export async function POST(req: Request) {
           joiningDate: e.joining_date, month,
         });
 
-        const slipRes = await fetch(`${url}/rest/v1/payslips`, {
-          method: "POST", headers: H(key, { Prefer: "return=representation" }),
-          body: JSON.stringify({
-            uid, employee_id: e.id, month, status: "draft",
-            base_amount: built.totals.base, additions: built.totals.additions,
-            deductions: built.totals.deductions, net_amount: built.totals.net,
-            commission_base: comm.base, unpaid_days: unpaidBy[e.id] || 0,
-          }),
-        }).then((r) => r.json()).catch(() => null);
-
-        const slip = Array.isArray(slipRes) ? slipRes[0] : slipRes;
-        if (!slip?.id) continue;
-
-        await fetch(`${url}/rest/v1/payslip_lines`, {
-          method: "POST", headers: H(key, { Prefer: "return=minimal" }),
-          body: JSON.stringify(built.lines.map((l) => ({
-            uid, payslip_id: slip.id, kind: l.kind, label: l.label, amount: l.amount, source_id: l.sourceId || null,
-          }))),
+        // Collected, not written yet — the bulk inserts happen after the loop.
+        slipsToInsert.push({
+          uid, employee_id: e.id, month, status: "draft",
+          base_amount: built.totals.base, additions: built.totals.additions,
+          deductions: built.totals.deductions, net_amount: built.totals.net,
+          commission_base: comm.base, unpaid_days: unpaidBy[e.id] || 0,
         });
+        // Lines can't reference the payslip id until it exists, so they're
+        // keyed by employee here and stitched to their payslip after insert.
+        linesByEmployee[e.id] = built.lines.map((l) => ({
+          uid, kind: l.kind, label: l.label, amount: l.amount, source_id: l.sourceId || null,
+        }));
         made++;
+      }
+
+      // One bulk insert for every payslip, returning the generated ids.
+      if (slipsToInsert.length > 0) {
+        const inserted = await fetch(`${url}/rest/v1/payslips`, {
+          method: "POST", headers: H(key, { Prefer: "return=representation" }),
+          body: JSON.stringify(slipsToInsert),
+        }).then((r) => r.json()).catch(() => []);
+
+        // Stitch each payslip's id onto its lines, then one bulk insert for all.
+        const allLines: any[] = [];
+        for (const slip of Array.isArray(inserted) ? inserted : []) {
+          for (const line of linesByEmployee[slip.employee_id] || []) {
+            allLines.push({ ...line, payslip_id: slip.id });
+          }
+        }
+        if (allLines.length > 0) {
+          await fetch(`${url}/rest/v1/payslip_lines`, {
+            method: "POST", headers: H(key, { Prefer: "return=minimal" }),
+            body: JSON.stringify(allLines),
+          }).catch(() => {});
+        }
       }
       await audit({ uid, action: "payroll.generate", entity: "payslips", entityId: month, meta: { made } });
       return NextResponse.json({ ok: true, made, note: made === 0 ? "Everyone already has a payslip for this month." : `${made} payslip${made === 1 ? "" : "s"} drafted.` });

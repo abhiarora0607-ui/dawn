@@ -79,6 +79,54 @@ export async function getBalances(
   });
 }
 
+/**
+ * Balances for MANY employees in a single query.
+ *
+ * The per-employee getBalances is fine for one person; the balances screen
+ * called it inside a map — one round-trip each. V48c: one query for the whole
+ * set, same per-code computation in memory.
+ */
+export async function getBalancesBulk(
+  url: string, key: string, uid: string, employeeIds: string[], year: number, types?: LeaveType[],
+): Promise<Record<string, Balance[]>> {
+  const T = types || (await getLeaveTypes(url, key, uid));
+  const enabled = T.filter((t) => t.enabled);
+  if (employeeIds.length === 0) return {};
+
+  let rows: any[] = [];
+  try {
+    rows = await fetch(
+      `${url}/rest/v1/leave_balances?uid=eq.${uid}&year=eq.${year}&employee_id=in.(${employeeIds.join(",")})&select=*`,
+      { headers: H(key), cache: "no-store" },
+    ).then((r) => r.json());
+  } catch { rows = []; }
+
+  const byEmp: Record<string, Record<string, any>> = {};
+  for (const r of Array.isArray(rows) ? rows : []) {
+    (byEmp[r.employee_id] ||= {})[r.code] = r;
+  }
+
+  const out: Record<string, Balance[]> = {};
+  for (const id of employeeIds) {
+    const byCode = byEmp[id] || {};
+    out[id] = enabled.map((t) => {
+      const b = byCode[t.code] || {};
+      const infinite = t.accrual === "none";
+      return {
+        code: t.code,
+        accrued: Number(b.accrued || 0),
+        used: Number(b.used || 0),
+        carried_in: Number(b.carried_in || 0),
+        granted: Number(b.granted || 0),
+        encashed: Number(b.encashed || 0),
+        available: availableOf(b, infinite),
+        infinite,
+      };
+    });
+  }
+  return out;
+}
+
 /** Move a balance. Positive `usedDelta` consumes, negative returns. */
 export async function adjustBalance(
   url: string, key: string, uid: string, employeeId: string, code: string, year: number,
