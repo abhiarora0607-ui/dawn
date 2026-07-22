@@ -3,6 +3,7 @@
 // a ready-to-post caption, a drafted reply, or a queued post. This closes
 // the loop so the user doesn't leave Dawn to do the work manually.
 
+import { parseAiJson } from "@/lib/ai-prompt";
 import { NextResponse } from "next/server";
 import { getProviderAsync, getProvider } from "@/lib/data-provider";
 import { getBrandVoice, brandVoicePrompt } from "@/lib/brand-voice";
@@ -50,7 +51,7 @@ RULES: make 'ready' genuinely usable and on-brand, tied to their products/revenu
       if (!res.ok) continue;
       const d = await res.json();
       const t = d?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const parsed = JSON.parse(t.replace(/```json|```/g, "").trim());
+      const parsed = parseAiJson<any>(t, null);
       if (parsed?.ready) return NextResponse.json(parsed);
     } catch { continue; }
   }

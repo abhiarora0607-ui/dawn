@@ -7,6 +7,7 @@
 // ────────────────────────────────────────────────────────────
 
 import { AccountSnapshot, CompetitorSignal } from "./data-provider";
+import { parseAiJson } from "./ai-prompt";
 
 export type BriefAction = {
   priority: "high" | "medium" | "low";
@@ -120,8 +121,7 @@ D2C GROWTH-MARKETER RULES:
       if (!res.ok) continue; // try next model (e.g. 404 on a retired name)
       const data = await res.json();
       const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-      const clean = text.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
+      const parsed = parseAiJson<any>(text, null);
       if (parsed && Array.isArray(parsed.actions)) {
         return { ...parsed, source: "ai" as const };
       }

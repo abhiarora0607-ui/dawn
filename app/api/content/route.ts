@@ -2,6 +2,7 @@
 // Generates content ideas for the connected account using Gemini
 // (free tier) with a deterministic fallback so it always works.
 
+import { parseAiJson } from "@/lib/ai-prompt";
 import { NextResponse } from "next/server";
 import { requireArea } from "@/lib/entitlements";
 import { getProviderAsync, getProvider } from "@/lib/data-provider";
@@ -46,8 +47,7 @@ STRATEGIST RULES:
       if (!res.ok) continue;
       const data = await res.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-      const clean = text.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
+      const parsed = parseAiJson<any[]>(text, []);
       if (Array.isArray(parsed) && parsed.length) return parsed;
     } catch {
       continue;
@@ -114,7 +114,7 @@ RULES: be concrete and executable — a creator should be able to follow shotPla
       if (!res.ok) continue;
       const d = await res.json();
       const t = d?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const parsed = JSON.parse(t.replace(/```json|```/g, "").trim());
+      const parsed = parseAiJson<any>(t, null);
       if (parsed?.caption) return NextResponse.json(parsed);
     } catch { continue; }
   }

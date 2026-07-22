@@ -1,4 +1,5 @@
 // app/api/brand-voice/route.ts
+import { DAWN_IDENTITY, JSON_ONLY, parseAiJson } from "@/lib/ai-prompt";
 import { NextResponse } from "next/server";
 import { requireArea } from "@/lib/entitlements";
 import { getBrandVoice, saveBrandVoice } from "@/lib/brand-voice";
@@ -37,7 +38,9 @@ async function detectBrandVoice(): Promise<any | null> {
     const media = await mediaRes.json();
     const captions = (media?.data || []).map((m: any) => m.caption).filter(Boolean).slice(0, 10);
 
-    const prompt = `You are a brand strategist. Analyze this Instagram creator's bio and real captions, then infer their brand voice profile. Respond with JSON only — no markdown.
+    const prompt = `${DAWN_IDENTITY}
+
+You are also a brand strategist. Analyze this Instagram creator's bio and real captions, then infer their brand voice profile from how they ACTUALLY write. ${JSON_ONLY}
 
 Bio: ${me.biography || "(none)"}
 Name: ${me.name || me.username}
@@ -66,7 +69,7 @@ RULES:
         if (!res.ok) continue;
         const d = await res.json();
         const t = d?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        const parsed = JSON.parse(t.replace(/```json|```/g, "").trim());
+        const parsed = parseAiJson<any>(t, null);
         if (parsed?.tone) return parsed;
       } catch { continue; }
     }

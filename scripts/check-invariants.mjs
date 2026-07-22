@@ -702,6 +702,53 @@ console.log("\n[23] The endpoints that bit stay typed");
   if (bad === 0) pass("payroll, my-team and leave-balances keep their contracts");
 }
 
+// ---- 24. AI FEATURES SHARE THE SAME FOUNDATION (V50) -----------------------
+// Every AI feature used to write its own identity, context block, and JSON
+// parsing inline, and they drifted — thin roles, missing context, raw
+// JSON.parse that throws a broken screen on one bad generation. V50 routes
+// them through lib/ai-prompt. This stops a feature regressing to a bespoke
+// prompt or an unguarded parse.
+console.log("\n[24] AI features share the prompt foundation");
+{
+  let bad = 0;
+  const aiRoutes = [
+    "app/api/content/route.ts",
+    "app/api/carousel/route.ts",
+    "app/api/calendar/route.ts",
+    "app/api/brand-voice/route.ts",
+  ];
+  // These also generate JSON from the model and must parse it safely, even
+  // though their prompts are deliberately specialised (persona adopts the
+  // creator's voice; the brief is revenue-framed) rather than the base identity.
+  const aiParsers = [
+    "lib/persona.ts",
+    "lib/briefing-engine.ts",
+    "app/api/analyze-image/route.ts",
+    "app/api/competitors/route.ts",
+    "app/api/action/route.ts",
+  ];
+  for (const r of [...aiRoutes, ...aiParsers]) {
+    const s = read(r);
+    if (/JSON\.parse\([^)]*replace\(\/```/.test(s)) {
+      fail(`${r} still does raw JSON.parse on model output — use parseAiJson`); bad++;
+    }
+  }
+  for (const r of aiRoutes) {
+    const s = read(r);
+    if (!/@\/lib\/ai-prompt/.test(s)) {
+      fail(`${r} doesn't use the shared ai-prompt foundation`); bad++;
+    }
+  }
+  // The foundation itself must keep its load-bearing exports.
+  const lib = read("lib/ai-prompt.ts");
+  for (const x of ["DAWN_IDENTITY", "accountContext", "parseAiJson", "JSON_ONLY"]) {
+    if (!new RegExp(`export (const|function) ${x}`).test(lib)) {
+      fail(`ai-prompt is missing ${x}`); bad++;
+    }
+  }
+  if (bad === 0) pass("AI features build on one identity, context and parser");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

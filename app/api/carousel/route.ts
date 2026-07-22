@@ -1,6 +1,7 @@
 // app/api/carousel/route.ts
 // Generates a full slide-by-slide Instagram carousel from a topic.
 
+import { DAWN_IDENTITY, JSON_ONLY, accountContext, parseAiJson } from "@/lib/ai-prompt";
 import { NextResponse } from "next/server";
 import { requireArea } from "@/lib/entitlements";
 import { getProviderAsync, getProvider } from "@/lib/data-provider";
@@ -31,10 +32,14 @@ export async function POST(req: Request) {
   const [voice, persona] = await Promise.all([getBrandVoice(), getPersona()]);
   const ctx = brandVoicePrompt(voice) + personaPrompt(persona);
 
-  const prompt = `You are Dawn — a carousel copywriter who engineers save-worthy Instagram carousels. Create a complete carousel on the given topic for this creator. Respond with JSON only — no markdown.
+  const prompt = `${DAWN_IDENTITY}
+
+You are also a carousel copywriter who engineers save-worthy Instagram carousels. Create a complete carousel on the given topic for this creator. ${JSON_ONLY}
 
 TOPIC: ${topic}
-ACCOUNT NICHE: ${account.niche}${ctx}
+
+ACCOUNT CONTEXT:
+${accountContext(account)}${ctx}
 
 Return exactly:
 {"slides":[{"n":1,"headline":"big bold text on the slide","subtext":"supporting line, optional"}],"caption":"the full post caption","hashtags":["#..."]}
@@ -43,6 +48,7 @@ RULES:
 - 5-8 slides. Slide 1 is the HOOK — it must stop the scroll and promise value. Last slide is a CTA (follow/save/share).
 - Each slide: punchy headline (what shows big), plus 1 short supporting line.
 - Content must deliver real value on the topic — teach, list, or reveal something.
+- Lean into what this audience already rewards (${account.audiencePrefers}); echo the angle of their best post where it fits.
 - Caption should expand on the carousel and drive saves.
 - Sound on-brand for this creator, never generic.`;
 
@@ -55,7 +61,7 @@ RULES:
       if (!res.ok) continue;
       const d = await res.json();
       const t = d?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const parsed = JSON.parse(t.replace(/```json|```/g, "").trim());
+      const parsed = parseAiJson<any>(t, null);
       if (parsed?.slides?.length) return NextResponse.json(parsed);
     } catch { continue; }
   }

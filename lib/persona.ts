@@ -4,6 +4,8 @@
 // every AI feature for deep personalization. The chat/comment layer
 // is structured here but only populates after Meta App Review.
 
+import { parseAiJson } from "@/lib/ai-prompt";
+
 const MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
 
 export type Persona = {
@@ -89,7 +91,7 @@ RULES: infer everything from real evidence in their captions and bio. Be specifi
         if (!res.ok) continue;
         const d = await res.json();
         const t = d?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        const parsed = JSON.parse(t.replace(/```json|```/g, "").trim());
+        const parsed = parseAiJson<any>(t, null);
         if (parsed?.identity) {
           // Cache it
           const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

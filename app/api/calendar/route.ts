@@ -2,6 +2,7 @@
 // Generates a personalized 7-day content calendar using the account's
 // niche, persona, and brand voice.
 
+import { parseAiJson } from "@/lib/ai-prompt";
 import { NextResponse } from "next/server";
 import { requireArea } from "@/lib/entitlements";
 import { getProviderAsync, getProvider } from "@/lib/data-provider";
@@ -54,7 +55,7 @@ RULES:
       if (!res.ok) continue;
       const d = await res.json();
       const t = d?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const parsed = JSON.parse(t.replace(/```json|```/g, "").trim());
+      const parsed = parseAiJson<any>(t, null);
       if (parsed?.days?.length) return NextResponse.json({ days: parsed.days.slice(0, 7) });
     } catch { continue; }
   }

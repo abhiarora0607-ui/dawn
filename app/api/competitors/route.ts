@@ -5,6 +5,7 @@
 
 import { NextResponse } from "next/server";
 import { requireArea } from "@/lib/entitlements";
+import { accountContext, DAWN_IDENTITY, parseAiJson } from "@/lib/ai-prompt";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -29,14 +30,22 @@ async function getToken(): Promise<{ token: string; igUserId: string } | null> {
   }
 }
 
-async function aiInsight(handle: string, data: any): Promise<string> {
+async function aiInsight(handle: string, data: any, self?: any): Promise<string> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return "Connect AI to see what's working for this account.";
-  const prompt = `You are Dawn — a competitive intelligence strategist for Instagram creators. You're analyzing a competitor's PUBLIC data to give this creator one sharp, actionable takeaway they can use this week. Think like a strategist, not a describer.
+  // The takeaway is only useful RELATIVE to this creator — their size, niche,
+  // and what their own audience already rewards. Without that, "post more
+  // reels" is advice for anyone; with it, it's advice for them.
+  const selfBlock = self
+    ? `\n\nTHE CREATOR YOU'RE ADVISING:\n${accountContext(self)}\n\nGround your takeaway in THEIR situation — a tactic that suits a ${self.followers?.toLocaleString?.() || ""}-follower ${self.niche} account, building on what their audience already rewards (${self.audiencePrefers}).`
+    : "";
+  const prompt = `${DAWN_IDENTITY}
 
-COMPETITOR @${handle}: ${JSON.stringify(data)}
+You are also a competitive-intelligence strategist. You're analyzing a competitor's PUBLIC data to give this creator one sharp, actionable takeaway they can use this week. Think like a strategist, not a describer.
 
-Write ONE punchy sentence (max 30 words) that identifies what's actually working for this competitor AND what the creator should specifically do about it. Be concrete — name the tactic (their posting cadence, format mix, hook style, or engagement pattern) and the move to steal. No fluff, no "they seem to be doing well."`;
+COMPETITOR @${handle}: ${JSON.stringify(data)}${selfBlock}
+
+Write ONE punchy sentence (max 30 words) that identifies what's actually working for this competitor AND what THIS creator should specifically do about it. Name the tactic (posting cadence, format mix, hook style, or engagement pattern) and the move to steal. No fluff, no "they seem to be doing well."`;
   for (const model of MODELS) {
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
@@ -96,7 +105,7 @@ RULES:
       if (!res.ok) continue;
       const d = await res.json();
       const t = d?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const parsed = JSON.parse(t.replace(/```json|```/g, "").trim());
+      const parsed = parseAiJson<any>(t, null);
       if (parsed?.suggestions?.length) {
         return NextResponse.json({ suggestions: parsed.suggestions.slice(0, 5) });
       }
@@ -128,6 +137,15 @@ export async function POST(req: Request) {
   }
   if (!handles.length) return NextResponse.json({ competitors: [] });
 
+  // The creator's own snapshot, fetched once, so every competitor takeaway is
+  // framed relative to their size, niche and what their audience rewards.
+  let self: any = null;
+  try {
+    const { getProviderAsync, getProvider } = await import("@/lib/data-provider");
+    try { self = await (await getProviderAsync()).getAccount(); }
+    catch { self = await getProvider().getAccount(); }
+  } catch { self = null; }
+
   const results = [];
   for (const handle of handles) {
     try {
@@ -152,7 +170,7 @@ export async function POST(req: Request) {
         topPostCaption: (topPost?.caption || "").slice(0, 80),
         topPostFormat: topPost?.media_type === "VIDEO" ? "Reel" : topPost?.media_type === "CAROUSEL_ALBUM" ? "Carousel" : "Image",
       };
-      const insight = await aiInsight(handle, summary);
+      const insight = await aiInsight(handle, summary, self);
       results.push({ handle, followers: bd.followers_count, posts: bd.media_count, avgEngagement: avgEng, topPost: summary.topPostCaption, topFormat: summary.topPostFormat, insight });
     } catch {
       results.push({ handle, error: "Analysis failed for this handle.", followers: null });

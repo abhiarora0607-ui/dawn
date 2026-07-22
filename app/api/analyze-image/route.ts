@@ -3,6 +3,7 @@
 // detail, then generates captions (multiple styles) and tiered hashtags.
 // Uses brand voice so captions sound like the creator.
 
+import { parseAiJson } from "@/lib/ai-prompt";
 import { NextResponse } from "next/server";
 import { requireArea } from "@/lib/entitlements";
 import { getBrandVoice, brandVoicePrompt } from "@/lib/brand-voice";
@@ -35,11 +36,7 @@ async function callGemini(parts: any[], key: string): Promise<string | null> {
 }
 
 function parseJson(text: string): any | null {
-  try {
-    return JSON.parse(text.replace(/```json|```/g, "").trim());
-  } catch {
-    return null;
-  }
+  return parseAiJson<any>(text, null);
 }
 
 export async function POST(req: Request) {
@@ -79,7 +76,7 @@ export async function POST(req: Request) {
     const vPrompt = `You are Dawn, an Instagram creative director. Write a post-ready package for a REEL (short video) for this business. ${voicePrompt}\nRespond with JSON only (no markdown): {"captions":[{"style":"...","text":"..."},{"style":"...","text":"..."},{"style":"...","text":"..."}],"hashtags":{"trending":[],"niche":[],"low_competition":[],"local":[]}}`;
     try {
       const out = await callGemini([{ text: vPrompt }], key);
-      const parsed = JSON.parse((out || "").replace(/```json|```/g, "").trim());
+      const parsed = parseAiJson<any>(out || "", null);
       return NextResponse.json({
         analysis: { subject: "Reel", mood: "", strengths: [], issues: [] },
         enhancement: { brightness: 0, contrast: 0, saturation: 0, warmth: 0, sharpness: 0 },
