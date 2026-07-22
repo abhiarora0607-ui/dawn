@@ -749,6 +749,49 @@ console.log("\n[24] AI features share the prompt foundation");
   if (bad === 0) pass("AI features build on one identity, context and parser");
 }
 
+// ---- 25. AI RESPONSES ARE SHAPE-NORMALISED BEFORE RENDER (V50.1) ------------
+// React error #31 white-screened the dashboard: the AI brief returned a win as
+// {description:"…"} and the render put the object in a text slot. The model
+// doesn't honour "return strings" reliably, so any AI response whose fields are
+// rendered as text must be coerced (aiText/aiTextList) at the source, not
+// passed through raw.
+console.log("\n[25] AI render payloads are shape-normalised");
+{
+  let bad = 0;
+  // The brief must run through its normaliser, never return raw parsed JSON.
+  const brief = read("lib/briefing-engine.ts");
+  if (/return \{ \.\.\.parsed, source:/.test(brief)) {
+    fail("briefing-engine returns raw parsed AI output — must normalizeBrief first"); bad++;
+  }
+  if (!/normalizeBrief/.test(brief) || !/aiTextList/.test(brief)) {
+    fail("briefing-engine isn't normalising wins/watch to strings"); bad++;
+  }
+  // content-expand and carousel must coerce their list fields.
+  const content = read("app/api/content/route.ts");
+  if (/return NextResponse\.json\(parsed\)/.test(content)) {
+    fail("content route returns raw parsed AI output — coerce shotPlan/proTips"); bad++;
+  }
+  const carousel = read("app/api/carousel/route.ts");
+  if (/return NextResponse\.json\(parsed\)/.test(carousel)) {
+    fail("carousel route returns raw parsed AI output — coerce slide text"); bad++;
+  }
+  // action and analyze-image render their AI output as text too.
+  const action = read("app/api/action/route.ts");
+  if (/if \(parsed\?\.ready\) return NextResponse\.json\(parsed\)/.test(action)) {
+    fail("action route returns raw parsed AI output — coerce ready/hashtags"); bad++;
+  }
+  const vision = read("app/api/analyze-image/route.ts");
+  if (/return NextResponse\.json\(parsed\);/.test(vision) && !/normalizeVision/.test(vision)) {
+    fail("analyze-image returns raw parsed AI output — normalizeVision it"); bad++;
+  }
+  // The shared coercion helpers must exist.
+  const lib = read("lib/ai-prompt.ts");
+  for (const x of ["aiText", "aiTextList"]) {
+    if (!new RegExp(`export function ${x}`).test(lib)) { fail(`ai-prompt is missing ${x}`); bad++; }
+  }
+  if (bad === 0) pass("brief, content and carousel coerce AI text before it renders");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

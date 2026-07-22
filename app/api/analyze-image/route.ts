@@ -3,7 +3,7 @@
 // detail, then generates captions (multiple styles) and tiered hashtags.
 // Uses brand voice so captions sound like the creator.
 
-import { parseAiJson } from "@/lib/ai-prompt";
+import { parseAiJson, aiText, aiTextList } from "@/lib/ai-prompt";
 import { NextResponse } from "next/server";
 import { requireArea } from "@/lib/entitlements";
 import { getBrandVoice, brandVoicePrompt } from "@/lib/brand-voice";
@@ -37,6 +37,36 @@ async function callGemini(parts: any[], key: string): Promise<string | null> {
 
 function parseJson(text: string): any | null {
   return parseAiJson<any>(text, null);
+}
+
+// Coerce captions/hashtags/flags into the exact shapes the create page renders,
+// so a model returning objects (or the parse falling back to null) can't crash
+// the screen. Captions become {style,text} with string fields; hashtag tiers
+// and fix_flags become string arrays.
+function normalizeVision(p: any): { captions: { style: string; text: string }[]; hashtags: any; fix_flags: string[]; analysis?: any } {
+  const src = p || {};
+  const captions = (Array.isArray(src.captions) ? src.captions : []).map((c: any) =>
+    typeof c === "string"
+      ? { style: "Option", text: c }
+      : { style: aiText(c?.style) || "Option", text: aiText(c?.text ?? c) })
+    .filter((c: any) => c.text);
+  const h = src.hashtags || {};
+  const hashtags = {
+    trending: aiTextList(h.trending),
+    niche: aiTextList(h.niche),
+    low_competition: aiTextList(h.low_competition),
+    local: aiTextList(h.local),
+  };
+  // The analysis object is rendered field-by-field as text; coerce each so a
+  // nested object can't crash the "What Dawn sees" grid.
+  let analysis: any = undefined;
+  if (src.analysis && typeof src.analysis === "object") {
+    analysis = {};
+    for (const [k, v] of Object.entries(src.analysis)) {
+      analysis[k] = Array.isArray(v) ? aiTextList(v) : aiText(v);
+    }
+  }
+  return { captions, hashtags, fix_flags: aiTextList(src.fix_flags), analysis };
 }
 
 export async function POST(req: Request) {
@@ -77,12 +107,16 @@ export async function POST(req: Request) {
     try {
       const out = await callGemini([{ text: vPrompt }], key);
       const parsed = parseAiJson<any>(out || "", null);
+      if (!parsed?.captions) {
+        return NextResponse.json({ error: "Couldn't generate caption. Try again." }, { status: 500 });
+      }
+      const norm = normalizeVision(parsed);
       return NextResponse.json({
         analysis: { subject: "Reel", mood: "", strengths: [], issues: [] },
         enhancement: { brightness: 0, contrast: 0, saturation: 0, warmth: 0, sharpness: 0 },
-        fix_flags: [],
-        captions: parsed.captions || [],
-        hashtags: parsed.hashtags || { trending: [], niche: [], low_competition: [], local: [] },
+        fix_flags: norm.fix_flags,
+        captions: norm.captions,
+        hashtags: norm.hashtags,
       });
     } catch {
       return NextResponse.json({ error: "Couldn't generate caption. Try again." }, { status: 500 });
@@ -139,5 +173,12 @@ CREATIVE DIRECTOR RULES:
     return NextResponse.json({ error: "The AI response was incomplete. Please try again." }, { status: 500 });
   }
 
-  return NextResponse.json(parsed);
+  const norm = normalizeVision(parsed);
+  return NextResponse.json({
+    ...parsed,
+    ...(norm.analysis ? { analysis: norm.analysis } : {}),
+    captions: norm.captions,
+    hashtags: norm.hashtags,
+    fix_flags: norm.fix_flags,
+  });
 }

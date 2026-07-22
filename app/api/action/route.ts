@@ -3,7 +3,7 @@
 // a ready-to-post caption, a drafted reply, or a queued post. This closes
 // the loop so the user doesn't leave Dawn to do the work manually.
 
-import { parseAiJson } from "@/lib/ai-prompt";
+import { parseAiJson, aiText, aiTextList } from "@/lib/ai-prompt";
 import { NextResponse } from "next/server";
 import { getProviderAsync, getProvider } from "@/lib/data-provider";
 import { getBrandVoice, brandVoicePrompt } from "@/lib/brand-voice";
@@ -52,7 +52,16 @@ RULES: make 'ready' genuinely usable and on-brand, tied to their products/revenu
       const d = await res.json();
       const t = d?.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const parsed = parseAiJson<any>(t, null);
-      if (parsed?.ready) return NextResponse.json(parsed);
+      if (parsed?.ready) {
+        // ActionRunner renders `ready` as text and joins `hashtags` — coerce
+        // both so a model returning objects can't crash or print [object Object].
+        const type = ["post", "reply", "task"].includes(parsed.type) ? parsed.type : "task";
+        return NextResponse.json({
+          type,
+          ready: aiText(parsed.ready),
+          hashtags: type === "post" ? aiTextList(parsed.hashtags) : [],
+        });
+      }
     } catch { continue; }
   }
   return NextResponse.json({ error: "Couldn't prepare this action. Try again." }, { status: 500 });

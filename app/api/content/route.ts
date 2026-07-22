@@ -2,7 +2,7 @@
 // Generates content ideas for the connected account using Gemini
 // (free tier) with a deterministic fallback so it always works.
 
-import { parseAiJson } from "@/lib/ai-prompt";
+import { parseAiJson, aiText, aiTextList } from "@/lib/ai-prompt";
 import { NextResponse } from "next/server";
 import { requireArea } from "@/lib/entitlements";
 import { getProviderAsync, getProvider } from "@/lib/data-provider";
@@ -115,7 +115,19 @@ RULES: be concrete and executable — a creator should be able to follow shotPla
       const d = await res.json();
       const t = d?.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const parsed = parseAiJson<any>(t, null);
-      if (parsed?.caption) return NextResponse.json(parsed);
+      if (parsed?.caption) {
+        // Guarantee the shape the UI renders: shotPlan/proTips/hashtags as
+        // clean string arrays, the rest as text — so a model returning
+        // {step:"…"} objects can't crash the content screen (React #31).
+        return NextResponse.json({
+          hook: aiText(parsed.hook),
+          shotPlan: aiTextList(parsed.shotPlan),
+          caption: aiText(parsed.caption),
+          hashtags: aiTextList(parsed.hashtags),
+          bestTime: aiText(parsed.bestTime),
+          proTips: aiTextList(parsed.proTips),
+        });
+      }
     } catch { continue; }
   }
   return NextResponse.json({ error: "Couldn't expand this idea. Try again." }, { status: 500 });

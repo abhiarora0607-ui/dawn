@@ -7,7 +7,7 @@
 // ────────────────────────────────────────────────────────────
 
 import { AccountSnapshot, CompetitorSignal } from "./data-provider";
-import { parseAiJson } from "./ai-prompt";
+import { parseAiJson, aiText, aiTextList } from "./ai-prompt";
 
 export type BriefAction = {
   priority: "high" | "medium" | "low";
@@ -123,13 +123,41 @@ D2C GROWTH-MARKETER RULES:
       const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
       const parsed = parseAiJson<any>(text, null);
       if (parsed && Array.isArray(parsed.actions)) {
-        return { ...parsed, source: "ai" as const };
+        // The model is asked for strings in wins/watch and {title,detail} in
+        // actions, but it doesn't always comply — sometimes a win comes back as
+        // {description:"..."}. Rendering that object directly is React error #31
+        // ("objects are not valid as a child"), which white-screened the whole
+        // dashboard. Normalise here, at the source, so every consumer gets the
+        // shape the type promises.
+        return { ...normalizeBrief(parsed), source: "ai" as const };
       }
     } catch {
       continue; // try next model
     }
   }
   return null;
+}
+
+/** Coerce a possibly-malformed AI brief into the Brief shape it claims to be. */
+function normalizeBrief(p: any): Omit<Brief, "source"> {
+  const actions: BriefAction[] = (Array.isArray(p.actions) ? p.actions : []).map((a: any) => {
+    // An action might itself be a bare string, or an object missing fields.
+    if (typeof a === "string") return { priority: "medium" as const, title: a, detail: "" };
+    const pr = String(a?.priority || "medium").toLowerCase();
+    return {
+      priority: (pr === "high" || pr === "low" ? pr : "medium") as BriefAction["priority"],
+      title: aiText(a?.title ?? a?.description ?? a),
+      detail: aiText(a?.detail ?? a?.subtitle ?? ""),
+    };
+  }).filter((a: BriefAction) => a.title);
+
+  return {
+    greeting: aiText(p.greeting),
+    headline: aiText(p.headline),
+    wins: aiTextList(p.wins),
+    watch: aiTextList(p.watch),
+    actions,
+  };
 }
 
 export async function generateBrief(a: AccountSnapshot, comps: CompetitorSignal[], voicePrompt = ""): Promise<Brief> {

@@ -1,7 +1,7 @@
 // app/api/carousel/route.ts
 // Generates a full slide-by-slide Instagram carousel from a topic.
 
-import { DAWN_IDENTITY, JSON_ONLY, accountContext, parseAiJson } from "@/lib/ai-prompt";
+import { DAWN_IDENTITY, JSON_ONLY, accountContext, parseAiJson, aiText, aiTextList } from "@/lib/ai-prompt";
 import { NextResponse } from "next/server";
 import { requireArea } from "@/lib/entitlements";
 import { getProviderAsync, getProvider } from "@/lib/data-provider";
@@ -62,7 +62,19 @@ RULES:
       const d = await res.json();
       const t = d?.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const parsed = parseAiJson<any>(t, null);
-      if (parsed?.slides?.length) return NextResponse.json(parsed);
+      if (parsed?.slides?.length) {
+        // Guarantee slide text is text — a model returning {headline:{...}}
+        // would otherwise crash the studio render (React #31).
+        return NextResponse.json({
+          slides: parsed.slides.map((s: any, i: number) => ({
+            n: Number(s?.n) || i + 1,
+            headline: aiText(s?.headline),
+            subtext: s?.subtext ? aiText(s.subtext) : undefined,
+          })).filter((s: any) => s.headline),
+          caption: aiText(parsed.caption),
+          hashtags: aiTextList(parsed.hashtags),
+        });
+      }
     } catch { continue; }
   }
   return NextResponse.json({ error: "Couldn't generate the carousel. Try again." }, { status: 500 });

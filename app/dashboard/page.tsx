@@ -32,6 +32,16 @@ const priorityStyles: Record<string, string> = {
   low: "bg-navy/5 text-navy-soft border-navy/10",
 };
 
+// Defence in depth: the brief is normalised at the source, but a stray object
+// reaching a text slot must degrade to text, never throw React #31 and blank
+// the page. Every brief string flows through this before rendering.
+function txt(x: any): string {
+  if (x == null) return "";
+  if (typeof x === "string") return x;
+  if (typeof x === "object") return String(x.text ?? x.description ?? x.detail ?? x.title ?? "");
+  return String(x);
+}
+
 function fmt(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
 }
@@ -142,21 +152,21 @@ export default function Dashboard() {
                     {data.brief.source === "ai" ? "AI briefing" : "Today's briefing"}
                   </span>
                 </div>
-                <h1 className="font-display font-semibold text-2xl sm:text-3xl mb-3">{data.brief.greeting}</h1>
-                <p className="text-white/80 text-lg leading-relaxed max-w-2xl">{data.brief.headline}</p>
+                <h1 className="font-display font-semibold text-2xl sm:text-3xl mb-3">{txt(data.brief.greeting)}</h1>
+                <p className="text-white/80 text-lg leading-relaxed max-w-2xl">{txt(data.brief.headline)}</p>
 
                 {(data.brief.wins.length > 0 || data.brief.watch.length > 0) && (
                   <div className="grid sm:grid-cols-2 gap-3 mt-6">
                     {data.brief.wins.slice(0, 2).map((w, i) => (
                       <div key={`w${i}`} className="flex items-start gap-2 bg-white/5 rounded-lg p-3">
                         <Trophy className="w-4 h-4 text-amber shrink-0 mt-0.5" />
-                        <span className="text-sm text-white/85">{w}</span>
+                        <span className="text-sm text-white/85">{txt(w)}</span>
                       </div>
                     ))}
                     {data.brief.watch.slice(0, 2).map((w, i) => (
                       <div key={`wa${i}`} className="flex items-start gap-2 bg-white/5 rounded-lg p-3">
                         <AlertTriangle className="w-4 h-4 text-amber shrink-0 mt-0.5" />
-                        <span className="text-sm text-white/85">{w}</span>
+                        <span className="text-sm text-white/85">{txt(w)}</span>
                       </div>
                     ))}
                   </div>
@@ -181,8 +191,8 @@ export default function Dashboard() {
                     <div key={i} className="flex items-start gap-3 p-4 rounded-xl border border-navy/8 hover:border-amber/40 hover:bg-surface transition-colors group">
                       <span className={`mt-0.5 text-[12px] font-bold px-2 py-0.5 rounded border uppercase ${priorityStyles[a.priority]}`}>{a.priority}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-navy">{a.title}</p>
-                        <p className="text-sm text-navy/55 leading-snug mt-1">{a.detail}</p>
+                        <p className="text-sm font-semibold text-navy">{txt(a.title)}</p>
+                        <p className="text-sm text-navy/55 leading-snug mt-1">{txt(a.detail)}</p>
                       </div>
                       <button onClick={() => setActiveAction(a)} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-xs font-medium text-amber-deep bg-amber/10 px-3 py-1.5 rounded-lg whitespace-nowrap self-center hover:bg-amber/20">
                         Do it →

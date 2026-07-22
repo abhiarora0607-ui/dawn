@@ -116,6 +116,28 @@ export function buildPrompt(opts: {
   ].filter(Boolean).join("\n");
 }
 
+/**
+ * Coerce any AI value into display text. Models sometimes return an object
+ * where the schema said string — rendering that object is React error #31,
+ * which blanks the screen. This pulls the most likely text field instead.
+ */
+export function aiText(x: any): string {
+  if (x == null) return "";
+  if (typeof x === "string") return x;
+  if (typeof x === "object") {
+    return String(
+      x.text ?? x.description ?? x.detail ?? x.title ?? x.label ?? x.step ?? x.tip ??
+      Object.values(x).find((v) => typeof v === "string") ?? "",
+    );
+  }
+  return String(x);
+}
+
+/** Coerce an AI value into a clean string[], dropping empties. */
+export function aiTextList(v: any): string[] {
+  return (Array.isArray(v) ? v : []).map(aiText).filter(Boolean);
+}
+
 function fmtChange(n: number | undefined, suffix: string): string {
   if (n == null || n === 0) return "";
   return ` (${n > 0 ? "+" : ""}${n.toLocaleString()} ${suffix})`;
