@@ -162,11 +162,11 @@ console.log("\n[8] No hooks placed after an early return");
       if (/^(export )?(default )?function [A-Z]/.test(l)) { fnStart = i; guardLine = -1; }
       // a bare `return null` / `return <…>` at function top level
       if (fnStart >= 0 && guardLine < 0 && /^\s{2}if \([^)]*\) return /.test(l)) guardLine = i;
-      if (guardLine >= 0 && /^\s{2}const .*= (useState|useEffect|useMemo|useRef|useCallback)\(/.test(l)) {
+      if (guardLine >= 0 && /^\s{2}const .*= use[A-Z]\w*(<[^>]*>)?\(/.test(l)) {
         fail(`${f}:${i + 1} hook after an early return — it won't run on every render`);
         bad++; guardLine = -1;
       }
-      if (guardLine >= 0 && /^\s{2}(useEffect|useMemo|useCallback)\(/.test(l)) {
+      if (guardLine >= 0 && /^\s{2}use[A-Z]\w*(<[^>]*>)?\(/.test(l)) {
         fail(`${f}:${i + 1} hook after an early return — it won't run on every render`);
         bad++; guardLine = -1;
       }

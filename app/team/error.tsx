@@ -8,7 +8,7 @@
 // matters more: a stale session or a half-applied permission change is a
 // plausible cause, and signing back in genuinely clears it.
 
-export default function TeamError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function TeamError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   async function signOut() {
     try { await fetch("/api/employee-login", { method: "DELETE" }); } catch {}
     window.location.href = "/team-login";
@@ -28,6 +28,9 @@ export default function TeamError({ reset }: { error: Error & { digest?: string 
         </div>
         <p className="t-micro text-muted mt-4">
           Still stuck? Tell your manager — they can check your access.
+        </p>
+        <p className="t-micro text-navy/35 mt-2 break-all">
+          {String((error as any)?.message || "").slice(0, 140)}{(error as any)?.digest ? ` · ${(error as any).digest}` : ""}
         </p>
       </div>
     </div>

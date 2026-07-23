@@ -40,6 +40,12 @@ export default function TeamDashboard() {
   const [stats, setStats] = useState<any>({});
   const [myScore, setMyScore] = useState<any>(null);
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  // V55.1 HOTFIX: this hook lived BELOW the loading/!me early returns since
+  // V51 — a Rules-of-Hooks violation. First render exits early (loading), the
+  // hook never runs; when the session loads, it does — React throws "rendered
+  // more hooks than during the previous render" and the whole /team route
+  // falls into its error boundary. Hooks live up here, unconditionally.
+  const wsState = useApi<any>("/api/team/workspace");
   const [modal, setModal] = useState<null | "lead" | "order">(null);
   const [pwModal, setPwModal] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -86,7 +92,6 @@ export default function TeamDashboard() {
   // inclusion, position decides authority cards, department nudges order,
   // pending counts drive attention. If the workspace call fails, FALLBACK_CTX
   // still renders the floor (Today card) — nobody ever gets a blank home.
-  const wsState = useApi<any>("/api/team/workspace");
   const wsCtx: WorkspaceCtx = {
     ...FALLBACK_CTX,
     ...(wsState.data && !wsState.data.error ? wsState.data : {}),
