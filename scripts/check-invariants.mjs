@@ -841,6 +841,43 @@ console.log("\n[26] Workspace registry: honest permissions, guaranteed floor");
   if (bad === 0) pass("registry permissions are real, the floor is guaranteed, rules can't crash the home");
 }
 
+// ---- 27. THE INBOX DELEGATES AUTHORITY, NEVER INVENTS IT (V52) --------------
+// One surface now renders approve/reject for four kinds of request. If it
+// carried its own authority rules they would drift from the deciding routes —
+// a button the server refuses, or a decidable request hidden. So: lib/inbox
+// must route every kind through the real functions (canDecideWith,
+// canApproveSalaryChange); the route must classify via actionableFor and hold
+// no ad-hoc permission checks; the UI must render decide buttons only in the
+// actionable band; and the home's approvals card must open the inbox.
+console.log("\n[27] The inbox delegates authority");
+{
+  let bad = 0;
+  const lib = read("lib/inbox.ts");
+  if (!/import \{ canDecideWith[^}]*\} from "@\/lib\/approvals"/.test(lib)) {
+    fail("lib/inbox no longer delegates to canDecideWith"); bad++;
+  }
+  if (!/canApproveSalaryChange/.test(lib)) {
+    fail("lib/inbox no longer delegates salary decisions"); bad++;
+  }
+  const route = read("app/api/team/inbox/route.ts");
+  if (!/actionableFor\(/.test(route)) {
+    fail("inbox route doesn't classify through actionableFor"); bad++;
+  }
+  if (/permissions\.includes\("(leave_approve|attendance_approve)"\)/.test(route)) {
+    fail("inbox route carries an ad-hoc authority check — delegate instead"); bad++;
+  }
+  const ui = read("components/TeamInbox.tsx");
+  const watchingBlock = ui.slice(ui.indexOf("watching.map"), ui.indexOf("actionable.length === 0"));
+  if (/decide\(/.test(watchingBlock)) {
+    fail("the watching (non-actionable) band renders decide buttons"); bad++;
+  }
+  const page = read("app/team/page.tsx");
+  if (!/approvals_count[\s\S]{0,200}setTab\("inbox"\)/.test(page)) {
+    fail("the home approvals card no longer opens the inbox"); bad++;
+  }
+  if (bad === 0) pass("all four kinds decided by the real authority functions, buttons only where they act");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

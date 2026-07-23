@@ -237,6 +237,11 @@ try {
   check("salary proposals: renders before data", React.createElement(SalaryProposals, {}));
 } catch (e) { results.push(["skip", "salary proposals: " + String(e).slice(0, 40)]); }
 
+try {
+  const { TeamInbox } = await import("../components/TeamInbox.tsx");
+  check("inbox renders before data", React.createElement(TeamInbox, {}));
+} catch (e) { results.push(["skip", "inbox: " + String(e).slice(0, 40)]); }
+
 console.log(JSON.stringify(results));
 `;
   writeFileSync(`${STAGE}/run.mjs`, harness);

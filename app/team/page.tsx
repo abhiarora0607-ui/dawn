@@ -12,6 +12,7 @@ import { TeamAttendance } from "@/components/TeamAttendance";
 import { TeamLeave } from "@/components/TeamLeave";
 import { TeamSalary } from "@/components/TeamSalary";
 import { TeamMyTeam } from "@/components/TeamMyTeam";
+import { TeamInbox } from "@/components/TeamInbox";
 import { PeopleSearch } from "@/components/PeopleSearch";
 import { DawnLogo } from "@/components/DawnLogo";
 import { LostDialog, PaymentModal, WonDialog } from "@/components/SharedModals";
@@ -21,7 +22,7 @@ import {
   Settings as SettingsIcon, MoreHorizontal, Pencil, Download, Trash2, Home, CalendarClock, Palmtree, Wallet, Search, Users2,
 } from "lucide-react";
 
-type Tab = "dashboard" | "attendance" | "leave" | "salary" | "people" | "myteam" | "leads" | "customers" | "orders" | "messages" | "tasks" | "calendar" | "notes" | "reports" | "settings";
+type Tab = "dashboard" | "inbox" | "attendance" | "leave" | "salary" | "people" | "myteam" | "leads" | "customers" | "orders" | "messages" | "tasks" | "calendar" | "notes" | "reports" | "settings";
 const STAGES = ["New Lead", "Contacted", "Negotiating", "Customer (Won)", "Lost"];
 
 export default function TeamDashboard() {
@@ -94,6 +95,12 @@ export default function TeamDashboard() {
     { id: "attendance", label: "Attendance", icon: CalendarClock, perm: "dashboard" },
     { id: "leave", label: "Leave", icon: Palmtree, perm: "dashboard" },
     { id: "myteam", label: "My Team", icon: Users2, perm: "dashboard" },
+    // V52: the unified approvals inbox. Position-gated, not permission-gated —
+    // it exists for anyone requests can reach (leads and admins); the counts
+    // and buttons inside are still authority-gated item by item.
+    ...(wsCtx.isLead || wsCtx.isAdmin
+      ? [{ id: "inbox" as Tab, label: "Inbox", icon: Bell, perm: "dashboard" }]
+      : []),
     { id: "salary", label: "My Pay", icon: Wallet, perm: "dashboard" },
     { id: "people", label: "People", icon: Search, perm: "dashboard" },
     { id: "leads", label: "Leads", icon: Users, perm: "leads" },
@@ -179,7 +186,7 @@ export default function TeamDashboard() {
               if (w.id === "approvals_count") {
                 const n = wsCtx.counts.actionableApprovals;
                 return (
-                  <button key={w.id} onClick={() => setTab("myteam")}
+                  <button key={w.id} onClick={() => setTab("inbox")}
                     className="w-full bg-amber/10 border border-amber/40 rounded-2xl p-4 flex items-center justify-between text-left hover:bg-amber/15">
                     <div>
                       <p className="text-sm font-semibold text-navy flex items-center gap-1.5"><Bell className="w-4 h-4 text-amber-deep" /> Waiting for your decision</p>
@@ -282,6 +289,7 @@ export default function TeamDashboard() {
         {activeTab === "attendance" && <TeamAttendance />}
         {activeTab === "leave" && <TeamLeave />}
         {activeTab === "myteam" && isManager && <TeamMyTeam />}
+        {activeTab === "inbox" && <TeamInbox onChange={() => wsState.retry()} />}
         {activeTab === "salary" && <TeamSalary />}
         {activeTab === "people" && <PeopleTab />}
         {activeTab === "tasks" && can("tasks") && <Tasks contacts={[...leads, ...customers]} />}
