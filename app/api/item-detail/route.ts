@@ -24,6 +24,7 @@ export async function GET(req: Request) {
     const [itemRows, sales, contacts] = await Promise.all([
       fetch(`${url}/rest/v1/catalog_items?id=eq.${id}&uid=eq.${uid}&select=*&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/sales?uid=eq.${uid}&deleted_at=is.null&select=id,contact_id,items,date,order_status,amount_paid&order=date.desc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      // full-scan: buyer name map, two columns
       fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&select=id,name`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
     ]);
 

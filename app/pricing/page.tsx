@@ -17,6 +17,7 @@ const AREA_ROWS: { key: string; label: string; detail: string }[] = [
 
 export default function Pricing() {
   const [plans, setPlans] = useState<any[]>([]);
+  const [loadErr, setLoadErr] = useState("");
   const [trialDays, setTrialDays] = useState(14);
   const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
   const [loading, setLoading] = useState(true);
@@ -24,7 +25,7 @@ export default function Pricing() {
   useEffect(() => {
     fetch("/api/public-plans").then((r) => r.json()).then((d) => {
       setPlans(d.plans || []); setTrialDays(d.trialDays || 14); setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch(() => { setLoadErr("Couldn't load this page — check your connection."); setLoading(false); });
   }, []);
 
   return (
@@ -32,6 +33,7 @@ export default function Pricing() {
       <main className="min-h-screen bg-cream">
         <header className="sticky top-0 z-50 backdrop-blur-md bg-cream/80 border-b border-navy-line">
           <div className="max-w-6xl mx-auto px-5 sm:px-6 h-16 flex items-center justify-between">
+            {loadErr && <p className="t-small text-red-600 bg-red-50 rounded-xl px-3 py-2 mb-3">{loadErr} <button onClick={() => location.reload()} className="underline font-medium">Try again</button></p>}
             <Link href="/"><DawnLogo className="h-10" /></Link>
             <Link href="/signin" className="text-sm font-medium bg-navy text-white px-4 py-2 rounded-xl hover:bg-navy-soft">Start free trial</Link>
           </div>

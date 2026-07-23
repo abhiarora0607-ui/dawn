@@ -23,11 +23,12 @@ function SuggestionsInner() {
   const { toast } = useToast();
   const router = useRouter();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [loadErr, setLoadErr] = useState("");
   const [loading, setLoading] = useState(true);
   const [convert, setConvert] = useState<any>(null);
 
   function load() {
-    fetch("/api/suggestions").then((r) => r.json()).then((d) => { setSuggestions(d.suggestions || []); setLoading(false); }).catch(() => setLoading(false));
+    fetch("/api/suggestions").then((r) => r.json()).then((d) => { setSuggestions(d.suggestions || []); setLoading(false); }).catch(() => { setLoadErr("Couldn't load this page — check your connection."); setLoading(false); });
   }
   useEffect(() => { load(); }, []);
 
@@ -65,6 +66,7 @@ function SuggestionsInner() {
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Suggestions" />
       <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-5">
+        {loadErr && <p className="t-small text-red-600 bg-red-50 rounded-xl px-3 py-2 mb-3">{loadErr} <button onClick={() => location.reload()} className="underline font-medium">Try again</button></p>}
         <div>
           <h1 className="font-display font-semibold text-2xl text-navy">Suggestions</h1>
           <p className="text-muted text-sm mt-1">What to do next — Dawn watches your pipeline so you don&apos;t have to.</p>

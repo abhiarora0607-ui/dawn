@@ -17,6 +17,7 @@ export async function GET() {
   const _area = await requireArea(url, key, uid, "crm");
   if (_area) return NextResponse.json(_area, { status: 403 });
   try {
+    // full-scan: books view + totals; paginate in V61
     const res = await fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&deleted_at=is.null&order=date.desc`, { headers: H(key), cache: "no-store" });
     return NextResponse.json({ expenses: await res.json() });
   } catch { return NextResponse.json({ expenses: [] }); }

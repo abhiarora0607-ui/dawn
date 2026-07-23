@@ -24,9 +24,11 @@ export async function GET(req: Request) {
       fetch(`${url}/rest/v1/dawn_users?uid=eq.${encodeURIComponent(uid)}&select=uid,email,created_at,last_active_at&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/business_settings?uid=eq.${encodeURIComponent(uid)}&select=business_name,phone,whatsapp,business_type,currency&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/ig_connections?owner_uid=eq.${encodeURIComponent(uid)}&select=ig_user_id,connected_at,access_token`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+      // full-scan: per-business counts, minimal columns
       fetch(`${url}/rest/v1/contacts?uid=eq.${encodeURIComponent(uid)}&select=uid,is_demo,created_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/sales?uid=eq.${encodeURIComponent(uid)}&select=uid,is_demo,date`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/employees?uid=eq.${encodeURIComponent(uid)}&select=uid,is_demo,is_owner`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      // full-scan: per-business counts, minimal columns
       fetch(`${url}/rest/v1/tasks?uid=eq.${encodeURIComponent(uid)}&select=uid,is_demo`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/activities?uid=eq.${encodeURIComponent(uid)}&select=created_at&order=created_at.desc&limit=2000`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/operator_notes?target_uid=eq.${encodeURIComponent(uid)}&select=*&order=created_at.desc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),

@@ -64,7 +64,9 @@ export async function GET(req: Request) {
     await touchActive(url, key, uid);
     const [salesRaw, expenses, contacts, items] = await Promise.all([
       fetch(`${url}/rest/v1/sales?uid=eq.${uid}&deleted_at=is.null&select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      // full-scan: P&L math needs every row
       fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&deleted_at=is.null&select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      // full-scan: funnel math needs every row
       fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&select=stage,source,created_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/catalog_items?uid=eq.${uid}&deleted_at=is.null&select=id,name,price,cost,type,is_active`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
     ]);

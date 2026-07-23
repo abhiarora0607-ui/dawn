@@ -53,6 +53,7 @@ export async function GET(req: Request) {
   const month = sp.get("month") || istDate().slice(0, 7);
 
   const [slips, employees, pendingBonuses] = await Promise.all([
+    // full-scan: one month's run, bounded by month
     fetch(`${url}/rest/v1/payslips?uid=eq.${uid}&month=eq.${month}&select=*&order=created_at.asc`,
       { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
     fetch(`${url}/rest/v1/employees?uid=eq.${uid}&status=eq.active&select=id,name,monthly_salary,joining_date,job_title`,
@@ -148,6 +149,7 @@ export async function POST(req: Request) {
       }
       // Commission on team basis needs the org tree.
       const treeFor = (id: string) => subtreeOf(id, org.employees);
+      // full-scan: one month's run, bounded by month
       const existing = await fetch(`${url}/rest/v1/payslips?uid=eq.${uid}&month=eq.${month}&select=employee_id`,
         { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
       const have = new Set((Array.isArray(existing) ? existing : []).map((s: any) => s.employee_id));
@@ -430,10 +432,12 @@ export async function POST(req: Request) {
       if (!(org.isAdmin || permissions.includes("payroll_approve"))) {
         return NextResponse.json({ error: "You don't have permission to approve payslips." }, { status: 403 });
       }
+      // full-scan: one month's drafts, bounded by month
       const drafts = await fetch(`${url}/rest/v1/payslips?uid=eq.${uid}&month=eq.${month}&status=eq.draft&select=id`,
         { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
       const n = Array.isArray(drafts) ? drafts.length : 0;
       if (n) {
+        // full-scan: one month's drafts, bounded by month
         await fetch(`${url}/rest/v1/payslips?uid=eq.${uid}&month=eq.${month}&status=eq.draft`, {
           method: "PATCH", headers: H(key, { Prefer: "return=minimal" }),
           body: JSON.stringify({ status: "approved", approved_at: new Date().toISOString(), approved_by: meId || "owner" }),

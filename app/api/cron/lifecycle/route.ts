@@ -139,8 +139,10 @@ export async function GET(req: Request) {
         if (await alreadySent(url, key, uid, `digest_${weekTag}`)) continue;
         const since = new Date(now - 7 * DAY).toISOString();
         const [newContacts, weekSales, dueFollow] = await Promise.all([
+          // full-scan: date-bounded nudge check, minimal columns
           fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&is_demo=eq.false&created_at=gte.${since}&select=id`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
           fetch(`${url}/rest/v1/sales?uid=eq.${uid}&deleted_at=is.null&is_demo=eq.false&date=gte.${since.slice(0, 10)}&select=amount_paid,order_status`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+          // full-scan: overdue nudge count, date-filtered
           fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&follow_up_date=lt.${new Date().toISOString().slice(0, 10)}&select=id`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
         ]);
         const leads = Array.isArray(newContacts) ? newContacts.length : 0;

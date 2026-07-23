@@ -38,6 +38,7 @@ export async function GET(req: Request) {
       const rows = await res.json();
       return NextResponse.json({ duplicate: rows?.[0] || null });
     }
+    // full-scan: pipeline view + counts need every row; paginate in V61
     const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&order=created_at.desc`, { headers: H(key), cache: "no-store" });
     return NextResponse.json({ contacts: await res.json(), authed: true });
   } catch { return NextResponse.json({ contacts: [], authed: true }); }

@@ -15,13 +15,15 @@ export default function ProductPage() {
 
 function Product() {
   const [d, setD] = useState<any>(null);
+  const [loadErr, setLoadErr] = useState("");
   const [bill, setBill] = useState<any>(null);
 
   useEffect(() => {
-    fetch("/api/operator/overview").then((r) => r.json()).then(setD).catch(() => {});
+    fetch("/api/operator/overview").then((r) => r.json()).then(setD).catch(() => setLoadErr("Couldn't load — try a refresh."));
     fetch("/api/operator/billing").then((r) => r.json()).then(setBill).catch(() => {});
   }, []);
 
+  if (loadErr) return <p className="t-small text-red-600 bg-red-50 rounded-xl px-3 py-2 m-4">{loadErr} <button onClick={() => location.reload()} className="underline font-medium">Try again</button></p>;
   if (!d) return <div className="py-20 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-navy/30" /></div>;
 
   const f = d.funnel || {};

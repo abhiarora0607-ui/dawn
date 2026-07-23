@@ -32,8 +32,10 @@ export async function GET(req: Request) {
   try {
     const [employees, contacts, sales, expenses] = await Promise.all([
       fetch(`${url}/rest/v1/employees?uid=eq.${uid}&select=id,name,status,monthly_salary&order=name.asc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      // full-scan: performance math over the book, minimal columns
       fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&select=id,stage,employee_id,created_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/sales?uid=eq.${uid}&select=employee_id,total,amount_paid,balance,fixed_cost,date,order_status,status`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      // full-scan: commission math over full history
       fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&select=amount,source,source_id,date`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
     ]);
 

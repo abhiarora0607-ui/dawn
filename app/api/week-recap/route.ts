@@ -20,8 +20,10 @@ export async function GET() {
     const since = new Date(Date.now() - 7 * 86400000).toISOString();
     const today = new Date().toISOString().slice(0, 10);
     const [contacts, sales, overdue] = await Promise.all([
+      // full-scan: week-bounded count, id-only
       fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&created_at=gte.${since}&select=id`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/sales?uid=eq.${uid}&deleted_at=is.null&date=gte.${since.slice(0, 10)}&select=amount_paid,order_status`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      // full-scan: overdue count, id-only
       fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&follow_up_date=lt.${today}&select=id`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
     ]);
     const orders = (Array.isArray(sales) ? sales : []).filter((s: any) => s.order_status !== "Cancelled");

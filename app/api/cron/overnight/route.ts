@@ -239,8 +239,10 @@ export async function GET(req: Request) {
 
       const [employees, contacts, sales, tasks, activities] = await Promise.all([
         fetch(`${url}/rest/v1/employees?uid=eq.${uid}&select=id,name,status,is_owner,joining_date`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
+        // full-scan: nightly scoring over the book, minimal columns
         fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&select=id,stage,employee_id,follow_up_date,created_at`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
         fetch(`${url}/rest/v1/sales?uid=eq.${uid}&select=employee_id,amount_paid,date,order_status`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
+        // full-scan: minimal columns for scoring
         fetch(`${url}/rest/v1/tasks?uid=eq.${uid}&select=employee_id,done,done_at,due_date`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
         fetch(`${url}/rest/v1/activities?uid=eq.${uid}&select=contact_id,type,content,created_at&limit=2000`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
       ]);
@@ -282,6 +284,7 @@ export async function GET(req: Request) {
     const cutoff30 = new Date(Date.now() - 30 * DAY).toISOString();
     const [allUsers, allContacts, allSales, allEmployees, recentActs] = await Promise.all([
       fetch(`${url}/rest/v1/dawn_users?select=uid,last_active_at`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
+      // full-scan: platform sweep, two columns
       fetch(`${url}/rest/v1/contacts?deleted_at=is.null&select=uid,is_demo`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/sales?deleted_at=is.null&select=uid,is_demo`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/employees?select=uid,is_owner`, { headers: sbHeaders(key), cache: "no-store" }).then((r) => r.json()),

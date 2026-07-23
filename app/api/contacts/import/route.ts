@@ -37,6 +37,7 @@ export async function POST(req: Request) {
     const owner = await ensureOwnerEmployee(url, key, uid);
 
     // Existing phones in THIS business — for dedupe.
+    // full-scan: dedup must compare every phone
     const existing = await (await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&select=phone`, { headers: H(key), cache: "no-store" })).json();
     const seen = new Set((Array.isArray(existing) ? existing : []).map((c: any) => (c.phone || "").replace(/\D/g, "")).filter(Boolean));
 

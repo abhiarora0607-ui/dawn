@@ -18,12 +18,13 @@ const FIELDS = [
 export default function Store() {
   const { data } = useBrief();
   const [values, setValues] = useState<Record<string, string>>({});
+  const [loadErr, setLoadErr] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    fetch("/api/store").then((r) => r.json()).then((d) => { setValues(d.store || {}); setLoading(false); }).catch(() => setLoading(false));
+    fetch("/api/store").then((r) => r.json()).then((d) => { setValues(d.store || {}); setLoading(false); }).catch(() => { setLoadErr("Couldn't load this page — check your connection."); setLoading(false); });
   }, []);
 
   function set(k: string, v: string) { setValues((p) => ({ ...p, [k]: v })); setSaved(false); }
@@ -41,6 +42,7 @@ export default function Store() {
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Store" />
       <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-6">
+        {loadErr && <p className="t-small text-red-600 bg-red-50 rounded-xl px-3 py-2 mb-3">{loadErr} <button onClick={() => location.reload()} className="underline font-medium">Try again</button></p>}
         <div>
           <h1 className="font-display font-semibold text-2xl text-navy">Your store</h1>
           <p className="text-muted text-sm mt-1">Tell Dawn what you sell. Every briefing and idea becomes tied to moving your revenue.</p>

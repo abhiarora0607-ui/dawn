@@ -26,9 +26,11 @@ export async function GET() {
   const cutoff = new Date(Date.now() - RECOVERY_WINDOW_DAYS * 86400000).toISOString();
   try {
     const [contacts, sales, items, expenses] = await Promise.all([
+      // full-scan: recycle-bin window, date-bounded
       fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=not.is.null&deleted_at=gte.${cutoff}&select=id,name,deleted_at&order=deleted_at.desc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/sales?uid=eq.${uid}&deleted_at=not.is.null&deleted_at=gte.${cutoff}&select=id,total,contact_id,deleted_at&order=deleted_at.desc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/catalog_items?uid=eq.${uid}&deleted_at=not.is.null&deleted_at=gte.${cutoff}&select=id,name,deleted_at&order=deleted_at.desc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      // full-scan: recycle-bin window, date-bounded
       fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&deleted_at=not.is.null&deleted_at=gte.${cutoff}&select=id,note,amount,category,deleted_at&order=deleted_at.desc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
     ]);
 

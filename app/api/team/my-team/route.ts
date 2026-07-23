@@ -58,6 +58,7 @@ export async function GET() {
       // excluded — counting them would flatter the numbers.
       fetch(`${url}/rest/v1/sales?uid=eq.${ctx.uid}&deleted_at=is.null&employee_id=in.(${team.join(",")})&date=gte.${monthStart}&select=employee_id,amount_paid,order_status`,
         { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+      // full-scan: team money sums need every row
       fetch(`${url}/rest/v1/expenses?uid=eq.${ctx.uid}&deleted_at=is.null&employee_id=in.(${team.join(",")})&date=gte.${monthStart}&select=employee_id,amount`,
         { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
     ]);
@@ -92,6 +93,7 @@ export async function GET() {
     const [mySales, myExpenses] = await Promise.all([
       fetch(`${url}/rest/v1/sales?uid=eq.${ctx.uid}&deleted_at=is.null&employee_id=eq.${ctx.employeeId}&date=gte.${monthStart}&select=amount_paid,order_status`,
         { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+      // full-scan: month sum, date-bounded
       fetch(`${url}/rest/v1/expenses?uid=eq.${ctx.uid}&deleted_at=is.null&employee_id=eq.${ctx.employeeId}&date=gte.${monthStart}&select=amount`,
         { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
     ]);

@@ -260,6 +260,17 @@ try {
   check("customize sheet renders", React.createElement(HomeCustomize, {}));
 } catch (e) { results.push(["skip", "customize: " + String(e).slice(0, 40)]); }
 
+// V57: import EVERY component. A throw at module scope (bad import, bad
+// top-level code) breaks real pages before they render a single pixel.
+{
+  const { readdirSync } = await import("fs");
+  const compDir = new URL("../components/", import.meta.url);
+  for (const f of readdirSync(compDir).filter((x) => x.endsWith(".tsx"))) {
+    try { await import("../components/" + f); }
+    catch (e) { results.push(["fail", "import " + f + ": " + String(e).slice(0, 60)]); }
+  }
+}
+
 console.log(JSON.stringify(results));
 `;
   writeFileSync(`${STAGE}/run.mjs`, harness);

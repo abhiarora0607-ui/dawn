@@ -93,6 +93,7 @@ export async function GET() {
             { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => [])
         : Promise.resolve([]),
       canPayrollApprove
+        // full-scan: transient drafts count, id-only
         ? fetch(`${url}/rest/v1/payslips?uid=eq.${uid}&status=eq.draft&select=id`,
             { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => [])
         : Promise.resolve([]),

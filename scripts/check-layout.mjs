@@ -18,12 +18,12 @@ let failures = 0;
 const fail = (m) => { console.log(`  ${RED}✗${RESET} ${m}`); failures++; };
 const pass = (m) => console.log(`  ${GREEN}✓${RESET} ${m}`);
 
-function walk(dir, out = []) {
+function walk(dir, out = [], exts = [".tsx"]) {
   for (const f of readdirSync(dir)) {
     const p = join(dir, f);
     if (f === "node_modules" || f === ".next" || f.startsWith(".")) continue;
-    if (statSync(p).isDirectory()) walk(p, out);
-    else if (f.endsWith(".tsx")) out.push(p);
+    if (statSync(p).isDirectory()) walk(p, out, exts);
+    else if (exts.some((e) => f.endsWith(e))) out.push(p);
   }
   return out;
 }
@@ -32,6 +32,45 @@ const read = (f) => readFileSync(f, "utf8");
 
 console.log("\n================================================");
 console.log("  DAWN — LAYOUT & DESIGN SYSTEM CHECKS");
+
+// [10] Growth-table fetches are bounded, keyed, or justified (V57).
+// A table that grows forever (contacts, expenses, tasks…) must never be
+// fetched open-ended by accident: every such fetch carries a limit=, a key
+// filter (one row by id), or an explicit `full-scan: <reason>` tag naming
+// why the math genuinely needs every row. Unjustified full scans are how a
+// product gets slow one customer at a time.
+console.log("\n[10] Growth-table fetches bounded, keyed, or justified");
+{
+  let bad = 0;
+  const GROWTH = ["contacts", "orders", "expenses", "tasks", "payslips", "messages", "events", "audit_log", "payments", "leads"];
+  const files = walk("app", [], [".ts"]);
+  for (const f of files) {
+    const lines = readFileSync(f, "utf8").split("\n");
+    lines.forEach((l, i) => {
+      const m = GROWTH.find((t) => l.includes(`rest/v1/${t}?`));
+      if (!m) return;
+      const ok = /limit=/.test(l) || /[?&](id|source_id|conversation_id)=eq\./.test(l) || /full-scan:/.test(l) || (i > 0 && /full-scan:/.test(lines[i - 1]));
+      if (!ok) { fail(`${f}:${i + 1} unbounded fetch on ${m} — add limit=, key it, or justify with a full-scan tag`); bad++; }
+    });
+  }
+  if (bad === 0) pass("every growth-table fetch is bounded, keyed, or carries a named reason");
+}
+
+// [11] Client pages that fetch must handle loading AND failure (V57).
+console.log("\n[11] Data-fetching pages show loading and failure states");
+{
+  let bad = 0;
+  const pages = walk("app").filter((f) => f.endsWith("page.tsx"));
+  for (const f of pages) {
+    const s2 = readFileSync(f, "utf8");
+    if (!s2.startsWith('"use client"')) continue;
+    if (!/useApi|fetch\(/.test(s2)) continue;
+    if (!/loading|busy|Loader2/i.test(s2)) { fail(`${f} fetches but never shows a loading state`); bad++; }
+    if (!/(error|try again|retry)/i.test(s2)) { fail(`${f} fetches but has no failure treatment`); bad++; }
+  }
+  if (bad === 0) pass("every fetching page handles the slow case and the broken case");
+}
+
 console.log("================================================");
 
 // ---- 1. READABLE TYPE -------------------------------------------------------
@@ -226,5 +265,44 @@ console.log("\n[9] No unguarded array access on API data");
 
 console.log("\n================================================");
 console.log(failures === 0 ? `  ${GREEN}*** LAYOUT CHECKS PASS ***${RESET}` : `  ${RED}*** ${failures} LAYOUT FAILURE(S) ***${RESET}`);
+
+// [10] Growth-table fetches are bounded, keyed, or justified (V57).
+// A table that grows forever (contacts, expenses, tasks…) must never be
+// fetched open-ended by accident: every such fetch carries a limit=, a key
+// filter (one row by id), or an explicit `full-scan: <reason>` tag naming
+// why the math genuinely needs every row. Unjustified full scans are how a
+// product gets slow one customer at a time.
+console.log("\n[10] Growth-table fetches bounded, keyed, or justified");
+{
+  let bad = 0;
+  const GROWTH = ["contacts", "orders", "expenses", "tasks", "payslips", "messages", "events", "audit_log", "payments", "leads"];
+  const files = walk("app", [], [".ts"]);
+  for (const f of files) {
+    const lines = readFileSync(f, "utf8").split("\n");
+    lines.forEach((l, i) => {
+      const m = GROWTH.find((t) => l.includes(`rest/v1/${t}?`));
+      if (!m) return;
+      const ok = /limit=/.test(l) || /[?&](id|source_id|conversation_id)=eq\./.test(l) || /full-scan:/.test(l) || (i > 0 && /full-scan:/.test(lines[i - 1]));
+      if (!ok) { fail(`${f}:${i + 1} unbounded fetch on ${m} — add limit=, key it, or justify with a full-scan tag`); bad++; }
+    });
+  }
+  if (bad === 0) pass("every growth-table fetch is bounded, keyed, or carries a named reason");
+}
+
+// [11] Client pages that fetch must handle loading AND failure (V57).
+console.log("\n[11] Data-fetching pages show loading and failure states");
+{
+  let bad = 0;
+  const pages = walk("app").filter((f) => f.endsWith("page.tsx"));
+  for (const f of pages) {
+    const s2 = readFileSync(f, "utf8");
+    if (!s2.startsWith('"use client"')) continue;
+    if (!/useApi|fetch\(/.test(s2)) continue;
+    if (!/loading|busy|Loader2/i.test(s2)) { fail(`${f} fetches but never shows a loading state`); bad++; }
+    if (!/(error|try again|retry)/i.test(s2)) { fail(`${f} fetches but has no failure treatment`); bad++; }
+  }
+  if (bad === 0) pass("every fetching page handles the slow case and the broken case");
+}
+
 console.log("================================================\n");
 process.exit(failures === 0 ? 0 : 1);

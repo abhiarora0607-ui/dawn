@@ -47,8 +47,10 @@ export async function GET(req: Request) {
     // Live current month: compute from source of truth.
     const [employees, contacts, salesRaw, tasks, activities] = await Promise.all([
       fetch(`${url}/rest/v1/employees?uid=eq.${uid}&select=id,name,status,is_owner,joining_date`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      // full-scan: scoring math over the book, minimal columns
       fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&select=id,stage,employee_id,follow_up_date,created_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/sales?uid=eq.${uid}&deleted_at=is.null&select=employee_id,amount_paid,date,order_status`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      // full-scan: minimal columns for scoring
       fetch(`${url}/rest/v1/tasks?uid=eq.${uid}&select=employee_id,done,done_at,due_date`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/activities?uid=eq.${uid}&select=contact_id,type,content,created_at&order=created_at.desc&limit=2000`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
     ]);

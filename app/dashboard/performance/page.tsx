@@ -18,6 +18,7 @@ export default function PerformancePage() {
   const { currency } = useSettings();
   const money = (n: number) => fmtMoney(n, currency);
   const [win, setWin] = useState("month");
+  const [loadErr, setLoadErr] = useState("");
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sc, setSc] = useState<any>(null);
@@ -25,7 +26,7 @@ export default function PerformancePage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/employee-performance?window=${win}`).then((r) => r.json()).then((d) => { setRows(d.employees || []); setLoading(false); }).catch(() => setLoading(false));
+    fetch(`/api/employee-performance?window=${win}`).then((r) => r.json()).then((d) => { setRows(d.employees || []); setLoading(false); }).catch(() => { setLoadErr("Couldn't load this page — check your connection."); setLoading(false); });
   }, [win]);
   useEffect(() => {
     fetch(`/api/scores${scoreMonth ? `?month=${scoreMonth}` : ""}`).then((r) => r.json()).then(setSc).catch(() => {});
@@ -42,12 +43,13 @@ export default function PerformancePage() {
   return (
     <DashboardShell>
       <div className="max-w-5xl mx-auto space-y-6">
+        {loadErr && <p className="t-small text-red-600 bg-red-50 rounded-xl px-3 py-2 mb-3">{loadErr} <button onClick={() => location.reload()} className="underline font-medium">Try again</button></p>}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="font-display font-semibold text-2xl text-navy">Team Performance</h1>
             <p className="text-muted text-sm mt-0.5">Compare how each team member is performing.</p>
           </div>
-          <div className="btn-icon flex gap-1 bg-white  rounded-xl border border-navy-line overflow-x-auto">
+          <div className="flex gap-1 bg-white p-1 rounded-xl border border-navy-line overflow-x-auto">
             {WINDOWS.map((w) => (
               <button key={w.id} onClick={() => setWin(w.id)} className={`text-sm font-medium px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors ${win === w.id ? "bg-navy text-white" : "text-muted hover:text-navy"}`}>{w.label}</button>
             ))}

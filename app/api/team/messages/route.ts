@@ -23,7 +23,7 @@ export async function GET(req: Request) {
       // Verify the conversation is the employee's
       const conv = (await (await fetch(`${url}/rest/v1/conversations?id=eq.${convId}&uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&select=*&limit=1`, { headers: empHeaders(key), cache: "no-store" })).json())?.[0];
       if (!conv) return NextResponse.json({ error: "Not found." }, { status: 404 });
-      const msgs = await (await fetch(`${url}/rest/v1/messages?conversation_id=eq.${convId}&order=created_at.asc`, { headers: empHeaders(key), cache: "no-store" })).json();
+      const msgs = await (await fetch(`${url}/rest/v1/messages?conversation_id=eq.${convId}&order=created_at.asc&limit=500`, { headers: empHeaders(key), cache: "no-store" })).json();
       // Clear unread
       await fetch(`${url}/rest/v1/conversations?id=eq.${convId}`, { method: "PATCH", headers: empHeaders(key, { Prefer: "return=minimal" }), body: JSON.stringify({ unread_count: 0 }) });
       return NextResponse.json({ conversation: conv, messages: Array.isArray(msgs) ? msgs : [] });

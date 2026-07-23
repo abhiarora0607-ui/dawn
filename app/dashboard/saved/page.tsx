@@ -11,11 +11,12 @@ type Item = { id: string; kind: string; title: string; body: string; meta: any; 
 export default function Saved() {
   const { data } = useBrief();
   const [items, setItems] = useState<Item[]>([]);
+  const [loadErr, setLoadErr] = useState("");
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   function load() {
-    fetch("/api/saved").then((r) => r.json()).then((d) => { setItems(d.items || []); setLoading(false); }).catch(() => setLoading(false));
+    fetch("/api/saved").then((r) => r.json()).then((d) => { setItems(d.items || []); setLoading(false); }).catch(() => { setLoadErr("Couldn't load this page — check your connection."); setLoading(false); });
   }
   useEffect(() => { load(); }, []);
 
@@ -35,6 +36,7 @@ export default function Saved() {
     <DashboardShell>
       <DashTopbar account={data?.account} pageTitle="Saved" />
       <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
+        {loadErr && <p className="t-small text-red-600 bg-red-50 rounded-xl px-3 py-2 mb-3">{loadErr} <button onClick={() => location.reload()} className="underline font-medium">Try again</button></p>}
         <div>
           <h1 className="font-display font-semibold text-2xl text-navy">Saved content</h1>
           <p className="text-muted text-sm mt-1">Captions and ideas you&apos;ve kept, ready to post.</p>

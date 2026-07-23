@@ -15,6 +15,7 @@ export async function GET(req: Request) {
   const { ctx, url, key } = g;
   const filter = new URL(req.url).searchParams.get("filter"); // leads | customers | all
   try {
+    // full-scan: employee's own book, naturally small
     const rows = await (await fetch(`${url}/rest/v1/contacts?uid=eq.${ctx.uid}&deleted_at=is.null&employee_id=eq.${ctx.employeeId}&order=created_at.desc`, { headers: empHeaders(key), cache: "no-store" })).json();
     let all = Array.isArray(rows) ? rows : [];
     if (filter === "leads") all = all.filter((c: any) => !["Customer (Won)", "Lost"].includes(c.stage));

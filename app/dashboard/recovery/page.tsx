@@ -12,13 +12,14 @@ const ICON: Record<string, any> = { contact: Contact, order: ShoppingBag, item: 
 
 export default function RecoveryPage() {
   const [items, setItems] = useState<any[]>([]);
+  const [loadErr, setLoadErr] = useState("");
   const [loading, setLoading] = useState(true);
   const [windowDays, setWindowDays] = useState(30);
   const [restoring, setRestoring] = useState<string | null>(null);
 
   function load() {
     setLoading(true);
-    fetch("/api/recovery").then((r) => r.json()).then((d) => { setItems(d.items || []); setWindowDays(d.windowDays || 30); setLoading(false); }).catch(() => setLoading(false));
+    fetch("/api/recovery").then((r) => r.json()).then((d) => { setItems(d.items || []); setWindowDays(d.windowDays || 30); setLoading(false); }).catch(() => { setLoadErr("Couldn't load this page — check your connection."); setLoading(false); });
   }
   useEffect(() => { load(); }, []);
 
@@ -32,6 +33,7 @@ export default function RecoveryPage() {
     <DashboardShell>
       <DashTopbar pageTitle="Recently deleted" />
       <div className="dawn-page space-y-5">
+        {loadErr && <p className="t-small text-red-600 bg-red-50 rounded-xl px-3 py-2 mb-3">{loadErr} <button onClick={() => location.reload()} className="underline font-medium">Try again</button></p>}
         <div>
           <h1 className="font-display font-semibold text-2xl text-navy">Recently deleted</h1>
           <p className="text-muted text-sm mt-1">Anything you delete is kept for {windowDays} days. Restore it here, or let it clear itself.</p>

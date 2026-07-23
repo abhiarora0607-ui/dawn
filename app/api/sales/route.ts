@@ -26,6 +26,7 @@ export async function GET(req: Request) {
   try {
     if (wantCustomers) {
       // Return contacts that can receive an order (customers first, then anyone)
+      // full-scan: name map for the orders view; paginate in V61
       const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&select=id,name,phone,stage,employee_id&order=name.asc`, { headers: H(key), cache: "no-store" });
       return NextResponse.json({ customers: await res.json() });
     }

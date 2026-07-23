@@ -48,6 +48,7 @@ export async function GET(req: Request) {
     // Contacts / leads / customers assigned to this employee
     // Leads and customers gate independently.
     if (hasPermission(ctx, "leads") || hasPermission(ctx, "customers")) {
+      // full-scan: stats + list over own book
       const rows = await (await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&employee_id=eq.${empId}&order=created_at.desc`, { headers: H(key), cache: "no-store" })).json();
       const all = Array.isArray(rows) ? rows : [];
       out.leads = hasPermission(ctx, "leads") ? all.filter((c: any) => !["Customer (Won)", "Lost"].includes(c.stage)) : [];
@@ -74,8 +75,10 @@ export async function GET(req: Request) {
       const { computeScores } = await import("@/lib/scoring");
       const [emps, allContacts, allSales, allTasks, acts] = await Promise.all([
         fetch(`${url}/rest/v1/employees?uid=eq.${uid}&select=id,name,status,is_owner,joining_date`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+        // full-scan: team score math, minimal columns
         fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&select=id,stage,employee_id,follow_up_date,created_at`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
         fetch(`${url}/rest/v1/sales?uid=eq.${uid}&deleted_at=is.null&select=employee_id,amount_paid,date,order_status`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+        // full-scan: minimal columns for counts
         fetch(`${url}/rest/v1/tasks?uid=eq.${uid}&select=employee_id,done,done_at,due_date`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
         fetch(`${url}/rest/v1/activities?uid=eq.${uid}&select=contact_id,type,content,created_at&limit=2000`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       ]);

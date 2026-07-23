@@ -14,6 +14,7 @@ export default function ControlPage() {
 
 function Control() {
   const [bill, setBill] = useState<any>(null);
+  const [loadErr, setLoadErr] = useState("");
   const [ann, setAnn] = useState<any[]>([]);
   const [annTitle, setAnnTitle] = useState(""); const [annBody, setAnnBody] = useState("");
   const [cfgTrial, setCfgTrial] = useState(""); const [cfgGrace, setCfgGrace] = useState("");
@@ -24,7 +25,7 @@ function Control() {
       setBill(b);
       setCfgTrial(String(b.billingSettings?.default_trial_days ?? 14));
       setCfgGrace(String(b.billingSettings?.grace_days ?? 3));
-    }).catch(() => {});
+    }).catch(() => setLoadErr("Couldn't load — try a refresh."));
     fetch("/api/operator/announcements").then((r) => r.json()).then((x) => setAnn(x.items || [])).catch(() => {});
   }
   useEffect(() => { load(); }, []);
@@ -53,6 +54,7 @@ function Control() {
       <Hero line="Control" sub="Settings that shape everyone's experience." />
 
       <div className="dawn-card p-5">
+        {loadErr && <p className="t-small text-red-600 bg-red-50 rounded-xl px-3 py-2 mb-3">{loadErr} <button onClick={() => location.reload()} className="underline font-medium">Try again</button></p>}
         <p className="font-semibold text-navy text-sm mb-1">Trial length</p>
         <p className="text-[12px] text-muted mb-3">Applies to every new business. Existing trials keep their own clock.</p>
         <div className="flex flex-wrap items-end gap-3">
