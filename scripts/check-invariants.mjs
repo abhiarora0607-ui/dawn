@@ -835,7 +835,7 @@ console.log("\n[26] Workspace registry: honest permissions, guaranteed floor");
 
   // The endpoint batches its reads.
   const route = read("app/api/team/workspace/route.ts");
-  const loopFetch = /for \([^)]*\)[^]*?fetch\(/.test(route.slice(route.indexOf("Promise.all")));
+  const loopFetch = /for \([^)]*\)\s*{[^{}]*fetch\(/.test(route.slice(route.indexOf("Promise.all")));
   if (loopFetch) { fail("workspace route fetches inside a loop — batch it"); bad++; }
 
   if (bad === 0) pass("registry permissions are real, the floor is guaranteed, rules can't crash the home");

@@ -42,7 +42,7 @@ export async function loadOrg(
   url: string, key: string, uid: string, meId: string | null,
 ): Promise<OrgContext> {
   const [empRows, deptRows] = await Promise.all([
-    fetch(`${url}/rest/v1/employees?uid=eq.${uid}&select=id,name,reports_to,department_id,is_owner,is_admin,status,job_title&order=name.asc`,
+    fetch(`${url}/rest/v1/employees?uid=eq.${uid}&select=id,name,reports_to,department_id,is_owner,is_admin,status,job_title,joining_date&order=name.asc`,
       { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
     fetch(`${url}/rest/v1/departments?uid=eq.${uid}&select=id,name,head_employee_id&order=sort_order.asc`,
       { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),

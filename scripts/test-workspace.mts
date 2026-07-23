@@ -135,6 +135,18 @@ const marketer = assembleWorkspace(ctx({ permissions: ["content_tools"], dept: "
 t.push(["content_tools holder gets the studio card", String(marketer.some((w) => w.id === "studio")), "true"]);
 t.push(["without the grant, no studio", String(assembleWorkspace(ctx({ permissions: ["leads"] })).some((w) => w.id === "studio")), "false"]);
 
+// ---- the people pulse (V54.1): scope + attention ----
+const hrLead = assembleWorkspace(ctx({ permissions: ["team_view"], isLead: true, teamSize: 3, dept: "hr" }));
+t.push(["an HR lead keeps the people pulse even on a quiet month", String(hrLead.some((w) => w.id === "hr_pulse")), "true"]);
+const opsLeadEvent = assembleWorkspace(ctx({ permissions: ["team_view"], isLead: true, teamSize: 3, dept: "ops",
+  counts: { actionableApprovals: 0, teamOnLeaveToday: 0, teamPresentToday: 0, myPendingLeave: 0, payrollDrafts: 0, peopleJoiners: 1, peopleAnniversaries: 0 } }));
+t.push(["a non-HR lead sees it when someone joined", String(opsLeadEvent.some((w) => w.id === "hr_pulse")), "true"]);
+const opsLeadQuiet = assembleWorkspace(ctx({ permissions: ["team_view"], isLead: true, teamSize: 3, dept: "ops" }));
+t.push(["…and not on a quiet month", String(opsLeadQuiet.some((w) => w.id === "hr_pulse")), "false"]);
+const repPulse = assembleWorkspace(ctx({ permissions: ["team_view"], dept: "hr",
+  counts: { actionableApprovals: 0, teamOnLeaveToday: 0, teamPresentToday: 0, myPendingLeave: 0, payrollDrafts: 0, peopleJoiners: 5, peopleAnniversaries: 5 } }));
+t.push(["no team means no people pulse, whatever the counts", String(repPulse.some((w) => w.id === "hr_pulse")), "false"]);
+
 // ---- purity: same ctx twice → identical assembly (View-As correctness) ----
 const a = ids(assembleWorkspace(ctx({ permissions: ["leads"], dept: "sales" })));
 const b = ids(assembleWorkspace(ctx({ permissions: ["leads"], dept: "sales" })));

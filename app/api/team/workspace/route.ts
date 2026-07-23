@@ -115,7 +115,23 @@ export async function GET() {
       teamPresentToday: presentSet.size,
       myPendingLeave: Array.isArray(myPending) ? myPending.length : 0,
       payrollDrafts: Array.isArray(draftSlips) ? draftSlips.length : 0,
+      // People pulse (V54.1): computed from the org already in hand — the
+      // loader now carries joining_date, so this costs zero extra queries.
+      peopleJoiners: 0,
+      peopleAnniversaries: 0,
     };
+    {
+      const now = new Date();
+      const ym = now.toISOString().slice(0, 7);
+      const mm = ym.slice(5, 7);
+      const inScope = new Set(teamIds);
+      for (const e of org.employees) {
+        if (!inScope.has(e.id) || e.status === "inactive" || !e.joining_date) continue;
+        const jd = String(e.joining_date);
+        if (jd.slice(0, 7) === ym) counts.peopleJoiners++;
+        else if (jd.slice(5, 7) === mm) counts.peopleAnniversaries++;
+      }
+    }
 
     return NextResponse.json({
       permissions: effectivePermissions(ctx),   // migrated — the client engine does plain includes

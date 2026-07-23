@@ -236,6 +236,23 @@ export default function TeamDashboard() {
                   </button>
                 );
               }
+              if (w.id === "hr_pulse") {
+                const j = wsCtx.counts.peopleJoiners, a = wsCtx.counts.peopleAnniversaries;
+                const bits = [
+                  j > 0 ? `${j} joined this month` : "",
+                  a > 0 ? `${a} work ${a === 1 ? "anniversary" : "anniversaries"}` : "",
+                ].filter(Boolean).join(" · ");
+                return (
+                  <button key={w.id} onClick={() => setTab("people")}
+                    className="w-full bg-white border border-navy-line rounded-2xl p-4 flex items-center justify-between text-left hover:bg-surface">
+                    <div>
+                      <p className="text-sm font-semibold text-navy flex items-center gap-1.5"><Users2 className="w-4 h-4 text-amber-deep" /> People pulse</p>
+                      <p className="text-xs text-muted mt-0.5">{bits || "A quiet month — no joiners or anniversaries in your team."}</p>
+                    </div>
+                    <span className="text-muted text-xs shrink-0 ml-3">Open →</span>
+                  </button>
+                );
+              }
               if (w.id === "studio") {
                 return (
                   <button key={w.id} onClick={() => setTab("studio")}

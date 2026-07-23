@@ -32,6 +32,8 @@ export type OrgEmployee = {
   is_admin?: boolean;
   status?: string;
   job_title?: string | null;
+  /** V54.1: powers the people-pulse widget (joiners, anniversaries). */
+  joining_date?: string | null;
 };
 
 export type Department = { id: string; name: string; head_employee_id: string | null };

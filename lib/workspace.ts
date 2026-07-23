@@ -39,6 +39,9 @@ export type WorkspaceCounts = {
   myPendingLeave: number;
   /** Draft payslips awaiting approval — counted only for people who can approve. */
   payrollDrafts: number;
+  /** People pulse (V54.1): joiners and work anniversaries this month, in scope. */
+  peopleJoiners: number;
+  peopleAnniversaries: number;
 };
 
 export type WorkspaceCtx = {
@@ -125,6 +128,15 @@ export const WIDGETS: WidgetDef[] = [
     when: (c) => c.counts.payrollDrafts > 0 || c.dept === "finance",
     priority: (c) => (c.counts.payrollDrafts > 0 ? 88 : 66) },
 
+  // The people pulse (V54.1): who joined this month, whose work anniversary
+  // it is — over the same tree scope as every other team count. HR-flavored
+  // leads keep it on their home; everyone else with people sees it only when
+  // there's something to mark.
+  { id: "hr_pulse", label: "People pulse", component: "hr_pulse", size: "card",
+    when: (c) => (c.isLead || c.isAdmin) && c.teamSize > 0
+      && (c.dept === "hr" || (c.counts.peopleJoiners + c.counts.peopleAnniversaries) > 0),
+    priority: (c) => (c.dept === "hr" ? 84 : 58) },
+
   // The content studio, for hands an admin has granted content_tools —
   // ideas, captions, and carousels from the portal (V54).
   { id: "studio", label: "Content studio", component: "studio", size: "card",
@@ -184,6 +196,6 @@ export function assembleWorkspace(ctx: WorkspaceCtx, registry: WidgetDef[] = WID
 /** A context that renders a safe floor-only home when the workspace endpoint fails. */
 export const FALLBACK_CTX: WorkspaceCtx = {
   permissions: [], isAdmin: false, isLead: false, teamSize: 0, dept: "none",
-  counts: { actionableApprovals: 0, teamOnLeaveToday: 0, teamPresentToday: 0, myPendingLeave: 0, payrollDrafts: 0 },
+  counts: { actionableApprovals: 0, teamOnLeaveToday: 0, teamPresentToday: 0, myPendingLeave: 0, payrollDrafts: 0, peopleJoiners: 0, peopleAnniversaries: 0 },
   hasScore: false,
 };
