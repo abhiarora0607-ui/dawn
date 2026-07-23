@@ -792,6 +792,55 @@ console.log("\n[25] AI render payloads are shape-normalised");
   if (bad === 0) pass("brief, content and carousel coerce AI text before it renders");
 }
 
+// ---- 26. THE WORKSPACE REGISTRY IS HONEST AND CRASH-PROOF (V51) -------------
+// The portal home is assembled from lib/workspace.ts. Four structural rules:
+//   · every widget permission must be a real PORTAL-scope permission — a
+//     widget gated on an owner-only or misspelled permission is invariant
+//     21's lie in UI form;
+//   · the floor must exist: at least one widget with no perm and no when, so
+//     no employee can ever get an empty home;
+//   · widget rules run through safeWhen/safePriority, so a throwing rule
+//     costs the widget, never the page (the React #31 lesson);
+//   · the workspace endpoint batches — no fetch inside a loop.
+console.log("\n[26] Workspace registry: honest permissions, guaranteed floor");
+{
+  let bad = 0;
+  const ws = read("lib/workspace.ts");
+  const perms = read("lib/permissions.ts");
+
+  const allIds = [...perms.matchAll(/\{ id: "([a-z_]+)", group: "[a-z]+"/g)].map((m) => m[1]);
+  const ownerIds = new Set([...perms.matchAll(/\{ id: "([a-z_]+)"[^}]*scope: "owner"/g)].map((m) => m[1]));
+  const portalIds = new Set(allIds.filter((id) => !ownerIds.has(id)));
+
+  // Widget permissions referenced in the registry.
+  const registryBlock = ws.slice(ws.indexOf("export const WIDGETS"), ws.indexOf("// ---------------------------------------------------------------- assembly"));
+  const widgetPerms = [...registryBlock.matchAll(/perm: (?:\[([^\]]+)\]|"([a-z_]+)")/g)]
+    .flatMap((m) => (m[1] ? m[1].split(",").map((s) => s.replace(/["\s]/g, "")) : [m[2]]));
+  for (const p of widgetPerms) {
+    if (!portalIds.has(p)) { fail(`widget permission "${p}" is not a portal-scope permission`); bad++; }
+  }
+
+  // The floor: a widget with neither perm nor when.
+  const widgets = registryBlock.split(/\{ id: "/).slice(1);
+  const hasFloor = widgets.some((w) => !/perm:/.test(w) && !/when:/.test(w));
+  if (!hasFloor) { fail("registry has no floor widget (no-perm, no-when) — an employee could get an empty home"); bad++; }
+
+  // Crash guards and the floor guarantee in assembly.
+  if (!/function safeWhen/.test(ws) || !/function safePriority/.test(ws)) {
+    fail("assembly is missing safeWhen/safePriority — a throwing widget rule would blank the home"); bad++;
+  }
+  if (!/out\.unshift\(\{ id: "today"/.test(ws)) {
+    fail("assembleWorkspace no longer enforces the floor guarantee"); bad++;
+  }
+
+  // The endpoint batches its reads.
+  const route = read("app/api/team/workspace/route.ts");
+  const loopFetch = /for \([^)]*\)[^]*?fetch\(/.test(route.slice(route.indexOf("Promise.all")));
+  if (loopFetch) { fail("workspace route fetches inside a loop — batch it"); bad++; }
+
+  if (bad === 0) pass("registry permissions are real, the floor is guaranteed, rules can't crash the home");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

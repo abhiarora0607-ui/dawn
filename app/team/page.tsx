@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { useApi } from "@/lib/use-api";
+import { assembleWorkspace, FALLBACK_CTX, type WorkspaceCtx } from "@/lib/workspace";
 import { useRouter } from "next/navigation";
 import { TeamAttendance } from "@/components/TeamAttendance";
 import { TeamLeave } from "@/components/TeamLeave";
@@ -74,6 +75,19 @@ export default function TeamDashboard() {
 
   const perms: string[] = me.permissions || [];
   const can = (p: string) => perms.includes(p);
+
+  // V51: the home is ASSEMBLED from who this person is — permissions decide
+  // inclusion, position decides authority cards, department nudges order,
+  // pending counts drive attention. If the workspace call fails, FALLBACK_CTX
+  // still renders the floor (Today card) — nobody ever gets a blank home.
+  const wsState = useApi<any>("/api/team/workspace");
+  const wsCtx: WorkspaceCtx = {
+    ...FALLBACK_CTX,
+    ...(wsState.data && !wsState.data.error ? wsState.data : {}),
+    counts: { ...FALLBACK_CTX.counts, ...(wsState.data?.counts || {}) },
+    hasScore: !!(myScore && !myScore.tooNew),
+  };
+  const assembled = assembleWorkspace(wsCtx);
 
   const ALL_TABS: { id: Tab; label: string; icon: any; perm: string }[] = [
     { id: "dashboard", label: "Home", icon: Home, perm: "dashboard" },
@@ -154,58 +168,95 @@ export default function TeamDashboard() {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-5 pb-28">
         {activeTab === "dashboard" && can("dashboard") && (
           <>
-            {/* The first thing anyone opens this app to check. */}
-            <TodayCard onGoToAttendance={() => setTab("attendance")} />
-
-            {myScore && !myScore.tooNew && (
-              <div className="bg-navy rounded-2xl p-4 text-white flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-[12px] uppercase tracking-wide text-white/50">My score this month</p>
-                  <p className="text-xs text-white/60 mt-0.5">{myScore.isTop ? "🏆 Top of the team right now" : myScore.rank ? `Ranked #${myScore.rank}` : "Keep going"}</p>
-                </div>
-                <p className="text-3xl font-bold text-amber">{myScore.score}<span className="text-sm text-white/40 font-normal">/100</span></p>
-              </div>
-            )}
-            {/* V41: the home screen was three CRM counters, so a warehouse
-                packer with only attendance and leave landed on a row of
-                zeros. Show the CRM block only to people who actually have CRM
-                permissions; everyone else gets what matters to them. */}
-            {(can("leads") || can("customers") || can("orders")) && (
-              <div className="grid grid-cols-3 gap-3">
-                <Stat label="My leads" value={stats.leads ?? leads.length} icon={Users} />
-                <Stat label="My customers" value={stats.customers ?? customers.length} icon={Users} />
-                <Stat label="My orders" value={stats.orders ?? orders.length} icon={ShoppingBag} />
-              </div>
-            )}
-            {stats.revenue != null && (
-              <div className="bg-navy rounded-2xl p-5 text-white flex items-center justify-between">
-                <div><p className="text-xs text-white/50 uppercase tracking-wide">My collected revenue</p><p className="text-2xl font-bold text-amber">₹{stats.revenue}</p></div>
-                <TrendingUp className="w-8 h-8 text-white/20" />
-              </div>
-            )}
-            <div className="flex gap-2">
-              {can("leads") && <button onClick={() => setModal("lead")} className="flex-1 flex items-center justify-center gap-2 bg-white border border-navy-line rounded-xl py-3 text-sm font-medium text-navy hover:bg-surface"><Plus className="w-4 h-4" /> Add lead</button>}
-              {can("orders") && <button onClick={() => setModal("order")} className="flex-1 flex items-center justify-center gap-2 bg-navy text-white rounded-xl py-3 text-sm font-medium hover:bg-navy-soft"><Plus className="w-4 h-4" /> New order</button>}
-            </div>
-            {can("leads") && leads.filter((l: any) => l.follow_up_date && new Date(l.follow_up_date) <= new Date()).length > 0 && (
-              <div className="bg-amber/10 border border-amber/30 rounded-2xl p-4">
-                <p className="text-sm font-semibold text-navy mb-2 flex items-center gap-1.5"><Bell className="w-4 h-4 text-amber-deep" /> Follow-ups due</p>
-                <div className="space-y-1.5">
-                  {leads.filter((l: any) => l.follow_up_date && new Date(l.follow_up_date) <= new Date()).slice(0, 5).map((l: any) => {
-                    const overdue = new Date(l.follow_up_date) < new Date(new Date().toDateString());
-                    return (
-                      <div key={l.id} className="flex items-center justify-between text-sm">
-                        <span className="min-w-0">
-                          <span className="text-navy">{l.name}</span>
-                          <span className={`ml-2 text-[12px] ${overdue ? "text-red-600 font-semibold" : "text-muted"}`}>{overdue ? "Overdue · " : "Today · "}{new Date(l.follow_up_date).toLocaleDateString()}</span>
-                        </span>
-                        {l.phone && <a href={`https://wa.me/${(l.phone || "").replace(/[^0-9]/g, "")}`} target="_blank" className="text-emerald-600 text-xs font-medium shrink-0 ml-2">Message →</a>}
+            {/* V51: rendered in ASSEMBLED order. Each widget id maps to a
+                render over the same data the old hardcoded home used; the
+                registry (lib/workspace.ts) decides inclusion and order. The
+                V41 warehouse-packer fix is now systematic, not an exception. */}
+            {assembled.map((w) => {
+              if (w.id === "today") {
+                return <TodayCard key={w.id} onGoToAttendance={() => setTab("attendance")} />;
+              }
+              if (w.id === "approvals_count") {
+                const n = wsCtx.counts.actionableApprovals;
+                return (
+                  <button key={w.id} onClick={() => setTab("myteam")}
+                    className="w-full bg-amber/10 border border-amber/40 rounded-2xl p-4 flex items-center justify-between text-left hover:bg-amber/15">
+                    <div>
+                      <p className="text-sm font-semibold text-navy flex items-center gap-1.5"><Bell className="w-4 h-4 text-amber-deep" /> Waiting for your decision</p>
+                      <p className="text-xs text-muted mt-0.5">{n === 1 ? "1 request needs" : `${n} requests need`} your approval — leave and attendance fixes.</p>
+                    </div>
+                    <span className="text-2xl font-bold text-amber-deep shrink-0 ml-3">{n}</span>
+                  </button>
+                );
+              }
+              if (w.id === "team_today") {
+                return (
+                  <button key={w.id} onClick={() => setTab("myteam")}
+                    className="w-full bg-white border border-navy-line rounded-2xl p-4 flex items-center justify-between text-left hover:bg-surface">
+                    <div>
+                      <p className="text-sm font-semibold text-navy flex items-center gap-1.5"><Users2 className="w-4 h-4 text-navy/50" /> Team today</p>
+                      <p className="text-xs text-muted mt-0.5">
+                        {wsCtx.counts.teamPresentToday} of {wsCtx.teamSize} punched in
+                        {wsCtx.counts.teamOnLeaveToday > 0 ? ` · ${wsCtx.counts.teamOnLeaveToday} on leave` : ""}
+                      </p>
+                    </div>
+                    <span className="text-muted text-xs shrink-0 ml-3">Open →</span>
+                  </button>
+                );
+              }
+              if (w.id === "my_score" && myScore && !myScore.tooNew) {
+                return (
+                  <div key={w.id} className="bg-navy rounded-2xl p-4 text-white flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-[12px] uppercase tracking-wide text-white/50">My score this month</p>
+                      <p className="text-xs text-white/60 mt-0.5">{myScore.isTop ? "🏆 Top of the team right now" : myScore.rank ? `Ranked #${myScore.rank}` : "Keep going"}</p>
+                    </div>
+                    <p className="text-3xl font-bold text-amber">{myScore.score}<span className="text-sm text-white/40 font-normal">/100</span></p>
+                  </div>
+                );
+              }
+              if (w.id === "crm_stats") {
+                return (
+                  <div key={w.id} className="space-y-5">
+                    <div className="grid grid-cols-3 gap-3">
+                      <Stat label="My leads" value={stats.leads ?? leads.length} icon={Users} />
+                      <Stat label="My customers" value={stats.customers ?? customers.length} icon={Users} />
+                      <Stat label="My orders" value={stats.orders ?? orders.length} icon={ShoppingBag} />
+                    </div>
+                    {stats.revenue != null && (
+                      <div className="bg-navy rounded-2xl p-5 text-white flex items-center justify-between">
+                        <div><p className="text-xs text-white/50 uppercase tracking-wide">My collected revenue</p><p className="text-2xl font-bold text-amber">₹{stats.revenue}</p></div>
+                        <TrendingUp className="w-8 h-8 text-white/20" />
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+                    )}
+                    <div className="flex gap-2">
+                      {can("leads") && <button onClick={() => setModal("lead")} className="flex-1 flex items-center justify-center gap-2 bg-white border border-navy-line rounded-xl py-3 text-sm font-medium text-navy hover:bg-surface"><Plus className="w-4 h-4" /> Add lead</button>}
+                      {can("orders") && <button onClick={() => setModal("order")} className="flex-1 flex items-center justify-center gap-2 bg-navy text-white rounded-xl py-3 text-sm font-medium hover:bg-navy-soft"><Plus className="w-4 h-4" /> New order</button>}
+                    </div>
+                    {can("leads") && leads.filter((l: any) => l.follow_up_date && new Date(l.follow_up_date) <= new Date()).length > 0 && (
+                      <div className="bg-amber/10 border border-amber/30 rounded-2xl p-4">
+                        <p className="text-sm font-semibold text-navy mb-2 flex items-center gap-1.5"><Bell className="w-4 h-4 text-amber-deep" /> Follow-ups due</p>
+                        <div className="space-y-1.5">
+                          {leads.filter((l: any) => l.follow_up_date && new Date(l.follow_up_date) <= new Date()).slice(0, 5).map((l: any) => {
+                            const overdue = new Date(l.follow_up_date) < new Date(new Date().toDateString());
+                            return (
+                              <div key={l.id} className="flex items-center justify-between text-sm">
+                                <span className="min-w-0">
+                                  <span className="text-navy">{l.name}</span>
+                                  <span className={`ml-2 text-[12px] ${overdue ? "text-red-600 font-semibold" : "text-muted"}`}>{overdue ? "Overdue · " : "Today · "}{new Date(l.follow_up_date).toLocaleDateString()}</span>
+                                </span>
+                                {l.phone && <a href={`https://wa.me/${(l.phone || "").replace(/[^0-9]/g, "")}`} target="_blank" className="text-emerald-600 text-xs font-medium shrink-0 ml-2">Message →</a>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              return null;
+            })}
             <ActivityFeed />
           </>
         )}
