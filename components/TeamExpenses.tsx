@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 import { useApi } from "@/lib/use-api";
-import { Loader2, ReceiptText, Plus } from "lucide-react";
+import { Loader2, ReceiptText, Plus, Camera } from "lucide-react";
 
 const STATUS_TONE: Record<string, string> = {
   pending: "bg-amber/15 text-amber-deep",
@@ -26,7 +26,30 @@ export function TeamExpenses() {
   const [note, setNote] = useState("");
   const [receiptUrl, setReceiptUrl] = useState("");
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
+
+  function onPickReceipt(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true); setMsg("");
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const res = await fetch("/api/upload", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dataUrl: reader.result }),
+        });
+        const out = await res.json();
+        if (out.url) setReceiptUrl(out.url);
+        else setMsg(out.error || "Couldn't upload that photo.");
+      } catch { setMsg("Couldn't upload that photo."); }
+      setUploading(false);
+    };
+    reader.onerror = () => { setUploading(false); setMsg("Couldn't read that photo."); };
+    reader.readAsDataURL(file);
+  }
 
   async function submit() {
     setBusy(true); setMsg("");
@@ -105,10 +128,20 @@ export function TeamExpenses() {
             <input type="date" value={expenseDate} onChange={(e) => setExpenseDate(e.target.value)} className="inp" />
             <label className="t-label block mt-3 mb-1">What was it for?</label>
             <input value={note} onChange={(e) => setNote(e.target.value)} className="inp" placeholder="Auto to the client meeting" />
-            <label className="t-label block mt-3 mb-1">Receipt link (optional)</label>
-            <input value={receiptUrl} onChange={(e) => setReceiptUrl(e.target.value)} className="inp" placeholder="https://…" />
+            <label className="t-label block mt-3 mb-1">Receipt (optional)</label>
+            {receiptUrl ? (
+              <div className="flex items-center gap-2">
+                <a href={receiptUrl} target="_blank" className="t-small text-amber-deep underline truncate flex-1">Photo attached — view</a>
+                <button onClick={() => setReceiptUrl("")} className="btn btn-quiet btn-sm shrink-0">Remove</button>
+              </div>
+            ) : (
+              <label className="btn btn-quiet btn-sm w-full cursor-pointer">
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Camera className="w-4 h-4" /> Attach a photo</>}
+                <input type="file" accept="image/*" className="hidden" onChange={onPickReceipt} disabled={uploading} />
+              </label>
+            )}
             <div className="flex gap-2 mt-4">
-              <button onClick={submit} disabled={busy || !(Number(amount) > 0)} className="btn btn-primary btn-sm flex-1">
+              <button onClick={submit} disabled={busy || uploading || !(Number(amount) > 0)} className="btn btn-primary btn-sm flex-1">
                 {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send to finance"}
               </button>
               <button onClick={() => setOpen(false)} disabled={busy} className="btn btn-quiet btn-sm flex-1">Cancel</button>

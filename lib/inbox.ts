@@ -33,6 +33,8 @@ export type InboxItem = {
   withName?: string;
   /** True when the viewer raised it (their own proposal, watching status). */
   mine?: boolean;
+  /** V55: a receipt photo, when the request carries one (expense claims). */
+  receiptUrl?: string;
 };
 
 /**

@@ -9,9 +9,19 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const uid = await getUid();
+  let uid = await getUid();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY;
+  if (!uid) {
+    // V55: employees upload too — receipt photos for expense claims. Same
+    // 5MB image-only limits, stored under the BUSINESS's folder (the
+    // employee context carries the owner uid), so nothing leaks across
+    // tenants and the storage story stays one bucket, one folder per business.
+    const { guardEmployee } = await import("@/lib/employee-auth");
+    const g = await guardEmployee();
+    if (!g.ok) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+    uid = g.ctx.uid;
+  }
   if (!uid) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   if (!url || !key) return NextResponse.json({ error: "Storage not configured." }, { status: 500 });
 

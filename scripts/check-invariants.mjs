@@ -950,6 +950,41 @@ console.log("\n[29] Studio gated, prefs floor-safe, one decide surface");
   if (bad === 0) pass("content_tools enforced twice, the floor is unhideable, the Inbox is the one queue");
 }
 
+// ---- 30. UPLOADS ARE GATED AND BOUNDED; DECIDING NEVER DEAD-ENDS (V55) ------
+// Two promises:
+//   · The upload endpoint admits an owner OR an authenticated employee, never
+//     the public — and keeps its image-only + 5MB bounds. An unbounded or
+//     unauthenticated upload endpoint on a free tier is an open tap.
+//   · Expense deciding goes through resolveApprover, so BOTH the owner and a
+//     finance employee can act — the V53 employee-only guard left a business
+//     with no finance hire unable to approve anything.
+console.log("\n[30] Uploads gated and bounded; claim deciding owner-capable");
+{
+  let bad = 0;
+  const up = read("app/api/upload/route.ts");
+  if (!/guardEmployee/.test(up)) {
+    fail("upload lost its employee path — receipt photos can't be attached"); bad++;
+  }
+  if (!/5 \* 1024 \* 1024/.test(up)) {
+    fail("upload lost its 5MB bound"); bad++;
+  }
+  if (!/data:\(image/.test(up.replace(/\\/g, ""))) {
+    fail("upload no longer restricts to images"); bad++;
+  }
+  if (!/Sign in first/.test(up)) {
+    fail("upload no longer rejects unauthenticated calls"); bad++;
+  }
+  const exp = read("app/api/team/expense/route.ts");
+  if (!/await resolveApprover\(\)/.test(exp)) {
+    fail("expense deciding is employee-only again — the owner is locked out"); bad++;
+  }
+  const biz = read("app/dashboard/business/page.tsx");
+  if (!/ClaimsBand/.test(biz)) {
+    fail("the owner's claims band is gone from the business page"); bad++;
+  }
+  if (bad === 0) pass("uploads bounded to authenticated images; owner and finance both decide claims");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

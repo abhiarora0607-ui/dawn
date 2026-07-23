@@ -12,8 +12,9 @@
 //   · Deciding happens in the Inbox (V52); this route is its action target.
 
 import { NextResponse } from "next/server";
-import { guardEmployee, empHeaders, hasPermission } from "@/lib/employee-auth";
-import { loadOrg } from "@/lib/org-db";
+import { guardEmployee, empHeaders } from "@/lib/employee-auth";
+import { resolveApprover } from "@/lib/approvals";
+import { getUid } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
@@ -26,13 +27,38 @@ function H(key: string, extra: Record<string, string> = {}) {
 }
 
 export async function GET() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY;
+
+  // Owner (V55): the pending queue, with names — powers the dashboard's
+  // "claims awaiting approval" band, so a business with no finance employee
+  // is never a dead end.
+  const ownerUid = await getUid();
+  if (ownerUid && url && key) {
+    try {
+      const [rows, emps] = await Promise.all([
+        fetch(`${url}/rest/v1/expense_requests?uid=eq.${ownerUid}&status=eq.pending&select=*&order=created_at.asc&limit=50`,
+          { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+        fetch(`${url}/rest/v1/employees?uid=eq.${ownerUid}&select=id,name`,
+          { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+      ]);
+      const nameById: Record<string, string> = {};
+      for (const e of Array.isArray(emps) ? emps : []) nameById[e.id] = e.name;
+      const queue = (Array.isArray(rows) ? rows : []).map((r: any) => ({ ...r, employee_name: nameById[r.employee_id] || "Unknown" }));
+      return NextResponse.json({ queue, categories: CATEGORIES });
+    } catch {
+      return NextResponse.json({ error: "Couldn't load claims." }, { status: 500 });
+    }
+  }
+
+  // Employee: their own claims, newest first.
   const g = await guardEmployee();
   if (!g.ok) return NextResponse.json({ error: g.error }, { status: g.status });
-  const { ctx, url, key } = g;
+  const { ctx } = g;
   try {
     const rows = await fetch(
       `${url}/rest/v1/expense_requests?uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}&select=*&order=created_at.desc&limit=50`,
-      { headers: empHeaders(key), cache: "no-store" },
+      { headers: empHeaders(key!), cache: "no-store" },
     ).then((r) => r.json()).catch(() => []);
     return NextResponse.json({ mine: Array.isArray(rows) ? rows : [], categories: CATEGORIES });
   } catch {
@@ -41,17 +67,17 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const g = await guardEmployee();
-  if (!g.ok) return NextResponse.json({ error: g.error }, { status: g.status });
-  const { ctx, url, key } = g;
-  const uid = ctx.uid;
-  const meId = ctx.employeeId;
+  let b: any = {};
+  try { b = await req.json(); } catch {}
 
   try {
-    const b = await req.json();
-
     // ---- submit: self-service, any employee. Writes a PENDING claim only. ----
     if (!b.action || b.action === "submit") {
+      const g = await guardEmployee();
+      if (!g.ok) return NextResponse.json({ error: g.error }, { status: g.status });
+      const { ctx, url, key } = g;
+      const uid = ctx.uid;
+      const meId = ctx.employeeId;
       const amount = Number(b.amount);
       if (!(amount > 0)) return NextResponse.json({ error: "Enter the amount." }, { status: 400 });
       if (amount > 1000000) return NextResponse.json({ error: "That amount looks wrong — check it." }, { status: 400 });
@@ -71,12 +97,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, note: "Claim sent to finance." });
     }
 
-    // ---- approve / reject: finance or admin, never your own claim. ----
+    // ---- approve / reject: the owner, an admin, or finance — never your
+    // own claim. resolveApprover admits BOTH the owner session and a portal
+    // employee, so a business with no finance hire is never blocked (a real
+    // V53 gap: the decide path was employee-only). ----
     if (b.action === "approve" || b.action === "reject") {
-      const org = await loadOrg(url, key, uid, meId);
-      const financeEyes = org.isAdmin
-        || hasPermission(ctx, "expense_approve")
-        || hasPermission(ctx, "payment_record");
+      const appr = await resolveApprover();
+      if (!appr) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+      if (appr.blocked) return NextResponse.json(appr.blocked, { status: 403 });
+      const { uid, url, key, meId } = appr;
+      const financeEyes = appr.isAdmin
+        || appr.permissions.includes("expense_approve")
+        || appr.permissions.includes("payment_record");
       if (!financeEyes) {
         return NextResponse.json({ error: "Only finance or an admin can decide expense claims." }, { status: 403 });
       }

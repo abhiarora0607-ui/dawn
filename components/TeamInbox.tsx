@@ -76,6 +76,9 @@ export function TeamInbox({ onChange }: { onChange?: () => void }) {
             <div key={`${i.kind}-${i.id}`} className="dawn-card p-4">
               <p className="text-sm font-semibold text-navy">{i.title}</p>
               {i.sub && <p className="t-small text-muted mt-0.5">{i.sub}</p>}
+              {i.receiptUrl && (
+                <a href={i.receiptUrl} target="_blank" className="t-small text-amber-deep underline inline-block mt-1">View receipt →</a>
+              )}
               <div className="flex gap-2 mt-3">
                 <button onClick={() => decide(i.kind, i.id, "approve")} disabled={!!busy}
                   className="btn btn-primary btn-sm flex-1">
@@ -99,6 +102,9 @@ export function TeamInbox({ onChange }: { onChange?: () => void }) {
               <div key={`${i.kind}-${i.id}`} className="dawn-card p-4 opacity-70">
                 <p className="text-sm font-medium text-navy">{i.title}</p>
                 {i.sub && <p className="t-small text-muted mt-0.5">{i.sub}</p>}
+                {i.receiptUrl && (
+                  <a href={i.receiptUrl} target="_blank" className="t-small text-amber-deep underline inline-block mt-1">View receipt →</a>
+                )}
                 <p className="t-micro text-muted mt-1.5">
                   {i.mine ? `Your proposal — waiting with ${i.withName || "the approver"}.` : `Waiting with ${i.withName || "the approver"}.`}
                 </p>

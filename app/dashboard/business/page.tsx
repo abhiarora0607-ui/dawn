@@ -4,6 +4,7 @@
 // money owed → work neglected → team → customers → pipeline health.
 
 import { useEffect, useState } from "react";
+import { useApi } from "@/lib/use-api";
 import Link from "next/link";
 import { DashboardShell } from "@/components/DashboardShell";
 import { DashTopbar } from "@/components/DashTopbar";
@@ -45,6 +46,8 @@ export default function BusinessDashboard() {
         <OnboardingCard />
         <WhatsNew />
         <WeekRecap money={(n: number) => money(n, currency)} />
+
+        <ClaimsBand />
 
         {/* ---------------------------------------------------------- MONEY */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -336,4 +339,61 @@ function Row({ main, meta, phone, urgent, href }: any) {
 
 function Mini({ label, value }: { label: string; value: string }) {
   return <div><p className="text-[12px] uppercase tracking-wide text-muted">{label}</p><p className="text-sm font-semibold text-navy">{value}</p></div>;
+}
+
+
+// ---------------------------------------------------------- EXPENSE CLAIMS
+// V55: the owner can decide expense claims from the dashboard. Before this,
+// the decide path was portal-only — a business with no finance employee had
+// claims nobody could approve. Same route, same rules (books on approve
+// only, once, never your own), just reachable from the owner's chair.
+function ClaimsBand() {
+  const state = useApi<any>("/api/team/expense");
+  const [busy, setBusy] = useState("");
+  const [note, setNote] = useState("");
+
+  async function decide(id: string, action: "approve" | "reject") {
+    setBusy(id); setNote("");
+    const res = await fetch("/api/team/expense", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action }),
+    });
+    const out = await res.json();
+    setBusy("");
+    setNote(out.ok ? (out.note || "Done") : (out.error || "Couldn't do that"));
+    if (out.ok) state.retry();
+  }
+
+  const queue = state.data?.queue;
+  if (!Array.isArray(queue) || queue.length === 0) return null;
+
+  return (
+    <section className="dawn-card p-4 border-amber/30">
+      <p className="text-sm font-semibold text-navy flex items-center gap-1.5">
+        <Wallet className="w-4 h-4 text-amber-deep" /> Expense claims awaiting approval
+      </p>
+      <p className="t-micro text-muted mt-0.5 mb-2">Approving posts the amount to your books. Rejecting tells them why.</p>
+      {note && <p className="t-small text-navy bg-surface rounded-lg px-2.5 py-1.5 mb-2">{note}</p>}
+      <div className="space-y-2">
+        {queue.map((r: any) => (
+          <div key={r.id} className="flex items-center justify-between gap-3 border border-navy-line rounded-xl px-3 py-2.5">
+            <div className="min-w-0">
+              <p className="text-sm text-navy font-medium truncate">₹{Number(r.amount).toLocaleString("en-IN")} · {r.category} · {r.employee_name}</p>
+              <p className="t-micro text-muted truncate">
+                {[r.expense_date, r.note].filter(Boolean).join(" · ")}
+                {r.receipt_url && <> · <a href={r.receipt_url} target="_blank" className="text-amber-deep underline">receipt</a></>}
+              </p>
+            </div>
+            <div className="flex gap-1.5 shrink-0">
+              <button onClick={() => decide(r.id, "approve")} disabled={!!busy} className="btn btn-primary btn-sm">
+                {busy === r.id ? "…" : "Approve"}
+              </button>
+              <button onClick={() => { const n = window.prompt("Why reject this claim?") || ""; fetch("/api/team/expense", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: r.id, action: "reject", note: n }) }).then(() => state.retry()); }}
+                disabled={!!busy} className="btn btn-quiet btn-sm text-red-600">Reject</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }

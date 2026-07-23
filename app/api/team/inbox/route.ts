@@ -166,6 +166,7 @@ export async function GET() {
         actionable,
         withName: actionable ? undefined : "Finance",
         mine: r.employee_id === meId,
+        receiptUrl: r.receipt_url || undefined,
       });
     }
 
