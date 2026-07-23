@@ -51,8 +51,13 @@ export type WorkspaceCtx = {
   hasScore: boolean;              // client merges this in (score is client-known)
 };
 
+/** Per-person home preferences. The floor ("today") can never be hidden. */
+export type WorkspacePrefs = { hidden?: string[]; pinned?: string[] };
+
 export type WidgetDef = {
   id: string;
+  /** Human name, for the customize sheet. */
+  label: string;
   /** Which render the portal maps this to. */
   component: string;
   size: "hero" | "card";
@@ -92,37 +97,43 @@ export function holds(perms: string[], req?: string | string[]): boolean {
 
 export const WIDGETS: WidgetDef[] = [
   // FLOOR — permission-free, the guarantee that nobody gets a blank home.
-  { id: "today", component: "today", size: "hero", priority: () => 100 },
+  { id: "today", label: "Today", component: "today", size: "hero", priority: () => 100 },
 
   // Approvals waiting that this person can ACT on. The count is computed
   // server-side through the same permission gates as the approval routes
   // (leave_approve / attendance_approve), so a lead a request has escalated
   // PAST sees no dead button here — their actionable count is zero.
-  { id: "approvals_count", component: "approvals_count", size: "card",
+  { id: "approvals_count", label: "Approvals", component: "approvals_count", size: "card",
     when: (c) => c.counts.actionableApprovals > 0,
     priority: (c) => 90 + Math.min(c.counts.actionableApprovals, 9) },
 
   // A lead's team at a glance. Position-gated: leads and admins with people.
-  { id: "team_today", component: "team_today", size: "card",
+  { id: "team_today", label: "Team today", component: "team_today", size: "card",
     when: (c) => (c.isLead || c.isAdmin) && c.teamSize > 0,
     priority: (c) => (c.dept === "hr" ? 85 : 80) },
 
   // Personal score, when the scoring engine has enough history.
-  { id: "my_score", component: "my_score", size: "card",
+  { id: "my_score", label: "My score", component: "my_score", size: "card",
     when: (c) => c.hasScore,
     priority: () => 70 },
 
   // The payroll run, for people with payroll capability. Attention-driven:
   // drafts waiting lift it near the top; finance-department people keep it on
   // their home even when the run is clean.
-  { id: "payroll_run", component: "payroll_run", size: "card",
+  { id: "payroll_run", label: "Payroll", component: "payroll_run", size: "card",
     perm: ["salary_view", "payroll_approve", "payroll_pay", "payroll_prepare"],
     when: (c) => c.counts.payrollDrafts > 0 || c.dept === "finance",
     priority: (c) => (c.counts.payrollDrafts > 0 ? 88 : 66) },
 
+  // The content studio, for hands an admin has granted content_tools —
+  // ideas, captions, and carousels from the portal (V54).
+  { id: "studio", label: "Content studio", component: "studio", size: "card",
+    perm: "content_tools",
+    priority: () => 55 },
+
   // The doer block: CRM counters. Department flavor nudges it above the score
   // for sales people, below for everyone else — order, never access.
-  { id: "crm_stats", component: "crm_stats", size: "card",
+  { id: "crm_stats", label: "My CRM numbers", component: "crm_stats", size: "card",
     perm: ["leads", "customers", "orders"],
     priority: (c) => (c.dept === "sales" ? 75 : 60) },
 ];
@@ -140,7 +151,7 @@ function safePriority(w: WidgetDef, c: WorkspaceCtx): number {
   try { return Number(w.priority(c)) || 0; } catch { return 0; }
 }
 
-export function assembleWorkspace(ctx: WorkspaceCtx, registry: WidgetDef[] = WIDGETS): AssembledWidget[] {
+export function assembleWorkspace(ctx: WorkspaceCtx, registry: WidgetDef[] = WIDGETS, prefs?: WorkspacePrefs): AssembledWidget[] {
   const out = registry
     .filter((w) => holds(ctx.permissions, w.perm))
     .filter((w) => safeWhen(w, ctx))
@@ -150,6 +161,22 @@ export function assembleWorkspace(ctx: WorkspaceCtx, registry: WidgetDef[] = WID
   // The floor guarantee, enforced even if the registry is edited badly.
   if (!out.some((w) => w.id === "today")) {
     out.unshift({ id: "today", component: "today", size: "hero", priority: 100 });
+  }
+
+  // Personalization (V54): hide what you don't use, pin what you live in.
+  // Two hard rules keep it safe: the floor can never be hidden, and unknown
+  // ids are ignored — stale prefs can't break the home.
+  if (prefs) {
+    const hidden = new Set((prefs.hidden || []).filter((id) => id !== "today"));
+    let list = out.filter((w) => !hidden.has(w.id));
+    const pinned = (prefs.pinned || []).filter((id) => id !== "today" && list.some((w) => w.id === id));
+    if (pinned.length) {
+      const pinnedSet = new Set(pinned);
+      const today = list.filter((w) => w.id === "today");
+      const front = pinned.map((id) => list.find((w) => w.id === id)!);
+      list = [...today, ...front, ...list.filter((w) => w.id !== "today" && !pinnedSet.has(w.id))];
+    }
+    return list;
   }
   return out;
 }

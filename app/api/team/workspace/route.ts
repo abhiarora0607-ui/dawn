@@ -59,7 +59,7 @@ export async function GET() {
     const canPayrollApprove = org.isAdmin || hasPermission(ctx, "payroll_approve");
     const wantTeam = isLead || org.isAdmin;
 
-    const [pendingLeave, pendingFixes, leaveToday, presentToday, myPending, pendingSalary, pendingBonus, pendingExpense, draftSlips] = await Promise.all([
+    const [pendingLeave, pendingFixes, leaveToday, presentToday, myPending, pendingSalary, pendingBonus, pendingExpense, draftSlips, prefsRow] = await Promise.all([
       // Actionable approvals: only counted if the permission is actually held —
       // the same gate canDecideWith enforces, so no widget ever shows a count
       // its holder can't act on.
@@ -96,6 +96,8 @@ export async function GET() {
         ? fetch(`${url}/rest/v1/payslips?uid=eq.${uid}&status=eq.draft&select=id`,
             { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => [])
         : Promise.resolve([]),
+      fetch(`${url}/rest/v1/employee_accounts?uid=eq.${uid}&employee_id=eq.${meId}&select=prefs&limit=1`,
+        { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
     ]);
 
     const onLeaveSet = new Set(Object.keys(leaveToday || {}).filter((id) => teamIds.includes(id)));
@@ -122,8 +124,34 @@ export async function GET() {
       teamSize: teamIds.length,
       dept,
       counts,
+      prefs: (Array.isArray(prefsRow) && prefsRow[0]?.prefs && typeof prefsRow[0].prefs === "object") ? prefsRow[0].prefs : {},
     });
   } catch {
     return NextResponse.json({ error: "Couldn't load your workspace." }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  const g = await guardEmployee();
+  if (!g.ok) return NextResponse.json({ error: g.error }, { status: g.status });
+  const { ctx, url, key } = g;
+  try {
+    const b = await req.json();
+    if (b.action !== "set_prefs") return NextResponse.json({ error: "Unknown action." }, { status: 400 });
+    // Strings only, bounded, and "today" is stripped server-side too — the
+    // floor can never be hidden, whatever a client sends.
+    const clean = (v: any) => (Array.isArray(v) ? v.filter((x: any) => typeof x === "string").slice(0, 20) : []);
+    const prefs = {
+      hidden: clean(b.hidden).filter((id: string) => id !== "today"),
+      pinned: clean(b.pinned).filter((id: string) => id !== "today"),
+    };
+    await fetch(`${url}/rest/v1/employee_accounts?uid=eq.${ctx.uid}&employee_id=eq.${ctx.employeeId}`, {
+      method: "PATCH",
+      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({ prefs }),
+    });
+    return NextResponse.json({ ok: true, prefs });
+  } catch {
+    return NextResponse.json({ error: "Couldn't save your preferences." }, { status: 500 });
   }
 }

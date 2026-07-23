@@ -14,12 +14,26 @@ export const maxDuration = 60;
 const MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"];
 
 export async function POST(req: Request) {
-  { // Billing: Instagram & AI is a plan area.
+  { // Billing: Instagram & AI is a plan area. Portal access needs content_tools.
     const _uid = await (await import("@/lib/auth")).getUid();
     const _url = process.env.NEXT_PUBLIC_SUPABASE_URL, _key = process.env.SUPABASE_SECRET_KEY;
     if (_uid && _url && _key) {
       const _area = await requireArea(_url, _key, _uid, "instagram_ai");
       if (_area) return NextResponse.json(_area, { status: 403 });
+    }
+    if (!_uid) {
+      // V54: an employee reaches the studio only if an admin granted the
+      // content_tools permission — and the business's plan still applies.
+      const { guardEmployee, hasPermission } = await import("@/lib/employee-auth");
+      const g = await guardEmployee();
+      if (!g.ok) return NextResponse.json({ error: g.error }, { status: g.status });
+      if (!hasPermission(g.ctx, "content_tools")) {
+        return NextResponse.json({ error: "You don't have access to content tools." }, { status: 403 });
+      }
+      if (_url && _key) {
+        const _area = await requireArea(_url, _key, g.ctx.uid, "instagram_ai");
+        if (_area) return NextResponse.json(_area, { status: 403 });
+      }
     }
   }
   const key = process.env.GEMINI_API_KEY;

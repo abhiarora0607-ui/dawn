@@ -115,6 +115,26 @@ const p9 = assembleWorkspace(ctx({ isLead: true, teamSize: 1, counts: { actionab
 const pr = (ws: any[], id: string) => ws.find((w) => w.id === id)?.priority ?? -1;
 t.push(["nine approvals outrank one", String(pr(p9, "approvals_count") > pr(p1, "approvals_count")), "true"]);
 
+// ---- prefs (V54): hide, pin, and the rules that keep them safe ----
+const prefRep = { permissions: ["leads"], dept: "sales" as const, hasScore: true };
+const noPrefs = assembleWorkspace(ctx(prefRep));
+t.push(["no prefs → assembly unchanged", ids(assembleWorkspace(ctx(prefRep), undefined, undefined)), ids(noPrefs)]);
+const hiddenCrm = assembleWorkspace(ctx(prefRep), undefined, { hidden: ["crm_stats"] });
+t.push(["hiding a widget removes it", String(hiddenCrm.some((w) => w.id === "crm_stats")), "false"]);
+t.push(["…and everything else survives", String(hiddenCrm.some((w) => w.id === "my_score")), "true"]);
+const hideFloor = assembleWorkspace(ctx(prefRep), undefined, { hidden: ["today"] });
+t.push(["the floor can NEVER be hidden", hideFloor[0].id, "today"]);
+const pinScore = assembleWorkspace(ctx(prefRep), undefined, { pinned: ["my_score"] });
+t.push(["pinning lifts a widget above priority order", pinScore[1].id, "my_score"]);
+t.push(["…but Today stays the hero on top", pinScore[0].id, "today"]);
+const stale = assembleWorkspace(ctx(prefRep), undefined, { hidden: ["gone_widget"], pinned: ["never_was"] });
+t.push(["unknown pref ids are ignored, not fatal", ids(stale), ids(noPrefs)]);
+
+// ---- the studio widget: permission-gated, admin-granted ----
+const marketer = assembleWorkspace(ctx({ permissions: ["content_tools"], dept: "sales" }));
+t.push(["content_tools holder gets the studio card", String(marketer.some((w) => w.id === "studio")), "true"]);
+t.push(["without the grant, no studio", String(assembleWorkspace(ctx({ permissions: ["leads"] })).some((w) => w.id === "studio")), "false"]);
+
 // ---- purity: same ctx twice → identical assembly (View-As correctness) ----
 const a = ids(assembleWorkspace(ctx({ permissions: ["leads"], dept: "sales" })));
 const b = ids(assembleWorkspace(ctx({ permissions: ["leads"], dept: "sales" })));

@@ -231,14 +231,9 @@ function Requests({ onChange }: { onChange: () => void }) {
           </p>
           {r.reason && <p className="t-small text-muted mt-1">&ldquo;{r.reason}&rdquo;</p>}
           {r.actionable ? (
-            <div className="flex gap-2 mt-3">
-              <button onClick={() => decide("leave", r.id, "approve")} disabled={!!busy} className="btn btn-primary btn-sm flex-1">
-                {busy === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Approve
-              </button>
-              <button onClick={() => decide("leave", r.id, "reject")} disabled={!!busy} className="btn btn-quiet btn-sm flex-1">
-                <X className="w-3.5 h-3.5" /> Reject
-              </button>
-            </div>
+            <p className="t-micro text-amber-deep mt-3 flex items-center gap-1.5">
+              <Inbox className="w-3.5 h-3.5" /> Decide this in your Inbox tab
+            </p>
           ) : (
             // Visible but not actionable: it's escalated past this person to
             // someone with approval permission. Shown so nothing seems to
@@ -257,14 +252,9 @@ function Requests({ onChange }: { onChange: () => void }) {
             <span className="font-normal text-muted"> · fixing {new Date(r.work_date).toLocaleDateString()}</span>
           </p>
           {r.reason && <p className="t-small text-muted mt-1">&ldquo;{r.reason}&rdquo;</p>}
-          <div className="flex gap-2 mt-3">
-            <button onClick={() => decide("fix", r.id, "approve")} disabled={!!busy} className="btn btn-primary btn-sm flex-1">
-              {busy === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Approve
-            </button>
-            <button onClick={() => decide("fix", r.id, "reject")} disabled={!!busy} className="btn btn-quiet btn-sm flex-1">
-              <X className="w-3.5 h-3.5" /> Reject
-            </button>
-          </div>
+          <p className="t-micro text-amber-deep mt-3 flex items-center gap-1.5">
+            <Inbox className="w-3.5 h-3.5" /> Decide this in your Inbox tab
+          </p>
         </div>
       ))}
     </div>

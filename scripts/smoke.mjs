@@ -251,6 +251,15 @@ try {
   check("expenses renders before data", React.createElement(TeamExpenses, {}));
 } catch (e) { results.push(["skip", "expenses: " + String(e).slice(0, 40)]); }
 
+try {
+  const { TeamStudio } = await import("../components/TeamStudio.tsx");
+  check("studio renders before data", React.createElement(TeamStudio, {}));
+} catch (e) { results.push(["skip", "studio: " + String(e).slice(0, 40)]); }
+try {
+  const { HomeCustomize } = await import("../components/HomeCustomize.tsx");
+  check("customize sheet renders", React.createElement(HomeCustomize, {}));
+} catch (e) { results.push(["skip", "customize: " + String(e).slice(0, 40)]); }
+
 console.log(JSON.stringify(results));
 `;
   writeFileSync(`${STAGE}/run.mjs`, harness);

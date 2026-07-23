@@ -80,6 +80,10 @@ export const PERMISSIONS: PermissionDef[] = [
   { id: "orders_cancel", group: "sales", label: "Cancel orders", sensitive: true, scope: "owner" },
   { id: "catalogue", group: "sales", label: "See the price list" },
   { id: "catalogue_edit", group: "sales", label: "Change prices", hint: "Affects every future quote and order.", sensitive: true, implies: ["catalogue"], scope: "owner" },
+  // V54: the content studio reaches the portal. Off by default, granted by an
+  // admin — a marketing hand can generate ideas, captions, and carousels with
+  // the business's own account context, without owner dashboard access.
+  { id: "content_tools", group: "sales", label: "Content studio", hint: "Generate post ideas, captions, and carousels with Dawn's AI." },
 
   // ---- money ----
   // The split that `financials` was hiding. Seeing a number, recording a cost,

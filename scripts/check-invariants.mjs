@@ -917,6 +917,39 @@ console.log("\n[28] Expense claims: books only on approve, never your own");
   if (bad === 0) pass("submit never posts, approve posts once, nobody decides their own claim");
 }
 
+// ---- 29. STUDIO IS GATED, PREFS ARE FLOOR-SAFE, ONE DECIDE SURFACE (V54) ----
+// Three promises this version made, held structurally:
+//   · The content studio reaches employees ONLY through the content_tools
+//     grant — both AI routes must carry the check (an ungated route would let
+//     any portal login burn the business's AI quota).
+//   · Preferences can never hide the floor: the "today" strip-out must exist
+//     in the engine AND in the API, and set_prefs must accept strings only.
+//   · Deciding lives in the Inbox alone — My Team lost its approve buttons;
+//     if they come back, the scatter V52 killed is creeping back in.
+console.log("\n[29] Studio gated, prefs floor-safe, one decide surface");
+{
+  let bad = 0;
+  for (const f of ["app/api/content/route.ts", "app/api/carousel/route.ts"]) {
+    const s = read(f);
+    if (!/hasPermission\([^)]*"content_tools"\)/.test(s)) {
+      fail(`${f} lets employees in without the content_tools grant`); bad++;
+    }
+  }
+  const ws = read("lib/workspace.ts");
+  if (!/\(prefs\.hidden \|\| \[\]\)\.filter\(\(id\) => id !== "today"\)/.test(ws)) {
+    fail("the engine no longer strips \"today\" from hidden — the floor could vanish"); bad++;
+  }
+  const route = read("app/api/team/workspace/route.ts");
+  if (!/set_prefs/.test(route) || !/typeof x === "string"/.test(route) || !/filter\(\(id: string\) => id !== "today"\)/.test(route)) {
+    fail("set_prefs lost its validation or its floor guard"); bad++;
+  }
+  const myteam = read("components/TeamMyTeam.tsx");
+  if (/decide\("leave"|decide\("fix"/.test(myteam)) {
+    fail("My Team decides requests again — deciding belongs to the Inbox"); bad++;
+  }
+  if (bad === 0) pass("content_tools enforced twice, the floor is unhideable, the Inbox is the one queue");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

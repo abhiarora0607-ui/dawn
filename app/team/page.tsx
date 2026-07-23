@@ -15,16 +15,18 @@ import { TeamMyTeam } from "@/components/TeamMyTeam";
 import { TeamInbox } from "@/components/TeamInbox";
 import { TeamPayroll } from "@/components/TeamPayroll";
 import { TeamExpenses } from "@/components/TeamExpenses";
+import { TeamStudio } from "@/components/TeamStudio";
+import { HomeCustomize } from "@/components/HomeCustomize";
 import { PeopleSearch } from "@/components/PeopleSearch";
 import { DawnLogo } from "@/components/DawnLogo";
 import { LostDialog, PaymentModal, WonDialog } from "@/components/SharedModals";
 import {
   Loader2, Users, ShoppingBag, LogOut, Phone, MessageCircle, TrendingUp, Plus, X, Send,
   MessageSquare, KeyRound, Bell, Clock, CheckSquare, CalendarDays, StickyNote, BarChart3,
-  Settings as SettingsIcon, MoreHorizontal, Pencil, Download, Trash2, Home, CalendarClock, Palmtree, Wallet, Search, Users2, ReceiptText, IndianRupee,
+  Settings as SettingsIcon, MoreHorizontal, Pencil, Download, Trash2, Home, CalendarClock, Palmtree, Wallet, Search, Users2, ReceiptText, IndianRupee, Sparkles,
 } from "lucide-react";
 
-type Tab = "dashboard" | "inbox" | "payroll" | "expenses" | "attendance" | "leave" | "salary" | "people" | "myteam" | "leads" | "customers" | "orders" | "messages" | "tasks" | "calendar" | "notes" | "reports" | "settings";
+type Tab = "dashboard" | "inbox" | "payroll" | "expenses" | "studio" | "attendance" | "leave" | "salary" | "people" | "myteam" | "leads" | "customers" | "orders" | "messages" | "tasks" | "calendar" | "notes" | "reports" | "settings";
 const STAGES = ["New Lead", "Contacted", "Negotiating", "Customer (Won)", "Lost"];
 
 export default function TeamDashboard() {
@@ -37,6 +39,7 @@ export default function TeamDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [stats, setStats] = useState<any>({});
   const [myScore, setMyScore] = useState<any>(null);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
   const [modal, setModal] = useState<null | "lead" | "order">(null);
   const [pwModal, setPwModal] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -90,7 +93,7 @@ export default function TeamDashboard() {
     counts: { ...FALLBACK_CTX.counts, ...(wsState.data?.counts || {}) },
     hasScore: !!(myScore && !myScore.tooNew),
   };
-  const assembled = assembleWorkspace(wsCtx);
+  const assembled = assembleWorkspace(wsCtx, undefined, wsState.data?.prefs);
 
   const ALL_TABS: { id: Tab; label: string; icon: any; perm: string }[] = [
     { id: "dashboard", label: "Home", icon: Home, perm: "dashboard" },
@@ -107,6 +110,9 @@ export default function TeamDashboard() {
     { id: "expenses", label: "Expenses", icon: ReceiptText, perm: "dashboard" },
     ...(wsCtx.isAdmin || can("salary_view")
       ? [{ id: "payroll" as Tab, label: "Payroll", icon: IndianRupee, perm: "dashboard" }]
+      : []),
+    ...(can("content_tools")
+      ? [{ id: "studio" as Tab, label: "Studio", icon: Sparkles, perm: "dashboard" }]
       : []),
     { id: "people", label: "People", icon: Search, perm: "dashboard" },
     { id: "leads", label: "Leads", icon: Users, perm: "leads" },
@@ -230,6 +236,18 @@ export default function TeamDashboard() {
                   </button>
                 );
               }
+              if (w.id === "studio") {
+                return (
+                  <button key={w.id} onClick={() => setTab("studio")}
+                    className="w-full bg-white border border-navy-line rounded-2xl p-4 flex items-center justify-between text-left hover:bg-surface">
+                    <div>
+                      <p className="text-sm font-semibold text-navy flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-amber-deep" /> Content studio</p>
+                      <p className="text-xs text-muted mt-0.5">Ideas, captions, and carousels from the account's real numbers.</p>
+                    </div>
+                    <span className="text-muted text-xs shrink-0 ml-3">Open →</span>
+                  </button>
+                );
+              }
               if (w.id === "my_score" && myScore && !myScore.tooNew) {
                 return (
                   <div key={w.id} className="bg-navy rounded-2xl p-4 text-white flex items-center justify-between mb-3">
@@ -284,6 +302,17 @@ export default function TeamDashboard() {
               return null;
             })}
             <ActivityFeed />
+            <button onClick={() => setCustomizeOpen(true)}
+              className="w-full text-center t-micro text-muted hover:text-navy py-1">
+              Customize this home
+            </button>
+            {customizeOpen && (
+              <HomeCustomize
+                prefs={wsState.data?.prefs || {}}
+                onClose={() => setCustomizeOpen(false)}
+                onSaved={() => wsState.retry()}
+              />
+            )}
           </>
         )}
 
@@ -311,6 +340,7 @@ export default function TeamDashboard() {
         {activeTab === "inbox" && <TeamInbox onChange={() => wsState.retry()} />}
         {activeTab === "payroll" && <TeamPayroll />}
         {activeTab === "expenses" && <TeamExpenses />}
+        {activeTab === "studio" && can("content_tools") && <TeamStudio />}
         {activeTab === "salary" && <TeamSalary />}
         {activeTab === "people" && <PeopleTab />}
         {activeTab === "tasks" && can("tasks") && <Tasks contacts={[...leads, ...customers]} />}
