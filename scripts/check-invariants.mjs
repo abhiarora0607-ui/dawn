@@ -985,6 +985,35 @@ console.log("\n[30] Uploads gated and bounded; claim deciding owner-capable");
   if (bad === 0) pass("uploads bounded to authenticated images; owner and finance both decide claims");
 }
 
+// ---- 31. THE ENTITLEMENTS READ PATH CAN NEVER DESTROY STATE (V56) -----------
+// The pre-V56 bug: an error-shaped subscriptions read looked like "no row",
+// and a merge-duplicates upsert (uid is the PRIMARY KEY) silently reset real
+// subscriptions back to trial — from ANY gated API, on ANY transient blip.
+// Structurally held, forever:
+//   · merge-duplicates must never appear in this file; the one insert uses
+//     ignore-duplicates (a race can no-op, never overwrite).
+//   · A failed/malformed read fails OPEN and returns BEFORE the insert —
+//     only an HTTP-ok empty array is treated as absence.
+//   · The file contains no PATCH and no DELETE; exactly one read and one
+//     insert touch the subscriptions table.
+//   · The trial's birth is audit-logged — no subscription appears from nowhere.
+console.log("\n[31] Entitlements: reads never write, inserts never overwrite");
+{
+  let bad = 0;
+  const s = read("lib/entitlements.ts");
+  if (/resolution=merge-duplicates/.test(s)) { fail("merge-duplicates is back — an insert can overwrite a real subscription"); bad++; }
+  if (!/resolution=ignore-duplicates/.test(s)) { fail("the trial insert lost ignore-duplicates"); bad++; }
+  const guardIdx = s.indexOf("if (!subReadOk) return OPEN;");
+  const postIdx = s.indexOf('method: "POST", headers: H(key, { Prefer: "resolution=ignore-duplicates');
+  if (guardIdx < 0) { fail("the failed-read guard is gone — an error body counts as absence again"); bad++; }
+  else if (postIdx >= 0 && guardIdx > postIdx) { fail("the failed-read guard sits AFTER the insert — it protects nothing"); bad++; }
+  const subTouches = s.split("rest/v1/subscriptions").length - 1;
+  if (subTouches !== 2) { fail(`subscriptions is touched ${subTouches} times — must be exactly 2 (one read, one insert)`); bad++; }
+  if (/method: "PATCH"|method: "DELETE"/.test(s)) { fail("a PATCH/DELETE appeared in the entitlements read path"); bad++; }
+  if (!/billing\.trial_started/.test(s)) { fail("the trial's birth is no longer audit-logged"); bad++; }
+  if (bad === 0) pass("error reads fail open and write nothing; the one insert can only no-op");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {
