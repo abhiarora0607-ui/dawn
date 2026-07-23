@@ -41,6 +41,8 @@ t.push(["departments are demo-taggable", String(L.DEMO_TAGGED.includes("departme
 // gift of leave (or any grant) must be reachable by employee_id like other
 // employee-owned records.
 t.push(["leave_grants are cleaned by employee", String(L.EMPLOYEE_CHILD_TABLES.includes("leave_grants")), "true"]);
+// V53: expense claims reference an employee; they must never orphan on clear.
+t.push(["expense claims are cleaned by employee", String(L.EMPLOYEE_CHILD_TABLES.includes("expense_requests")), "true"]);
 // the important safety property: clearing demo must not delete untagged business rows
 const untaggedOwn = L.OWNED_TABLES.filter((x) => x.via === "own" && !x.demoTagged);
 t.push(["untagged tables are skipped in demo mode", String(untaggedOwn.every((x) => !L.shouldDelete("demo", x))), "true"]);

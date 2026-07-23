@@ -98,6 +98,17 @@ const divya = assembleWorkspace(ctx({
 t.push(["admin leads with approvals after Today", divya[1].id, "approvals_count"]);
 t.push(["admin sees the org's team card", String(divya.some((w) => w.id === "team_today")), "true"]);
 
+// ---- the payroll widget: capability + attention ----
+const karanDrafts = assembleWorkspace(ctx({ permissions: ["salary_view", "payroll_approve"], dept: "finance",
+  counts: { actionableApprovals: 0, teamOnLeaveToday: 0, teamPresentToday: 0, myPendingLeave: 0, payrollDrafts: 9 } }));
+t.push(["finance with drafts sees the payroll card", String(karanDrafts.some((w) => w.id === "payroll_run")), "true"]);
+t.push(["drafts lift payroll right under Today", karanDrafts[1].id, "payroll_run"]);
+const cleanFinance = assembleWorkspace(ctx({ permissions: ["salary_view"], dept: "finance" }));
+t.push(["finance keeps payroll on a clean run", String(cleanFinance.some((w) => w.id === "payroll_run")), "true"]);
+const repDrafts = assembleWorkspace(ctx({ permissions: ["leads"], dept: "sales",
+  counts: { actionableApprovals: 0, teamOnLeaveToday: 0, teamPresentToday: 0, myPendingLeave: 0, payrollDrafts: 9 } }));
+t.push(["a rep never sees payroll, drafts or not", String(repDrafts.some((w) => w.id === "payroll_run")), "false"]);
+
 // ---- ordering is attention-driven: more approvals → higher priority ----
 const p1 = assembleWorkspace(ctx({ isLead: true, teamSize: 1, counts: { actionableApprovals: 1, teamOnLeaveToday: 0, teamPresentToday: 1, myPendingLeave: 0 } }));
 const p9 = assembleWorkspace(ctx({ isLead: true, teamSize: 1, counts: { actionableApprovals: 9, teamOnLeaveToday: 0, teamPresentToday: 1, myPendingLeave: 0 } }));

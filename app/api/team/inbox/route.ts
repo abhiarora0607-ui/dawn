@@ -46,7 +46,7 @@ export async function GET() {
     const scope = `&employee_id=in.(${visibleIds.join(",")})`;
     const financeEyes = canEditSalaryDirectly({ isAdmin: org.isAdmin, permissions: perms });
 
-    const [leaveRows, fixRows, salaryRows, mySalaryRows, bonusRows, myBonusRows, acctRows] = await Promise.all([
+    const [leaveRows, fixRows, salaryRows, mySalaryRows, bonusRows, myBonusRows, expenseRows, myExpenseRows, acctRows] = await Promise.all([
       seesTeam
         ? fetch(`${url}/rest/v1/leave_requests?uid=eq.${uid}&status=eq.pending&select=*${scope}`,
             { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => [])
@@ -71,6 +71,14 @@ export async function GET() {
         : Promise.resolve([]),
       meId && !org.isAdmin
         ? fetch(`${url}/rest/v1/bonus_requests?uid=eq.${uid}&status=eq.pending&requested_by=eq.${meId}&select=*`,
+            { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => [])
+        : Promise.resolve([]),
+      financeEyes
+        ? fetch(`${url}/rest/v1/expense_requests?uid=eq.${uid}&status=eq.pending&select=*`,
+            { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => [])
+        : Promise.resolve([]),
+      meId && !financeEyes
+        ? fetch(`${url}/rest/v1/expense_requests?uid=eq.${uid}&status=eq.pending&employee_id=eq.${meId}&select=*`,
             { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => [])
         : Promise.resolve([]),
       // Everyone's permissions, once — for the escalation walk and the
@@ -144,6 +152,20 @@ export async function GET() {
         actionable,
         withName: actionable ? undefined : "the admin",
         mine: r.requested_by === meId,
+      });
+    }
+
+    for (const r of [...(Array.isArray(expenseRows) ? expenseRows : []), ...(Array.isArray(myExpenseRows) ? myExpenseRows : [])]) {
+      const actionable = actionableFor("expense", appr, r.employee_id, r.employee_id);
+      items.push({
+        kind: "expense", id: r.id, employeeId: r.employee_id,
+        employeeName: nameById[r.employee_id] || "Unknown",
+        title: `Expense · ₹${Number(r.amount).toLocaleString("en-IN")} ${r.category} · ${nameById[r.employee_id] || "someone"}`,
+        sub: [r.expense_date, r.note, r.receipt_url ? "receipt attached" : ""].filter(Boolean).join(" · "),
+        createdAt: r.created_at || "",
+        actionable,
+        withName: actionable ? undefined : "Finance",
+        mine: r.employee_id === meId,
       });
     }
 

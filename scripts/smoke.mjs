@@ -242,6 +242,15 @@ try {
   check("inbox renders before data", React.createElement(TeamInbox, {}));
 } catch (e) { results.push(["skip", "inbox: " + String(e).slice(0, 40)]); }
 
+try {
+  const { TeamPayroll } = await import("../components/TeamPayroll.tsx");
+  check("payroll renders before data", React.createElement(TeamPayroll, {}));
+} catch (e) { results.push(["skip", "payroll: " + String(e).slice(0, 40)]); }
+try {
+  const { TeamExpenses } = await import("../components/TeamExpenses.tsx");
+  check("expenses renders before data", React.createElement(TeamExpenses, {}));
+} catch (e) { results.push(["skip", "expenses: " + String(e).slice(0, 40)]); }
+
 console.log(JSON.stringify(results));
 `;
   writeFileSync(`${STAGE}/run.mjs`, harness);

@@ -87,7 +87,7 @@ export const PERMISSIONS: PermissionDef[] = [
   { id: "finance_view", group: "finance", label: "See revenue figures", hint: "Money figures on dashboards and reports.", sensitive: true },
   { id: "expense_view", group: "finance", label: "See expenses", sensitive: true, scope: "owner" },
   { id: "expense_create", group: "finance", label: "Record an expense", implies: ["expense_view"], scope: "owner" },
-  { id: "expense_approve", group: "finance", label: "Approve expenses", hint: "Sign off costs someone else recorded.", sensitive: true, implies: ["expense_view"], scope: "owner" },
+  { id: "expense_approve", group: "finance", label: "Approve expenses", hint: "Sign off costs someone else recorded — including portal expense claims.", sensitive: true, implies: ["expense_view"] },
   { id: "payment_record", group: "finance", label: "Record a payment received", hint: "Marks an order paid.", sensitive: true, scope: "owner" },
   { id: "reports", group: "finance", label: "See reports" },
   { id: "data_export", group: "finance", label: "Export data", hint: "Download contacts, orders and figures as a file.", sensitive: true },

@@ -37,6 +37,8 @@ export type WorkspaceCounts = {
   teamOnLeaveToday: number;
   teamPresentToday: number;
   myPendingLeave: number;
+  /** Draft payslips awaiting approval — counted only for people who can approve. */
+  payrollDrafts: number;
 };
 
 export type WorkspaceCtx = {
@@ -110,6 +112,14 @@ export const WIDGETS: WidgetDef[] = [
     when: (c) => c.hasScore,
     priority: () => 70 },
 
+  // The payroll run, for people with payroll capability. Attention-driven:
+  // drafts waiting lift it near the top; finance-department people keep it on
+  // their home even when the run is clean.
+  { id: "payroll_run", component: "payroll_run", size: "card",
+    perm: ["salary_view", "payroll_approve", "payroll_pay", "payroll_prepare"],
+    when: (c) => c.counts.payrollDrafts > 0 || c.dept === "finance",
+    priority: (c) => (c.counts.payrollDrafts > 0 ? 88 : 66) },
+
   // The doer block: CRM counters. Department flavor nudges it above the score
   // for sales people, below for everyone else — order, never access.
   { id: "crm_stats", component: "crm_stats", size: "card",
@@ -147,6 +157,6 @@ export function assembleWorkspace(ctx: WorkspaceCtx, registry: WidgetDef[] = WID
 /** A context that renders a safe floor-only home when the workspace endpoint fails. */
 export const FALLBACK_CTX: WorkspaceCtx = {
   permissions: [], isAdmin: false, isLead: false, teamSize: 0, dept: "none",
-  counts: { actionableApprovals: 0, teamOnLeaveToday: 0, teamPresentToday: 0, myPendingLeave: 0 },
+  counts: { actionableApprovals: 0, teamOnLeaveToday: 0, teamPresentToday: 0, myPendingLeave: 0, payrollDrafts: 0 },
   hasScore: false,
 };

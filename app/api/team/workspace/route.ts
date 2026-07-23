@@ -55,9 +55,11 @@ export async function GET() {
     const scopeFilter = approvalScope === null ? "" : `&employee_id=in.(${approvalScope.join(",")})`;
     const canLeave = org.isAdmin || hasPermission(ctx, "leave_approve");
     const canAtt = org.isAdmin || hasPermission(ctx, "attendance_approve");
+    const financeEyes = org.isAdmin || hasPermission(ctx, "expense_approve") || hasPermission(ctx, "payment_record");
+    const canPayrollApprove = org.isAdmin || hasPermission(ctx, "payroll_approve");
     const wantTeam = isLead || org.isAdmin;
 
-    const [pendingLeave, pendingFixes, leaveToday, presentToday, myPending] = await Promise.all([
+    const [pendingLeave, pendingFixes, leaveToday, presentToday, myPending, pendingSalary, pendingBonus, pendingExpense, draftSlips] = await Promise.all([
       // Actionable approvals: only counted if the permission is actually held —
       // the same gate canDecideWith enforces, so no widget ever shows a count
       // its holder can't act on.
@@ -78,18 +80,39 @@ export async function GET() {
         : Promise.resolve([]),
       fetch(`${url}/rest/v1/leave_requests?uid=eq.${uid}&employee_id=eq.${meId}&status=eq.pending&select=id`,
         { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
+      financeEyes
+        ? fetch(`${url}/rest/v1/salary_change_requests?uid=eq.${uid}&status=eq.pending&select=id,requested_by`,
+            { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => [])
+        : Promise.resolve([]),
+      org.isAdmin
+        ? fetch(`${url}/rest/v1/bonus_requests?uid=eq.${uid}&status=eq.pending&select=id,requested_by`,
+            { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => [])
+        : Promise.resolve([]),
+      financeEyes
+        ? fetch(`${url}/rest/v1/expense_requests?uid=eq.${uid}&status=eq.pending&employee_id=neq.${meId}&select=id`,
+            { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => [])
+        : Promise.resolve([]),
+      canPayrollApprove
+        ? fetch(`${url}/rest/v1/payslips?uid=eq.${uid}&status=eq.draft&select=id`,
+            { headers: empHeaders(key), cache: "no-store" }).then((r) => r.json()).catch(() => [])
+        : Promise.resolve([]),
     ]);
 
     const onLeaveSet = new Set(Object.keys(leaveToday || {}).filter((id) => teamIds.includes(id)));
     const presentSet = new Set((Array.isArray(presentToday) ? presentToday : []).map((r: any) => r.employee_id));
 
+    const notMine = (rows: any) => (Array.isArray(rows) ? rows : []).filter((r: any) => !r.requested_by || r.requested_by !== meId).length;
     const counts: WorkspaceCounts = {
       actionableApprovals:
         (Array.isArray(pendingLeave) ? pendingLeave.length : 0) +
-        (Array.isArray(pendingFixes) ? pendingFixes.length : 0),
+        (Array.isArray(pendingFixes) ? pendingFixes.length : 0) +
+        notMine(pendingSalary) +
+        notMine(pendingBonus) +
+        (Array.isArray(pendingExpense) ? pendingExpense.length : 0),
       teamOnLeaveToday: onLeaveSet.size,
       teamPresentToday: presentSet.size,
       myPendingLeave: Array.isArray(myPending) ? myPending.length : 0,
+      payrollDrafts: Array.isArray(draftSlips) ? draftSlips.length : 0,
     };
 
     return NextResponse.json({

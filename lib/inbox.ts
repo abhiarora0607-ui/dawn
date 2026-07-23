@@ -18,7 +18,7 @@
 import { canDecideWith, type ApprovalContext } from "@/lib/approvals";
 import { canApproveSalaryChange } from "@/lib/salary-authority";
 
-export type InboxKind = "leave" | "fix" | "salary" | "bonus";
+export type InboxKind = "leave" | "fix" | "salary" | "bonus" | "expense";
 
 export type InboxItem = {
   kind: InboxKind;
@@ -58,6 +58,14 @@ export function actionableFor(
   // bonus: the route hard-blocks to admin; mirror exactly, including the
   // no-self rule for an admin who somehow proposed their own.
   if (kind === "bonus") return appr.isAdmin && (!appr.meId || appr.meId !== proposerId || proposerId === null);
+  // expense: finance eyes (the same signals the route checks), and never
+  // your own claim — the claimant IS the subject here.
+  if (kind === "expense") {
+    const finance = appr.isAdmin
+      || appr.permissions.includes("expense_approve")
+      || appr.permissions.includes("payment_record");
+    return finance && (!appr.meId || appr.meId !== subjectEmployeeId);
+  }
   return false;
 }
 

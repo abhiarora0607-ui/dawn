@@ -31,6 +31,13 @@ t.push(["admin approves bonuses", String(actionableFor("bonus", mk("divya", true
 t.push(["a lead never approves bonuses", String(actionableFor("bonus", mk("priya", false, ["leave_approve", "salary_edit"], ["rahul"]), "rahul", "priya")), "false"]);
 t.push(["even an admin can't approve their own bonus proposal", String(actionableFor("bonus", mk("divya", true, [], []), "rahul", "divya")), "false"]);
 
+// ---- expense: finance eyes, never your own claim ----
+t.push(["finance approves an expense claim", String(actionableFor("expense", mk("karan", false, ["expense_approve"], []), "rahul", "rahul")), "true"]);
+t.push(["payment_record also counts as finance", String(actionableFor("expense", mk("karan", false, ["payment_record"], []), "rahul", "rahul")), "true"]);
+t.push(["a lead can't decide expense claims", String(actionableFor("expense", mk("priya", false, ["leave_approve"], ["rahul"]), "rahul", "rahul")), "false"]);
+t.push(["finance never approves their OWN claim", String(actionableFor("expense", mk("karan", false, ["expense_approve"], []), "karan", "karan")), "false"]);
+t.push(["admin decides expense claims", String(actionableFor("expense", mk("divya", true, [], []), "rahul", "rahul")), "true"]);
+
 // ---- ordering: actionable first, FIFO within ----
 const sorted = sortInbox([
   { id: "w1", actionable: false, createdAt: "2026-07-01" },

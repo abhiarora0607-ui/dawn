@@ -13,16 +13,18 @@ import { TeamLeave } from "@/components/TeamLeave";
 import { TeamSalary } from "@/components/TeamSalary";
 import { TeamMyTeam } from "@/components/TeamMyTeam";
 import { TeamInbox } from "@/components/TeamInbox";
+import { TeamPayroll } from "@/components/TeamPayroll";
+import { TeamExpenses } from "@/components/TeamExpenses";
 import { PeopleSearch } from "@/components/PeopleSearch";
 import { DawnLogo } from "@/components/DawnLogo";
 import { LostDialog, PaymentModal, WonDialog } from "@/components/SharedModals";
 import {
   Loader2, Users, ShoppingBag, LogOut, Phone, MessageCircle, TrendingUp, Plus, X, Send,
   MessageSquare, KeyRound, Bell, Clock, CheckSquare, CalendarDays, StickyNote, BarChart3,
-  Settings as SettingsIcon, MoreHorizontal, Pencil, Download, Trash2, Home, CalendarClock, Palmtree, Wallet, Search, Users2,
+  Settings as SettingsIcon, MoreHorizontal, Pencil, Download, Trash2, Home, CalendarClock, Palmtree, Wallet, Search, Users2, ReceiptText, IndianRupee,
 } from "lucide-react";
 
-type Tab = "dashboard" | "inbox" | "attendance" | "leave" | "salary" | "people" | "myteam" | "leads" | "customers" | "orders" | "messages" | "tasks" | "calendar" | "notes" | "reports" | "settings";
+type Tab = "dashboard" | "inbox" | "payroll" | "expenses" | "attendance" | "leave" | "salary" | "people" | "myteam" | "leads" | "customers" | "orders" | "messages" | "tasks" | "calendar" | "notes" | "reports" | "settings";
 const STAGES = ["New Lead", "Contacted", "Negotiating", "Customer (Won)", "Lost"];
 
 export default function TeamDashboard() {
@@ -102,6 +104,10 @@ export default function TeamDashboard() {
       ? [{ id: "inbox" as Tab, label: "Inbox", icon: Bell, perm: "dashboard" }]
       : []),
     { id: "salary", label: "My Pay", icon: Wallet, perm: "dashboard" },
+    { id: "expenses", label: "Expenses", icon: ReceiptText, perm: "dashboard" },
+    ...(wsCtx.isAdmin || can("salary_view")
+      ? [{ id: "payroll" as Tab, label: "Payroll", icon: IndianRupee, perm: "dashboard" }]
+      : []),
     { id: "people", label: "People", icon: Search, perm: "dashboard" },
     { id: "leads", label: "Leads", icon: Users, perm: "leads" },
     { id: "customers", label: "Customers", icon: Users, perm: "customers" },
@@ -190,7 +196,7 @@ export default function TeamDashboard() {
                     className="w-full bg-amber/10 border border-amber/40 rounded-2xl p-4 flex items-center justify-between text-left hover:bg-amber/15">
                     <div>
                       <p className="text-sm font-semibold text-navy flex items-center gap-1.5"><Bell className="w-4 h-4 text-amber-deep" /> Waiting for your decision</p>
-                      <p className="text-xs text-muted mt-0.5">{n === 1 ? "1 request needs" : `${n} requests need`} your approval — leave and attendance fixes.</p>
+                      <p className="text-xs text-muted mt-0.5">{n === 1 ? "1 request needs" : `${n} requests need`} your approval.</p>
                     </div>
                     <span className="text-2xl font-bold text-amber-deep shrink-0 ml-3">{n}</span>
                   </button>
@@ -208,6 +214,19 @@ export default function TeamDashboard() {
                       </p>
                     </div>
                     <span className="text-muted text-xs shrink-0 ml-3">Open →</span>
+                  </button>
+                );
+              }
+              if (w.id === "payroll_run") {
+                const n = wsCtx.counts.payrollDrafts;
+                return (
+                  <button key={w.id} onClick={() => setTab("payroll")}
+                    className="w-full bg-white border border-navy-line rounded-2xl p-4 flex items-center justify-between text-left hover:bg-surface">
+                    <div>
+                      <p className="text-sm font-semibold text-navy flex items-center gap-1.5"><IndianRupee className="w-4 h-4 text-amber-deep" /> Payroll</p>
+                      <p className="text-xs text-muted mt-0.5">{n > 0 ? `${n} draft ${n === 1 ? "payslip" : "payslips"} awaiting approval.` : "The run is clean — open it any time."}</p>
+                    </div>
+                    {n > 0 ? <span className="text-2xl font-bold text-amber-deep shrink-0 ml-3">{n}</span> : <span className="text-muted text-xs shrink-0 ml-3">Open →</span>}
                   </button>
                 );
               }
@@ -290,6 +309,8 @@ export default function TeamDashboard() {
         {activeTab === "leave" && <TeamLeave />}
         {activeTab === "myteam" && isManager && <TeamMyTeam />}
         {activeTab === "inbox" && <TeamInbox onChange={() => wsState.retry()} />}
+        {activeTab === "payroll" && <TeamPayroll />}
+        {activeTab === "expenses" && <TeamExpenses />}
         {activeTab === "salary" && <TeamSalary />}
         {activeTab === "people" && <PeopleTab />}
         {activeTab === "tasks" && can("tasks") && <Tasks contacts={[...leads, ...customers]} />}

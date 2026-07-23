@@ -387,6 +387,13 @@ export async function POST(req: Request) {
           status: "pending", requested_by: priya },
       ], false);
 
+      // V53: a pending expense claim, so the finance inbox and the expense
+      // flow have something real to show the moment the demo loads.
+      await insert(url, key, "expense_requests", [
+        { uid, employee_id: rahul, amount: 850, category: "Travel",
+          note: "Auto to client meeting", expense_date: daysAgo(2), status: "pending" },
+      ], false);
+
       // The leave gift: 2 earned-leave days granted to Neha, through the same
       // grant path the bonus route uses. Recorded in leave_grants and reflected
       // in her balance.

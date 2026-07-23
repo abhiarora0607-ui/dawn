@@ -878,6 +878,45 @@ console.log("\n[27] The inbox delegates authority");
   if (bad === 0) pass("all four kinds decided by the real authority functions, buttons only where they act");
 }
 
+// ---- 28. EXPENSE CLAIMS RESPECT THE MONEY RULES (V53) -----------------------
+// A claim reaches the books ONLY through an approval, exactly once, and never
+// by the claimant's own hand. Structurally: the books write
+// (rest/v1/expenses) appears exactly once in the route, inside the approve
+// branch; the route refuses own-claim decisions, re-decisions, and
+// double-posts; and the inbox lib carries the expense kind with the same
+// finance signals the route enforces.
+console.log("\n[28] Expense claims: books only on approve, never your own");
+{
+  let bad = 0;
+  const route = read("app/api/team/expense/route.ts");
+
+  const booksHits = route.split("rest/v1/expenses`").length - 1;
+  if (booksHits !== 1) {
+    fail(`the books write appears ${booksHits} times — must be exactly once, in approve`); bad++;
+  } else {
+    const idxBooks = route.indexOf("rest/v1/expenses`");
+    const idxApprove = route.indexOf('b.action === "approve"');
+    const idxRejected = route.indexOf('"rejected"');
+    if (!(idxApprove >= 0 && idxApprove < idxBooks && (idxRejected === -1 || idxBooks < idxRejected))) {
+      fail("the books write is not inside the approve branch"); bad++;
+    }
+  }
+  if (!/row\.employee_id === meId/.test(route)) {
+    fail("the own-claim refusal is gone — a claimant could approve themselves"); bad++;
+  }
+  if (!/row\.status !== "pending"/.test(route)) {
+    fail("the already-decided check is gone — claims could be re-decided"); bad++;
+  }
+  if (!/row\.posted_expense_id/.test(route)) {
+    fail("the double-post guard is gone — a retried approval could post twice"); bad++;
+  }
+  const lib = read("lib/inbox.ts");
+  if (!/kind === "expense"/.test(lib) || !/expense_approve/.test(lib) || !/payment_record/.test(lib)) {
+    fail("lib/inbox lost the expense kind or its finance signals"); bad++;
+  }
+  if (bad === 0) pass("submit never posts, approve posts once, nobody decides their own claim");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

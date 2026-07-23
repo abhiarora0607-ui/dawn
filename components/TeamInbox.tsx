@@ -18,6 +18,7 @@ const DECIDE_URL: Record<string, string> = {
   fix: "/api/attendance/requests",
   salary: "/api/salary-change",
   bonus: "/api/bonus",
+  expense: "/api/team/expense",
 };
 
 export function TeamInbox({ onChange }: { onChange?: () => void }) {
