@@ -143,7 +143,10 @@ function ContactsInner() {
   const { toast } = useToast();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
-  const [capMeta, setCapMeta] = useState<{ capped: boolean; total: number }>({ capped: false, total: 0 });
+  // V62: real paging state. `total` is the true count from the server, so the
+  // header can say "showing 100 of 1,240" instead of guessing.
+  const [page, setPage] = useState<{ total: number; nextCursor: string | null; hasMore: boolean }>({ total: 0, nextCursor: null, hasMore: false });
+  const [loadingMore, setLoadingMore] = useState(false);
   const [view, setView] = useState<"board" | "list">("board");
   const [showImport, setShowImport] = useState(false);
   const [quickAdd, setQuickAdd] = useState(false);
@@ -158,10 +161,29 @@ function ContactsInner() {
 
   function load() {
     setLoading(true);
-    fetch("/api/contacts").then((r) => r.json()).then((d) => { setContacts(d.contacts || []); setCapMeta({ capped: !!d.capped, total: d.total || 0 }); setLoading(false); }).catch(() => setLoading(false));
+    fetch("/api/contacts").then((r) => r.json()).then((d) => {
+      setContacts(d.contacts || []);
+      setPage({ total: d.total || 0, nextCursor: d.nextCursor || null, hasMore: !!d.hasMore });
+      setLoading(false);
+    }).catch(() => setLoading(false));
     fetch("/api/employees").then((r) => r.json()).then((d) => setEmpList((d.employees || []).map((e: any) => ({ id: e.id, name: e.name })))).catch(() => {});
   }
   useEffect(() => { load(); }, []);
+
+  // Fetch the next keyset page and append. Cursor paging means this stays
+  // fast at page 40 and never double-shows a row someone just added.
+  function loadMore() {
+    if (!page.nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    fetch(`/api/contacts?cursor=${encodeURIComponent(page.nextCursor)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setContacts((cs) => [...cs, ...(d.contacts || [])]);
+        setPage((p) => ({ total: d.total || p.total, nextCursor: d.nextCursor || null, hasMore: !!d.hasMore }));
+        setLoadingMore(false);
+      })
+      .catch(() => setLoadingMore(false));
+  }
 
   const filtered = contacts.filter((c) =>
     (c.name.toLowerCase().includes(query.toLowerCase()) || (c.phone || "").includes(query) || (c.instagram_handle || "").toLowerCase().includes(query.toLowerCase())) &&
@@ -198,7 +220,7 @@ function ContactsInner() {
           <div>
             <h1 className="font-display font-semibold text-2xl text-navy">Contacts</h1>
             <p className="text-muted text-sm mt-1">Your leads and customers, from first message to sale.</p>
-            {capMeta.capped && <p className="t-small text-amber-deep mt-1">Showing the latest 1,000 of {capMeta.total.toLocaleString("en-IN")} — search narrows within these; full paging arrives in V62.</p>}
+            {page.total > contacts.length && <p className="t-small text-muted mt-1">Showing {contacts.length.toLocaleString("en-IN")} of {page.total.toLocaleString("en-IN")} — search filters what&apos;s loaded.</p>}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 text-sm font-medium border border-navy-line text-navy px-3 py-2 rounded-xl hover:bg-surface"><Upload className="w-4 h-4" /> <span className="hidden sm:inline">Import</span></button>
@@ -277,6 +299,19 @@ function ContactsInner() {
               </div>
             ))}
           </div>
+        )}
+
+        {/* V62: keyset paging — one seek per page, however deep the book goes. */}
+        {page.hasMore && !query && (
+          <div className="pt-4 flex justify-center">
+            <button onClick={loadMore} disabled={loadingMore}
+              className="text-sm font-medium border border-navy-line text-navy px-5 py-2.5 rounded-xl hover:bg-surface disabled:opacity-50">
+              {loadingMore ? "Loading…" : `Load ${Math.min(100, page.total - contacts.length).toLocaleString("en-IN")} more`}
+            </button>
+          </div>
+        )}
+        {page.hasMore && query && (
+          <p className="pt-4 text-center t-small text-muted">Searching the {contacts.length.toLocaleString("en-IN")} loaded — clear the search to load more.</p>
         )}
       </div>
 

@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { guardEmployee, empHeaders, hasPermission } from "@/lib/employee-auth";
 import { cleanName, cleanPhone, cleanEmail } from "@/lib/validate";
 import { audit } from "@/lib/audit";
+import { scopeFilter, type Scope } from "@/lib/scope";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +16,11 @@ export async function GET(req: Request) {
   const { ctx, url, key } = g;
   const filter = new URL(req.url).searchParams.get("filter"); // leads | customers | all
   try {
+    // V62: the scope resolver owns "whose rows are these" — one law, not a
+    // filter string retyped in nine routes.
+    const scope: Scope = { kind: "own", uid: ctx.uid, employeeId: ctx.employeeId };
     // full-scan: employee's own book, naturally small
-    const rows = await (await fetch(`${url}/rest/v1/contacts?uid=eq.${ctx.uid}&deleted_at=is.null&employee_id=eq.${ctx.employeeId}&order=created_at.desc`, { headers: empHeaders(key), cache: "no-store" })).json();
+    const rows = await (await fetch(`${url}/rest/v1/contacts?uid=eq.${ctx.uid}&deleted_at=is.null${scopeFilter(scope)}&order=created_at.desc`, { headers: empHeaders(key), cache: "no-store" })).json();
     let all = Array.isArray(rows) ? rows : [];
     if (filter === "leads") all = all.filter((c: any) => !["Customer (Won)", "Lost"].includes(c.stage));
     if (filter === "customers") all = all.filter((c: any) => c.stage === "Customer (Won)");

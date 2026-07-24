@@ -49,7 +49,9 @@ console.log("\n[10] Growth-table fetches bounded, keyed, or justified");
     lines.forEach((l, i) => {
       const m = GROWTH.find((t) => l.includes(`rest/v1/${t}?`));
       if (!m) return;
-      const ok = /limit=/.test(l) || /[?&](id|source_id|conversation_id)=eq\./.test(l) || /full-scan:/.test(l) || (i > 0 && /full-scan:/.test(lines[i - 1]));
+      // pageFilter() carries the limit and the cursor — keyset paging is a
+      // stronger bound than a literal limit=, so it satisfies this gate.
+      const ok = /limit=/.test(l) || /pageFilter\(/.test(l) || /[?&](id|source_id|conversation_id)=eq\./.test(l) || /full-scan:/.test(l) || (i > 0 && /full-scan:/.test(lines[i - 1]));
       if (!ok) { fail(`${f}:${i + 1} unbounded fetch on ${m} — add limit=, key it, or justify with a full-scan tag`); bad++; }
     });
   }
@@ -298,7 +300,9 @@ console.log("\n[10] Growth-table fetches bounded, keyed, or justified");
     lines.forEach((l, i) => {
       const m = GROWTH.find((t) => l.includes(`rest/v1/${t}?`));
       if (!m) return;
-      const ok = /limit=/.test(l) || /[?&](id|source_id|conversation_id)=eq\./.test(l) || /full-scan:/.test(l) || (i > 0 && /full-scan:/.test(lines[i - 1]));
+      // pageFilter() carries the limit and the cursor — keyset paging is a
+      // stronger bound than a literal limit=, so it satisfies this gate.
+      const ok = /limit=/.test(l) || /pageFilter\(/.test(l) || /[?&](id|source_id|conversation_id)=eq\./.test(l) || /full-scan:/.test(l) || (i > 0 && /full-scan:/.test(lines[i - 1]));
       if (!ok) { fail(`${f}:${i + 1} unbounded fetch on ${m} — add limit=, key it, or justify with a full-scan tag`); bad++; }
     });
   }

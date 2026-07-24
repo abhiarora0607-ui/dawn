@@ -1136,6 +1136,37 @@ console.log("\n[35] No redirect cycles between the shell and the retired portal"
   if (bad === 0) pass("one app, one door: no eviction, no cycle, both owner session kinds honoured");
 }
 
+// ---- 36. BIG LISTS PAGE; SCOPED READS USE THE RESOLVER (V62) ---------------
+// Two ways a CRM quietly breaks at scale: it loads every row until the page
+// stalls, or it forgets a scope filter and shows one rep another rep's book.
+// Both are now structural. The big owner lists must page through lib/paging
+// (no hardcoded mega-limits), and employee-scoped list reads must express
+// their scope through lib/scope rather than a hand-typed employee_id filter
+// that one refactor can drop.
+console.log("\n[36] Big lists page; employee reads go through the scope resolver");
+{
+  let bad = 0;
+  for (const f of ["app/api/contacts/route.ts", "app/api/expenses/route.ts"]) {
+    const src = read(f);
+    if (!/pageFilter\(/.test(src) || !/takePage\(/.test(src)) {
+      fail(`${f} no longer pages through lib/paging — the list will grow until it stalls`); bad++;
+    }
+    const mega = src.match(/limit=(\d+)/g) || [];
+    for (const m of mega) {
+      if (Number(m.split("=")[1]) > 200) { fail(`${f} carries a hardcoded ${m} — page it instead`); bad++; }
+    }
+  }
+  const team = read("app/api/team/contacts/route.ts");
+  if (!/scopeFilter\(/.test(team)) {
+    fail("app/api/team/contacts reads without the scope resolver — a dropped filter would leak a colleague's book"); bad++;
+  }
+  const scope = read("lib/scope.ts");
+  if (!/employee_id=is\.null&id=is\.null/.test(scope)) {
+    fail("the empty-team scope no longer matches nothing — an empty list must never mean 'everything'"); bad++;
+  }
+  if (bad === 0) pass("owner lists page by keyset, employee reads carry their scope, empty scopes stay empty");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

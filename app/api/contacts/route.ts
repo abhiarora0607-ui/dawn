@@ -8,6 +8,7 @@ import { touchActive } from "@/lib/touch";
 import { audit } from "@/lib/audit";
 import { softDelete } from "@/lib/soft-delete";
 import { H } from "@/lib/http";
+import { pageFilter, pageLimit, takePage } from "@/lib/paging";
 
 export const dynamic = "force-dynamic";
 
@@ -36,14 +37,19 @@ export async function GET(req: Request) {
       const rows = await res.json();
       return NextResponse.json({ duplicate: rows?.[0] || null });
     }
-    // V61: capped at the latest 1000, with an honest total. A shop with 40k
-    // contacts gets a fast page and a true count — not a 12-second stall.
-    // Search still narrows within the loaded set; full paging lands with the
-    // module deepening (V62).
-    const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&order=created_at.desc&limit=1000`, { headers: H(key, { Prefer: "count=exact" }), cache: "no-store" });
-    const rows = await res.json();
-    const total = Number((res.headers.get("content-range") || "").split("/")[1]) || (Array.isArray(rows) ? rows.length : 0);
-    return NextResponse.json({ contacts: rows, authed: true, total, capped: Array.isArray(rows) && total > rows.length });
+    // V62: keyset paging — one index seek per page at any depth, stable when
+    // rows are added mid-read. The total still comes back exact so the header
+    // can say "1,240 contacts" honestly.
+    const sp = new URL(req.url).searchParams;
+    const limit = pageLimit(sp.get("limit"));
+    const cursor = sp.get("cursor");
+    const res = await fetch(
+      `${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null${pageFilter("created_at", cursor, limit)}`,
+      { headers: H(key, { Prefer: "count=exact" }), cache: "no-store" });
+    const raw = await res.json();
+    const total = Number((res.headers.get("content-range") || "").split("/")[1]) || (Array.isArray(raw) ? raw.length : 0);
+    const { rows, meta } = takePage(Array.isArray(raw) ? raw : [], "created_at", limit);
+    return NextResponse.json({ contacts: rows, authed: true, total, ...meta });
   } catch { return NextResponse.json({ contacts: [], authed: true }); }
 }
 
