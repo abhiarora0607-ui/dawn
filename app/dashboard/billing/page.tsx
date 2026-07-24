@@ -1,5 +1,6 @@
 "use client";
 
+import { upcomingInvoice } from "@/lib/billing-lifecycle";
 // Settings → Billing: the owner's plan, trial countdown, plan catalogue with a
 // monthly/yearly toggle, mock checkout (clearly badged TEST MODE), payment
 // history, and polite cancel/resume.
@@ -106,6 +107,19 @@ function Inner() {
         </div>
       )}
 
+      {(() => {
+        const up = upcomingInvoice(e, d.plans || []);
+        return (
+          <div className="dawn-card p-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="t-label text-muted mb-0.5">Upcoming charge</p>
+              <p className="text-sm text-navy">{up.label}</p>
+            </div>
+            {up.amount != null && <p className="text-2xl font-bold text-navy shrink-0">₹{Number(up.amount).toLocaleString("en-IN")}</p>}
+          </div>
+        );
+      })()}
+
       {e.effective === "active" && e.renewsInDays != null && e.renewsInDays <= 7 && !e.cancelAtPeriodEnd && (
         <div className="dawn-card border-amber/40 p-4 flex items-center justify-between gap-3 flex-wrap">
           <p className="text-sm text-navy"><span className="font-semibold">Renewal due in {e.renewsInDays} day{e.renewsInDays === 1 ? "" : "s"}.</span> <span className="text-muted">Renew now to start your next period.</span></p>
@@ -170,6 +184,28 @@ function Inner() {
                 <p className="text-[12px] text-muted">{new Date(p.created_at).toLocaleDateString()} · {p.invoice_no || p.reference}{p.gateway === "mock" && " · test"}</p>
               </div>
               <span className="font-semibold text-navy">₹{Number(p.amount)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Subscription timeline (V58 history, rendered) */}
+      {Array.isArray(d.events) && d.events.length > 0 && (
+        <div className="dawn-card">
+          <p className="dawn-section-title text-sm px-4 pt-4 pb-2">Subscription timeline</p>
+          {d.events.map((ev: any) => (
+            <div key={ev.id} className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-navy-line/60">
+              <div className="min-w-0">
+                <p className="text-sm text-navy">
+                  {({ trial_started: "Trial started", plan_changed: "Plan changed", change_scheduled: "Change scheduled", schedule_undone: "Scheduled change undone", schedule_applied: "Scheduled change applied", cancelled: "Cancelled at period end", resumed: "Resumed" } as Record<string, string>)[ev.action] || ev.action.replace(/_/g, " ")}
+                  {ev.cycle ? <span className="text-muted"> · {ev.cycle}</span> : null}
+                </p>
+                {ev.reason && <p className="t-micro text-muted truncate">{ev.reason}</p>}
+              </div>
+              <div className="text-right shrink-0">
+                <p className="t-micro text-muted">{new Date(ev.at).toLocaleDateString("en-IN")}</p>
+                <p className="t-micro text-navy/40">{ev.actor}</p>
+              </div>
             </div>
           ))}
         </div>

@@ -2,7 +2,7 @@
 // when access changes — the exact matrix the mandate asked for, pinned:
 // paying more applies now; anything else waits for renewal with an undo;
 // anyone outside a paid running period is simply subscribing.
-import { classifyChange, scheduleDue, priceFor } from "../lib/billing-lifecycle.ts";
+import { classifyChange, scheduleDue, priceFor, upcomingInvoice } from "../lib/billing-lifecycle.ts";
 import { computeEffective } from "../lib/entitlements.ts";
 
 const t: [string, any, string][] = [];
@@ -42,6 +42,21 @@ t.push(["monthly price picked for monthly", String(priceFor({ price_monthly: 999
 t.push(["yearly price picked for yearly", String(priceFor({ price_monthly: 999, price_yearly: 9990 }, "yearly")), "9990"]);
 t.push(["a missing plan prices at zero", String(priceFor(null, "monthly")), "0"]);
 t.push(["garbage price coerces to zero", String(priceFor({ price_monthly: "abc" } as any, "monthly")), "0"]);
+
+// ---- the upcoming charge: the one sentence the billing page owes (V59) ----
+const PLANS = [{ id: "p1", price_monthly: 999, price_yearly: 9990 }, { id: "p2", price_monthly: 1999, price_yearly: 19990 }];
+const baseEnt = { effective: "active", planId: "p1", planName: "Starter", priceLocked: 899, periodEnd: iso(NOW + 10 * D), cycle: "monthly", cancelAtPeriodEnd: false, trialEndsAt: null, scheduledPlanId: null, scheduledPlanName: null, scheduledCycle: null, scheduledEffectiveAt: null } as any;
+t.push(["active renews at the LOCKED price", String(upcomingInvoice(baseEnt, PLANS).amount), "899"]);
+t.push(["…on the period end", String(upcomingInvoice(baseEnt, PLANS).date), iso(NOW + 10 * D)]);
+t.push(["no locked price falls back to the plan's list price", String(upcomingInvoice({ ...baseEnt, priceLocked: null }, PLANS).amount), "999"]);
+t.push(["a scheduled change: next charge is the NEW plan's price", String(upcomingInvoice({ ...baseEnt, scheduledPlanId: "p2", scheduledPlanName: "Pro", scheduledCycle: "yearly", scheduledEffectiveAt: iso(NOW + 10 * D) }, PLANS).amount), "19990"]);
+t.push(["…and the scheduled cycle falls back to the current one", String(upcomingInvoice({ ...baseEnt, scheduledPlanId: "p2", scheduledPlanName: "Pro", scheduledEffectiveAt: iso(NOW + 10 * D) }, PLANS).amount), "1999"]);
+t.push(["cancelled-at-period-end means no upcoming charge", String(upcomingInvoice({ ...baseEnt, cancelAtPeriodEnd: true }, PLANS).amount), "null"]);
+t.push(["…with the access-ends date shown", String(upcomingInvoice({ ...baseEnt, cancelAtPeriodEnd: true }, PLANS).kind), "none"]);
+t.push(["trialing prompts a pick, never an amount", String(upcomingInvoice({ ...baseEnt, effective: "trialing", trialEndsAt: iso(NOW + 5 * D) }, PLANS).kind), "pick"]);
+t.push(["expired prompts a pick", String(upcomingInvoice({ ...baseEnt, effective: "expired" }, PLANS).kind), "pick"]);
+t.push(["complimentary never charges", String(upcomingInvoice({ ...baseEnt, effective: "complimentary" }, PLANS).amount), "null"]);
+t.push(["grace says overdue, with the amount to pay", String(upcomingInvoice({ ...baseEnt, effective: "grace" }, PLANS).label.includes("overdue")), "true"]);
 
 // ---- harness ----
 let bad = 0;

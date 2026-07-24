@@ -1044,6 +1044,35 @@ console.log("\n[32] Every subscription write emits a history event");
   if (bad === 0) pass("all four writers (billing, operator, cron, trial-create) pair writes with events");
 }
 
+// ---- 33. ACTIVATION FLOWS THROUGH THE PAYMENT SEAM ONLY (V59) ---------------
+// The classic homegrown-billing bug is TWO activation implementations — one
+// for "user clicked pay", one for "gateway webhook confirmed" — that drift
+// apart. Structurally prevented: the billing route may PATCH subscriptions
+// (cancel, resume, schedule) but must never POST an activation directly; the
+// one activation POST lives in lib/payments.applySuccessfulPayment, which the
+// route calls today and the webhook calls tomorrow.
+console.log("\n[33] Plan activation flows through applySuccessfulPayment only");
+{
+  let bad = 0;
+  const route = read("app/api/billing/route.ts");
+  const rl = route.split("\n");
+  rl.forEach((l, i) => {
+    if (!l.includes("rest/v1/subscriptions")) return;
+    const win = rl.slice(Math.max(0, i - 2), i + 3).join("\n");
+    if (/method: "POST"/.test(win)) {
+      fail(`billing route POSTs subscriptions directly at line ${i + 1} — activation must go through the seam`); bad++;
+    }
+  });
+  if (!/applySuccessfulPayment\(/.test(route)) {
+    fail("the billing route no longer calls applySuccessfulPayment — where do charges become reality?"); bad++;
+  }
+  const seam = read("lib/payments.ts");
+  if (!/rest\/v1\/subscriptions/.test(seam) || !/recordSubEvent\(/.test(seam) || !/applySuccessfulPayment/.test(seam)) {
+    fail("lib/payments lost the activation, or its event — the seam is hollow"); bad++;
+  }
+  if (bad === 0) pass("one activation path: route and future webhook share applySuccessfulPayment");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

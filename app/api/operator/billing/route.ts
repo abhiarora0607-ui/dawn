@@ -15,8 +15,18 @@ function H(key: string, extra: Record<string, string> = {}) {
 }
 const DAY = 86400000;
 
-export async function GET() {
+export async function GET(req: Request) {
   if (!(await isOperator())) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  {
+    // V59: a single business's subscription timeline, for the operator view.
+    const eventsFor = new URL(req.url).searchParams.get("events_for");
+    if (eventsFor) {
+      const { url, key } = sb();
+      const rows = await fetch(`${url}/rest/v1/subscription_events?uid=eq.${encodeURIComponent(eventsFor)}&order=at.desc&limit=15`,
+        { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
+      return NextResponse.json({ events: Array.isArray(rows) ? rows : [] });
+    }
+  }
   const { url, key } = sb();
   try {
     const [subs, plans, payments, settings, cfgRows, gateEvents, feedbackRows, referralRows] = await Promise.all([
@@ -128,6 +138,16 @@ export async function GET() {
 
 export async function POST(req: Request) {
   if (!(await isOperator())) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
+  {
+    // V59: a single business's subscription timeline, for the operator view.
+    const eventsFor = new URL(req.url).searchParams.get("events_for");
+    if (eventsFor) {
+      const { url, key } = sb();
+      const rows = await fetch(`${url}/rest/v1/subscription_events?uid=eq.${encodeURIComponent(eventsFor)}&order=at.desc&limit=15`,
+        { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
+      return NextResponse.json({ events: Array.isArray(rows) ? rows : [] });
+    }
+  }
   const { url, key } = sb();
   try {
     const b = await req.json();

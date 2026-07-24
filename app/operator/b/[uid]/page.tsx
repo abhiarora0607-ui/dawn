@@ -21,6 +21,7 @@ export default function BusinessDetail() {
   const [bill, setBill] = useState<any>(null);       // this business's subscription
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [planPick, setPlanPick] = useState("");
+  const [subEvents, setSubEvents] = useState<any[]>([]);
   const [acting, setActing] = useState(false);
 
   function load() {
@@ -30,6 +31,7 @@ export default function BusinessDetail() {
     }).catch(() => setLoading(false));
   }
   function loadBilling() {
+    fetch(`/api/operator/billing?events_for=${uid}`).then((r) => r.json()).then((x) => setSubEvents(x.events || [])).catch(() => {});
     fetch("/api/operator/billing").then((r) => r.json()).then((b) => {
       if (b?.subs) setBill(b.subs.find((s: any) => s.uid === uid) || null);
     }).catch(() => {});
@@ -184,6 +186,18 @@ export default function BusinessDetail() {
             {planPick && <button disabled={acting} onClick={() => { billingAct("change_plan", { planId: planPick }); setPlanPick(""); }} className="text-xs font-medium bg-navy text-white px-3 py-1.5 rounded-lg disabled:opacity-50">Apply</button>}
           </span>
           <button disabled={acting} onClick={() => billingAct("cancel")} className="text-xs font-medium border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50">Cancel</button>
+        </div>
+        {subEvents.length > 0 && (
+          <div className="mt-3 border-t border-navy-line/60 pt-2">
+            <p className="t-micro font-bold text-navy/50 uppercase tracking-wide mb-1">Subscription timeline</p>
+            {subEvents.slice(0, 8).map((ev: any) => (
+              <p key={ev.id} className="t-micro text-navy/70">
+                {new Date(ev.at).toLocaleDateString("en-IN")} · {ev.actor} · {String(ev.action).replace(/_/g, " ")}{ev.cycle ? ` · ${ev.cycle}` : ""}
+              </p>
+            ))}
+          </div>
+        )}
+        <div className="hidden">
         </div>
       </div>
 

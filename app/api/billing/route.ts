@@ -12,6 +12,7 @@ import { audit } from "@/lib/audit";
 import { sendMail, shell, APP } from "@/lib/mailer";
 import { recordSubEvent } from "@/lib/billing-events";
 import { classifyChange } from "@/lib/billing-lifecycle";
+import { activeAdapter, applySuccessfulPayment } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL!, key: process.env.SUPABASE_SECRET_KEY! }; }
@@ -127,8 +128,14 @@ export async function POST(req: Request) {
 
     const amount = Math.max(0, listPrice - discount);
     const now = new Date();
-    const periodEnd = new Date(now.getTime() + (cycle === "yearly" ? YEAR : MONTH));
-    const reference = `MOCK-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+
+    // ---- V59: the charge goes through the adapter seam. The mock pays
+    // instantly; a real gateway returns a redirect here and its webhook
+    // calls the same applySuccessfulPayment below. One activation path.
+    const checkout = await activeAdapter().createCheckout({ uid, planId: plan.id, planName: plan.name, cycle, amount });
+    if (checkout.kind === "failed") return NextResponse.json({ error: checkout.error }, { status: 402 });
+    if (checkout.kind === "redirect") return NextResponse.json({ ok: true, redirect: checkout.url, reference: checkout.reference });
+    const reference = checkout.reference;
 
     // ---- invoice number: sequential per Indian financial year (Apr–Mar) ----
     let invoiceNo: string | null = null;
@@ -143,32 +150,12 @@ export async function POST(req: Request) {
       if (typeof n === "number") invoiceNo = `DAWN/${fy}/${String(n).padStart(4, "0")}`;
     } catch { /* invoice numbering is best-effort; payment still records */ }
 
-    // Record the payment (gateway: mock — visibly test money).
-    await fetch(`${url}/rest/v1/payments`, {
-      method: "POST", headers: H(key, { Prefer: "return=minimal" }),
-      body: JSON.stringify({
-        uid, plan_id: plan.id, plan_name: plan.name, amount, currency: "₹",
-        billing_cycle: cycle, period_start: now.toISOString(), period_end: periodEnd.toISOString(),
-        status: "succeeded", gateway: "mock", reference, invoice_no: invoiceNo,
-        coupon_code: couponCode, discount,
-      }),
-    });
-
-    // Activate the subscription — price locked at what they paid.
-    await fetch(`${url}/rest/v1/subscriptions`, {
-      method: "POST", headers: H(key, { Prefer: "resolution=merge-duplicates,return=minimal" }),
-      body: JSON.stringify({
-        uid, plan_id: plan.id, status: "active", billing_cycle: cycle,
-        period_start: now.toISOString(), period_end: periodEnd.toISOString(),
-        price_locked: amount, cancel_at_period_end: false, updated_at: now.toISOString(),
-        scheduled_plan_id: null, scheduled_cycle: null, scheduled_at: null, effective_at: null,
-      }),
-    });
-    await recordSubEvent(url, key, {
-      uid, actor: "owner", action: "plan_changed",
-      fromPlanId: entNow.planId, toPlanId: plan.id,
-      fromStatus: entNow.status, toStatus: "active", cycle,
-      meta: { amount, reference, invoiceNo, couponCode },
+    // The confirmed charge becomes reality — payment row, activation,
+    // history event — through the ONE path a webhook will also use.
+    const { periodEnd } = await applySuccessfulPayment(url, key, {
+      uid, plan: { id: plan.id, name: plan.name }, cycle, amount, listPrice, discount,
+      couponCode, reference, gateway: checkout.gateway, invoiceNo,
+      fromPlanId: entNow.planId, fromStatus: entNow.status,
     });
 
     // Coupon bookkeeping

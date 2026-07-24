@@ -32,6 +32,57 @@ export function scheduleDue(
   return now >= new Date(sub.effective_at).getTime();
 }
 
+/** What the business will be charged next, and when — the single sentence a
+ *  billing page owes its user. Scheduled changes win (the next charge is the
+ *  NEW plan's price on its effective date); cancels mean no charge; trials
+ *  prompt a pick. Pure, so the matrix is rule-tested. */
+export type UpcomingCharge = {
+  kind: "renewal" | "scheduled" | "none" | "pick";
+  amount: number | null;
+  date: string | null;
+  label: string;
+};
+
+export function upcomingInvoice(
+  ent: {
+    effective: string; planId: string | null; planName: string;
+    priceLocked: number | null; periodEnd: string | null; cycle: string;
+    cancelAtPeriodEnd: boolean; trialEndsAt: string | null;
+    scheduledPlanId: string | null; scheduledPlanName: string | null;
+    scheduledCycle: string | null; scheduledEffectiveAt: string | null;
+  },
+  plans: Array<{ id: string; price_monthly?: any; price_yearly?: any }>,
+): UpcomingCharge {
+  const dstr = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-IN") : "renewal");
+  if (ent.effective === "complimentary") {
+    return { kind: "none", amount: null, date: null, label: "Complimentary — no charges." };
+  }
+  if (ent.effective === "trialing") {
+    return { kind: "pick", amount: null, date: ent.trialEndsAt, label: `Trial ends ${dstr(ent.trialEndsAt)} — pick a plan to continue.` };
+  }
+  if (ent.effective === "expired") {
+    return { kind: "pick", amount: null, date: null, label: "Subscription ended — pick a plan to continue." };
+  }
+  if (ent.cancelAtPeriodEnd) {
+    return { kind: "none", amount: null, date: ent.periodEnd, label: `No upcoming charge — access ends ${dstr(ent.periodEnd)}.` };
+  }
+  if (ent.scheduledPlanId) {
+    const sp = plans.find((x) => x.id === ent.scheduledPlanId) || null;
+    const cyc = ent.scheduledCycle || ent.cycle;
+    return {
+      kind: "scheduled", amount: priceFor(sp, cyc), date: ent.scheduledEffectiveAt,
+      label: `${ent.scheduledPlanName || "New plan"} · ${cyc} starts ${dstr(ent.scheduledEffectiveAt)}.`,
+    };
+  }
+  const cur = ent.planId ? plans.find((x) => x.id === ent.planId) || null : null;
+  const amount = ent.priceLocked ?? priceFor(cur, ent.cycle);
+  const overdue = ent.effective === "grace";
+  return {
+    kind: "renewal", amount, date: ent.periodEnd,
+    label: overdue ? `Renewal overdue — pay to continue past the grace window.` : `Renews ${dstr(ent.periodEnd)} · ${ent.planName} · ${ent.cycle}.`,
+  };
+}
+
 /** The price a plan charges for a cycle, defensively. */
 export function priceFor(plan: { price_monthly?: any; price_yearly?: any } | null | undefined, cycle: string): number {
   if (!plan) return 0;
