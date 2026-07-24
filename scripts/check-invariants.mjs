@@ -1111,6 +1111,31 @@ console.log("\n[34] Nav registry is the law: guarded shell, no dead doors");
   if (bad === 0) pass(`registry-driven shell, route guard present, ${hrefs.length} employee doors all real, portal steers home`);
 }
 
+// ---- 35. NO REDIRECT CYCLES; ONE APP, ONE DOOR (V61.1) ---------------------
+// A live loop shipped in V61: middleware still bounced employees out of
+// /dashboard into /team while /team redirected them back — infinite, and a
+// full lockout of every employee from the app they now live in. The rule
+// that prevents the whole class: middleware may not send a session INTO a
+// route that redirects back, and /dashboard is a destination, never a source
+// of employee eviction.
+console.log("\n[35] No redirect cycles between the shell and the retired portal");
+{
+  let bad = 0;
+  const mw = read("middleware.ts");
+  if (/pathname\.startsWith\("\/dashboard"\)[\s\S]{0,160}redirect[\s\S]{0,60}"\/team"/.test(mw)) {
+    fail("middleware still evicts sessions from /dashboard to /team — the V61 loop is back"); bad++;
+  }
+  if (/matcher:[^\]]*"\/team"/.test(mw)) {
+    fail("middleware matches /team again — it and the page component will disagree"); bad++;
+  }
+  // Owners hold dawn_uid OR dawn_ig; a gate that knows only one locks the other out.
+  const mwCode = mw.split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
+  if (/dashboard/.test(mwCode) && /dawn_uid/.test(mwCode) && !/dawn_ig/.test(mwCode)) {
+    fail("the owner gate forgot dawn_ig — Instagram-session owners would be locked out"); bad++;
+  }
+  if (bad === 0) pass("one app, one door: no eviction, no cycle, both owner session kinds honoured");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

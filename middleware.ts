@@ -1,11 +1,15 @@
 // middleware.ts
-// Route separation between the admin (owner) area and the employee portal.
-//  - Employee sessions (dawn_emp cookie) are blocked from /dashboard/* admin
-//    pages and redirected to their /team portal.
-//  - The /team portal requires an employee cookie; without it → /team-login.
-// This is a fast cookie-presence gate. Full validation still happens in the
-// APIs (which check the session against the DB), so this is defense-in-depth,
-// not the sole control.
+// Session routing for the ONE app (V61.1).
+//
+// History: until V60 this file enforced a two-app world — employees were
+// bounced OUT of /dashboard and into the /team portal. V60 moved employees
+// INTO the shell and V61 retired the portal to a redirect, which turned that
+// rule into an infinite loop (/dashboard → /team → /dashboard) and, worse,
+// would have locked every employee out of the app they now live in.
+//
+// The shell decides what an employee may SEE (lib/nav.ts + the actor route
+// guard); this file only answers "is there a session at all?". Fast cookie
+// presence only — the APIs still validate every session against the DB.
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -13,20 +17,23 @@ import type { NextRequest } from "next/server";
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const hasEmp = req.cookies.has("dawn_emp");
+  // Owners hold EITHER a magic-link session (dawn_uid) or an Instagram
+  // identity (dawn_ig) — getUid() accepts both, so this gate must too.
+  const hasOwner = req.cookies.has("dawn_uid") || req.cookies.has("dawn_ig");
 
-  // Employee trying to reach the admin dashboard → send to their portal.
-  if (pathname.startsWith("/dashboard") && hasEmp) {
-    return NextResponse.redirect(new URL("/team", req.url));
+  // The unified dashboard admits both actors. With no session of either kind,
+  // send them to the door that fits: employees know /team-login, owners /signin.
+  // (We can't tell which they are with no cookie, so /signin carries both —
+  // it links to the employee login.)
+  if (pathname.startsWith("/dashboard") && !hasEmp && !hasOwner) {
+    return NextResponse.redirect(new URL("/signin", req.url));
   }
 
-  // Team portal requires an employee session cookie.
-  if (pathname === "/team" && !hasEmp) {
-    return NextResponse.redirect(new URL("/team-login", req.url));
-  }
-
+  // /team is a retired bookmark. Its page component decides where to send
+  // people; middleware stays out of the way so the two can't disagree.
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/team"],
+  matcher: ["/dashboard/:path*"],
 };
