@@ -192,6 +192,11 @@ export default function TeamDashboard() {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-5 pb-28">
         {activeTab === "dashboard" && can("dashboard") && (
           <>
+            {/* V60: the portal is moving into the main app shell — same login. */}
+            <a href="/dashboard" className="bg-navy rounded-2xl p-3.5 text-white text-sm flex items-center justify-between hover:bg-navy-soft">
+              <span><span className="font-semibold">Dawn has a new home.</span> <span className="text-white/70">Your workspace now lives in the main app — try it.</span></span>
+              <span className="shrink-0 ml-3 text-amber font-semibold">Open →</span>
+            </a>
             {/* V51: rendered in ASSEMBLED order. Each widget id maps to a
                 render over the same data the old hardcoded home used; the
                 registry (lib/workspace.ts) decides inclusion and order. The

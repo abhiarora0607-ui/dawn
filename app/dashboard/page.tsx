@@ -7,6 +7,8 @@ import { Onboarding } from "@/components/Onboarding";
 import { ActionRunner } from "@/components/ActionRunner";
 import { ValueSummary } from "@/components/ValueSummary";
 import { BriefingSuggestions } from "@/components/BriefingSuggestions";
+import { EmployeeHome } from "@/components/EmployeeHome";
+import { useActor } from "@/lib/use-actor";
 import {
   TrendingUp, TrendingDown, Loader2,
   Sparkles, Trophy, AlertTriangle, Eye, Bookmark, Clock, Target, Users, RefreshCw,
@@ -95,6 +97,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [activeAction, setActiveAction] = useState<BriefAction | null>(null);
+  const actor = useActor();
 
   function load() {
     setLoading(true);
@@ -112,6 +115,20 @@ export default function Dashboard() {
   }
 
   useEffect(() => { load(); }, []);
+
+  // V60 spine: an employee session gets THEIR home in the same shell. This
+  // branch sits after every hook (identical hook count on every render — the
+  // V51 crash class stays extinct) and before the single return below.
+  if (actor?.kind === "employee") {
+    return (
+      <DashboardShell>
+        <main className="flex-1">
+          <DashTopbar pageTitle="Home" />
+          <EmployeeHome />
+        </main>
+      </DashboardShell>
+    );
+  }
 
   return (
     <DashboardShell>

@@ -1073,6 +1073,41 @@ console.log("\n[33] Plan activation flows through applySuccessfulPayment only");
   if (bad === 0) pass("one activation path: route and future webhook share applySuccessfulPayment");
 }
 
+// ---- 34. THE NAV REGISTRY IS THE LAW; NO DEAD DOORS (V60) -------------------
+// One registry (lib/nav.ts) declares every shell destination and who may use
+// it; the shell must consult it for BOTH rendering and route-guarding, and
+// every employee-visible entry must point at a page that exists on disk.
+// A ghost href is a build failure here — not a blank screen on a shop floor.
+console.log("\n[34] Nav registry is the law: guarded shell, no dead doors");
+{
+  let bad = 0;
+  const nav = read("lib/nav.ts");
+  if (!/export const NAV/.test(nav) || !/who: "(owner|employee|both)"/.test(nav)) {
+    fail("lib/nav.ts lost the actor-typed registry"); bad++;
+  }
+  const shell = read("components/DashboardShell.tsx");
+  if (!/from "@\/lib\/nav"/.test(shell)) { fail("DashboardShell no longer imports the registry — a second nav truth is forming"); bad++; }
+  if (!/actor-route-guard/.test(shell) || !/allowedFor\(/.test(shell) || !/matchEntry\(/.test(shell)) {
+    fail("the actor-route-guard left the shell — typed URLs would reach excluded modules again"); bad++;
+  }
+  // No dead doors: every employee-facing href resolves to a real page file.
+  const hrefs = [];
+  const entryRe = /\{ href: "([^"]+)"[^\n]*?who: "(employee|both)"/g;
+  let m;
+  while ((m = entryRe.exec(nav))) hrefs.push(m[1]);
+  for (const h of hrefs) {
+    if (!h.startsWith("/dashboard")) continue; // /contact is a public page
+    const rel = h === "/dashboard" ? "app/dashboard/page.tsx" : `app${h}/page.tsx`;
+    try { read(rel); } catch { fail(`registry promises ${h} to employees but ${rel} does not exist — a dead door`); bad++; }
+  }
+  if (hrefs.length < 8) { fail(`only ${hrefs.length} employee-facing entries parsed — the registry shape drifted from this check`); bad++; }
+  // The portal must steer to the new home until V61 retires it.
+  if (!/Dawn has a new home/.test(read("app/team/page.tsx"))) {
+    fail("the /team portal lost its new-home banner — the migration path went dark"); bad++;
+  }
+  if (bad === 0) pass(`registry-driven shell, route guard present, ${hrefs.length} employee doors all real, portal steers home`);
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {
