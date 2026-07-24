@@ -18,7 +18,7 @@ export default function EmployeeLogin() {
     try {
       const res = await fetch("/api/employee-login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ loginId, password }) });
       const d = await res.json();
-      if (res.ok) router.push("/team");
+      if (res.ok) router.push("/dashboard");
       else setError(d.error || "Login failed.");
     } catch { setError("Network error."); }
     setBusy(false);

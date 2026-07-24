@@ -1,3 +1,4 @@
+import { H } from "@/lib/http";
 // lib/attendance-db.ts
 // The database side of attendance. Everything that needs to read settings or
 // write a computed day goes through here, so punch, regularization, the owner
@@ -8,9 +9,6 @@ import {
   type LogRow, type Classification,
 } from "@/lib/attendance";
 
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 export type AttSettings = {
   uid: string;

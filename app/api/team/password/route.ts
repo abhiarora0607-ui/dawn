@@ -2,10 +2,10 @@
 import { NextResponse } from "next/server";
 import { getEmployee } from "@/lib/employee-auth";
 import { hashPassword, verifyPassword, passwordIssue } from "@/lib/password";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SECRET_KEY }; }
-function H(key: string, extra: Record<string, string> = {}) { return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra }; }
 
 export async function POST(req: Request) {
   const ctx = await getEmployee();

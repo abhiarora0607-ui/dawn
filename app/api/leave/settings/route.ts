@@ -10,11 +10,9 @@ import { getAttSettings } from "@/lib/attendance-db";
 import { getLeaveTypes } from "@/lib/leave-db";
 import { LEAVE_LABEL, LEAVE_HINT, LEAVE_CODES } from "@/lib/leave";
 import { audit } from "@/lib/audit";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 async function ctx() {
   const uid = await getUid();

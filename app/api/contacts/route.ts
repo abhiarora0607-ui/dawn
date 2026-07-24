@@ -7,13 +7,11 @@ import { ensureOwnerEmployee } from "@/lib/owner-employee";
 import { touchActive } from "@/lib/touch";
 import { audit } from "@/lib/audit";
 import { softDelete } from "@/lib/soft-delete";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SECRET_KEY }; }
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 async function logActivity(url: string, key: string, uid: string, contactId: string, type: string, content: string, meta: any = {}) {
   await fetch(`${url}/rest/v1/activities`, {
@@ -38,9 +36,14 @@ export async function GET(req: Request) {
       const rows = await res.json();
       return NextResponse.json({ duplicate: rows?.[0] || null });
     }
-    // full-scan: pipeline view + counts need every row; paginate in V61
-    const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&order=created_at.desc`, { headers: H(key), cache: "no-store" });
-    return NextResponse.json({ contacts: await res.json(), authed: true });
+    // V61: capped at the latest 1000, with an honest total. A shop with 40k
+    // contacts gets a fast page and a true count — not a 12-second stall.
+    // Search still narrows within the loaded set; full paging lands with the
+    // module deepening (V62).
+    const res = await fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&deleted_at=is.null&order=created_at.desc&limit=1000`, { headers: H(key, { Prefer: "count=exact" }), cache: "no-store" });
+    const rows = await res.json();
+    const total = Number((res.headers.get("content-range") || "").split("/")[1]) || (Array.isArray(rows) ? rows.length : 0);
+    return NextResponse.json({ contacts: rows, authed: true, total, capped: Array.isArray(rows) && total > rows.length });
   } catch { return NextResponse.json({ contacts: [], authed: true }); }
 }
 

@@ -35,6 +35,7 @@ export type NavEntry = {
   perm?: string;                     // employee permission gate
   when?: (a: EmployeeActor) => boolean; // employee position/context gate
   badge?: boolean;
+  group?: "crm";                     // employee sidebar sub-section
   lockArea?: "crm" | "instagram_ai"; // owner entitlement lock (plan features)
 };
 
@@ -86,6 +87,17 @@ export const NAV: NavEntry[] = [
   { href: "/dashboard/my-team", label: "My Team", icon: "Users2", section: "employee", who: "employee",
     when: (a) => a.isAdmin || a.isLead },
 
+  // ---- employee · My CRM (V61: the portal's inline tabs, re-homed) --------
+  { href: "/dashboard/my-leads", label: "Leads", icon: "Users", section: "employee", who: "employee", perm: "leads", group: "crm" },
+  { href: "/dashboard/my-customers", label: "Customers", icon: "Users", section: "employee", who: "employee", perm: "customers", group: "crm" },
+  { href: "/dashboard/my-orders", label: "Orders", icon: "ShoppingBag", section: "employee", who: "employee", perm: "orders", group: "crm" },
+  { href: "/dashboard/messages", label: "Messages", icon: "MessageSquare", section: "employee", who: "employee", perm: "messaging", group: "crm" },
+  { href: "/dashboard/my-tasks", label: "Tasks", icon: "CheckSquare", section: "employee", who: "employee", perm: "tasks", group: "crm" },
+  { href: "/dashboard/my-calendar", label: "Calendar", icon: "CalendarDays", section: "employee", who: "employee", perm: "calendar", group: "crm" },
+  { href: "/dashboard/my-notes", label: "Notes", icon: "StickyNote", section: "employee", who: "employee", perm: "notes", group: "crm" },
+  { href: "/dashboard/my-reports", label: "Reports", icon: "BarChart3", section: "employee", who: "employee", perm: "reports", group: "crm" },
+  { href: "/dashboard/my-settings", label: "Profile", icon: "Settings", section: "employee", who: "employee", perm: "settings", group: "crm" },
+
   // ---- bottom ---------------------------------------------------------------
   { href: "/dashboard/billing", label: "Billing", icon: "CreditCard", section: "bottom", who: "owner" },
   { href: "/contact", label: "Help & support", icon: "LifeBuoy", section: "bottom", who: "both" },
@@ -123,4 +135,24 @@ export function matchEntry(pathname: string): NavEntry | null {
  *  would show them twice. */
 export function employeeNav(actor: Actor | undefined): NavEntry[] {
   return NAV.filter((e) => (e.section === "employee" || (e.who === "both" && e.section !== "bottom")) && allowedFor(actor, e));
+}
+
+/** The employee's mobile bottom bar: the V41 lesson, ported. Chosen, not
+ *  sliced — a salesperson's thumb finds Leads and Orders, not Leave. Five
+ *  is the ceiling; narrower targets defeat thumbs. */
+const MOBILE_PRIORITY = ["/dashboard", "/dashboard/my-leads", "/dashboard/my-orders", "/dashboard/inbox", "/dashboard/my-attendance", "/dashboard/my-customers", "/dashboard/my-tasks", "/dashboard/my-leave", "/dashboard/pay"];
+export function employeeMobileNav(actor: Actor | undefined): NavEntry[] {
+  const allowed = employeeNav(actor);
+  const byHref: Record<string, NavEntry> = {};
+  for (const e of allowed) byHref[e.href] = e;
+  const out: NavEntry[] = [];
+  for (const h of MOBILE_PRIORITY) {
+    if (out.length >= 5) break;
+    if (byHref[h]) out.push(byHref[h]);
+  }
+  for (const e of allowed) {
+    if (out.length >= 5) break;
+    if (!out.includes(e)) out.push(e);
+  }
+  return out;
 }

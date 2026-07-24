@@ -13,11 +13,9 @@ import { NextResponse } from "next/server";
 import { resolveApprover } from "@/lib/approvals";
 import { salaryEditMode, canApproveSalaryChange } from "@/lib/salary-authority";
 import { audit } from "@/lib/audit";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 /** The proposals this person may decide (finance/admin see all pending). */
 export async function GET() {

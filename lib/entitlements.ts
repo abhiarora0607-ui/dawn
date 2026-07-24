@@ -17,10 +17,8 @@
 
 import { audit } from "@/lib/audit";
 import { recordSubEvent } from "@/lib/billing-events";
+import { H } from "@/lib/http";
 
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 const TRIAL_PLAN_ID = "00000000-0000-0000-0000-000000000003"; // Pro — trials taste everything
 const DAY = 86400000;

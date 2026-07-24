@@ -18,11 +18,9 @@ import { getUid } from "@/lib/auth";
 import { countRecords, wipeRecords, summariseCounts, verifyWipe } from "@/lib/data-lifecycle-db";
 import { RESET_PRESERVES } from "@/lib/data-lifecycle";
 import { audit } from "@/lib/audit";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 async function ctx() {
   const uid = await getUid();

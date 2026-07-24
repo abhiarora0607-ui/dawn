@@ -8,11 +8,9 @@ import { getUid } from "@/lib/auth";
 import { requireArea } from "@/lib/entitlements";
 import { getAttSettings } from "@/lib/attendance-db";
 import { audit } from "@/lib/audit";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 const num = (v: any, lo: number, hi: number, dflt: number) => {
   const n = Number(v);
   return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : dflt;

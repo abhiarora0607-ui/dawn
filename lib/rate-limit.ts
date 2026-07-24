@@ -1,11 +1,9 @@
+import { H } from "@/lib/http";
 // lib/rate-limit.ts
 // Serverless-safe rate limiting backed by a Supabase table. Every failed
 // attempt writes a row; too many recent rows for one identifier blocks the
 // action for a cooling-off window. Successful auth clears the counter.
 
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 const MAX_ATTEMPTS = 5;
 const WINDOW_MIN = 15;

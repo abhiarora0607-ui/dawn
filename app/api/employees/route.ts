@@ -9,6 +9,7 @@ import { writeBlocked, getEntitlements, requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { ensureOwnerEmployee } from "@/lib/owner-employee";
 import { audit } from "@/lib/audit";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,6 @@ function attendanceFields(b: any, out: any) {
 }
 
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SECRET_KEY }; }
-function H(key: string, extra: Record<string, string> = {}) { return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra }; }
 
 async function syncSalaryRecurring(url: string, key: string, uid: string, emp: any) {
   const month = new Date().toISOString().slice(0, 7); // YYYY-MM

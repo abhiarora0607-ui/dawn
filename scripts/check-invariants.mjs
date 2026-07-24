@@ -871,8 +871,10 @@ console.log("\n[27] The inbox delegates authority");
   if (/decide\(/.test(watchingBlock)) {
     fail("the watching (non-actionable) band renders decide buttons"); bad++;
   }
-  const page = read("app/team/page.tsx");
-  if (!/approvals_count[\s\S]{0,200}setTab\("inbox"\)/.test(page)) {
+  // V61: the home moved from the portal monolith into EmployeeHome — the
+  // invariant follows the behavior, not the file.
+  const home = read("components/EmployeeHome.tsx");
+  if (!/approvals_count[\s\S]{0,200}router\.push\("\/dashboard\/inbox"\)/.test(home)) {
     fail("the home approvals card no longer opens the inbox"); bad++;
   }
   if (bad === 0) pass("all four kinds decided by the real authority functions, buttons only where they act");
@@ -1101,9 +1103,10 @@ console.log("\n[34] Nav registry is the law: guarded shell, no dead doors");
     try { read(rel); } catch { fail(`registry promises ${h} to employees but ${rel} does not exist — a dead door`); bad++; }
   }
   if (hrefs.length < 8) { fail(`only ${hrefs.length} employee-facing entries parsed — the registry shape drifted from this check`); bad++; }
-  // The portal must steer to the new home until V61 retires it.
-  if (!/Dawn has a new home/.test(read("app/team/page.tsx"))) {
-    fail("the /team portal lost its new-home banner — the migration path went dark"); bad++;
+  // V61: the portal is a thin, session-aware redirect — and stays that way.
+  const teamSrc = read("app/team/page.tsx");
+  if (!/redirect\(uid \|\| emp \? "\/dashboard" : "\/team-login"\)/.test(teamSrc) || teamSrc.split("\n").length > 30) {
+    fail("app/team is no longer a thin session-aware redirect — the monolith is creeping back"); bad++;
   }
   if (bad === 0) pass(`registry-driven shell, route guard present, ${hrefs.length} employee doors all real, portal steers home`);
 }

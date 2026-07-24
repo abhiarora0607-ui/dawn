@@ -19,11 +19,9 @@ import { getBalances, getLeaveTypes } from "@/lib/leave-db";
 import { LEAVE_LABEL } from "@/lib/leave";
 import { roleOf, ROLE_LABEL } from "@/lib/org";
 import { audit } from "@/lib/audit";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 export async function GET(req: Request) {
   const uid = await getUid();

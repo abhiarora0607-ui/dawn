@@ -2,7 +2,7 @@
 // actor can see AND reach — the sidebar and the route guard both call it, so
 // pinning it here pins both. The Karan case matters most: authority without
 // a team (finance approver, zero reports) must still see the Inbox.
-import { NAV, allowedFor, matchEntry, employeeNav, type Actor } from "../lib/nav.ts";
+import { NAV, allowedFor, matchEntry, employeeNav, employeeMobileNav, type Actor } from "../lib/nav.ts";
 
 const t: [string, any, string][] = [];
 const owner: Actor = { kind: "owner" };
@@ -32,6 +32,20 @@ t.push(["…a lead qualifies", String(allowedFor(emp({ isLead: true }), by("/das
 t.push(["a plain employee has no Inbox", String(allowedFor(emp(), by("/dashboard/inbox"))), "false"]);
 t.push(["a lead has the Inbox", String(allowedFor(emp({ isLead: true }), by("/dashboard/inbox"))), "true"]);
 t.push(["finance authority WITHOUT a team still has the Inbox", String(allowedFor(emp({ permissions: ["expense_approve", "payment_record"] }), by("/dashboard/inbox"))), "true"]);
+
+// ---- V61: the CRM doors carry the portal's exact permissions ----
+t.push(["Leads needs the leads permission", String(allowedFor(emp(), by("/dashboard/my-leads"))), "false"]);
+t.push(["…and opens with it", String(allowedFor(emp({ permissions: ["leads"] }), by("/dashboard/my-leads"))), "true"]);
+t.push(["Messages needs messaging", String(allowedFor(emp({ permissions: ["leads"] }), by("/dashboard/messages"))), "false"]);
+t.push(["Profile needs the settings permission", String(allowedFor(emp(), by("/dashboard/my-settings"))), "false"]);
+t.push(["CRM detail paths inherit the module rule", String(matchEntry("/dashboard/my-leads/abc")?.href), "/dashboard/my-leads"]);
+
+// ---- V61: the mobile bar is chosen, not sliced (the V41 lesson, ported) ----
+const rep = emp({ permissions: ["leads", "orders", "customers", "tasks"] });
+t.push(["a rep's thumb finds Leads second", employeeMobileNav(rep)[1]?.href, "/dashboard/my-leads"]);
+t.push(["…and Orders third", employeeMobileNav(rep)[2]?.href, "/dashboard/my-orders"]);
+t.push(["five is the ceiling", String(employeeMobileNav(rep).length), "5"]);
+t.push(["a plain employee's bar is the personal five", employeeMobileNav(emp()).map((e) => e.href).join(","), "/dashboard,/dashboard/my-attendance,/dashboard/my-leave,/dashboard/pay,/dashboard/expenses"]);
 
 // ---- signed-out and route matching ----
 t.push(["no session, no entries", String(allowedFor(nobody, by("/dashboard"))), "false"]);

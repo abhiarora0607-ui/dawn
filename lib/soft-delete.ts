@@ -1,11 +1,9 @@
+import { H } from "@/lib/http";
 // lib/soft-delete.ts
 // One place for delete/restore so every route behaves identically. Soft-delete
 // stamps deleted_at; restore clears it; purge removes rows past the recovery
 // window for good. All operations are uid-scoped by the caller.
 
-function H(key: string) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=minimal" };
-}
 
 const RECOVERY_DAYS = 30;
 

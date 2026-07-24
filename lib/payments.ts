@@ -15,10 +15,8 @@
 //      homegrown billing.
 
 import { recordSubEvent } from "@/lib/billing-events";
+import { H } from "@/lib/http";
 
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 const MONTH = 30 * 86400000, YEAR = 365 * 86400000;
 
 export type CheckoutRequest = {

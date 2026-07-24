@@ -71,6 +71,22 @@ console.log("\n[11] Data-fetching pages show loading and failure states");
   if (bad === 0) pass("every fetching page handles the slow case and the broken case");
 }
 
+
+// [12] One header builder to rule them all (V61).
+// H() lives in lib/http.ts and nowhere else. A file-local twin is how header
+// drift starts; this gate makes the drift a build failure instead of a
+// six-months-later silent PATCH no-op.
+console.log("\n[12] No file-local H() twins — lib/http is the only copy");
+{
+  let bad = 0;
+  for (const f of walk("app", [], [".ts"]).concat(walk("lib", [], [".ts"]))) {
+    if (f === "lib/http.ts") continue;
+    const src = readFileSync(f, "utf8");
+    if (/^function H\(/m.test(src)) { fail(`${f} regrew a local H() — import it from lib/http`); bad++; }
+  }
+  if (bad === 0) pass("every Supabase call shares the one header builder");
+}
+
 console.log("================================================");
 
 // ---- 1. READABLE TYPE -------------------------------------------------------
@@ -302,6 +318,22 @@ console.log("\n[11] Data-fetching pages show loading and failure states");
     if (!/(error|try again|retry)/i.test(s2)) { fail(`${f} fetches but has no failure treatment`); bad++; }
   }
   if (bad === 0) pass("every fetching page handles the slow case and the broken case");
+}
+
+
+// [12] One header builder to rule them all (V61).
+// H() lives in lib/http.ts and nowhere else. A file-local twin is how header
+// drift starts; this gate makes the drift a build failure instead of a
+// six-months-later silent PATCH no-op.
+console.log("\n[12] No file-local H() twins — lib/http is the only copy");
+{
+  let bad = 0;
+  for (const f of walk("app", [], [".ts"]).concat(walk("lib", [], [".ts"]))) {
+    if (f === "lib/http.ts") continue;
+    const src = readFileSync(f, "utf8");
+    if (/^function H\(key/m.test(src)) { fail(`${f} regrew a local H() — import it from lib/http`); bad++; }
+  }
+  if (bad === 0) pass("every Supabase call shares the one header builder");
 }
 
 console.log("================================================\n");

@@ -11,11 +11,9 @@ import { resolveApprover, canDecideFor, canDecideWith, queueFilter } from "@/lib
 import { recomputeDay, getAttSettings } from "@/lib/attendance-db";
 import { IST_OFFSET_MIN, hhmmToMinutes } from "@/lib/attendance";
 import { audit } from "@/lib/audit";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 /** "2026-07-16" + "09:15" IST → the matching UTC instant. */
 function istToUtc(date: string, hhmm: string): string {

@@ -13,9 +13,9 @@ import { requireArea } from "@/lib/entitlements";
 import { getAttSettings, getHolidays, daysForRange, rulesFor } from "@/lib/attendance-db";
 import { approvedLeaveMap } from "@/lib/leave-db";
 import { istDate, addDays, dateRange, istWeekday, workedMinutesOf, dayValue } from "@/lib/attendance";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-function H(key: string) { return { apikey: key, Authorization: `Bearer ${key}` }; }
 
 export async function GET(req: Request) {
   const uid = await getUid();

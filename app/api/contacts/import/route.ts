@@ -9,12 +9,10 @@ import { writeBlocked, getEntitlements, requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { cleanName, cleanPhone, cleanEmail } from "@/lib/validate";
 import { ensureOwnerEmployee } from "@/lib/owner-employee";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL!, key: process.env.SUPABASE_SECRET_KEY! }; }
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 const VALID_STAGES = ["New Lead", "Contacted", "Negotiating", "Customer (Won)", "Lost"];
 const MAX_ROWS = 500;

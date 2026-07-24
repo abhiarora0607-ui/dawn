@@ -14,9 +14,9 @@ import { getUid } from "@/lib/auth";
 import { escalateApprover } from "@/lib/approvals";
 import { PERMISSIONS, PORTAL_PERMISSIONS } from "@/lib/permissions";
 import { migratePermissions } from "@/lib/permissions";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-function H(key: string) { return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" }; }
 
 export async function GET() {
   const uid = await getUid();

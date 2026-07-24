@@ -8,10 +8,10 @@ import { getUid } from "@/lib/auth";
 import { hashPassword, generatePassword, loginIdFromName, passwordIssue } from "@/lib/password";
 import { DEFAULT_EMPLOYEE_PERMISSIONS } from "@/lib/employee-auth";
 import { audit } from "@/lib/audit";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SECRET_KEY }; }
-function H(key: string, extra: Record<string, string> = {}) { return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra }; }
 
 // GET: list accounts for this owner (joined with employee names client-side).
 export async function GET() {

@@ -18,11 +18,9 @@ import { subtreeOf } from "@/lib/org";
 import { istDate } from "@/lib/attendance";
 import { LEAVE_LABEL } from "@/lib/leave";
 import { audit } from "@/lib/audit";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 async function resolve() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SECRET_KEY;

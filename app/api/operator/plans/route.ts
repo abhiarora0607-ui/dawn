@@ -5,12 +5,10 @@
 
 import { NextResponse } from "next/server";
 import { isOperator } from "@/lib/operator-auth";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL!, key: process.env.SUPABASE_SECRET_KEY! }; }
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 const FIELDS = ["name", "tagline", "price_monthly", "price_yearly", "trial_days", "features", "max_seats", "max_contacts", "sort_order", "is_active"];
 

@@ -14,11 +14,11 @@ import { NextResponse } from "next/server";
 import { sendMail, shell, alreadySent, markSent, APP } from "@/lib/mailer";
 import { recordSubEvent } from "@/lib/billing-events";
 import { scheduleDue } from "@/lib/billing-lifecycle";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-function H(key: string) { return { apikey: key, Authorization: `Bearer ${key}` }; }
 const DAY = 86400000;
 const money = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
 

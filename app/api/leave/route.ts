@@ -14,11 +14,9 @@ import { getLeaveTypes, getBalances, getBalancesBulk, adjustBalance } from "@/li
 import { LEAVE_LABEL, LEAVE_CODES, availableOf, dayRate, CURRENT_YEAR } from "@/lib/leave";
 import { dateRange, istDate } from "@/lib/attendance";
 import { audit } from "@/lib/audit";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 // V40: a manager decides their own team's leave. Before this, every request in
 // the company queued behind the owner — workable at three people, a bottleneck

@@ -6,10 +6,10 @@ import { NextResponse } from "next/server";
 import { isRateLimited, recordFailedAttempt, clearAttempts, clientIp, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import { verifyPassword } from "@/lib/password";
 import { newSessionToken } from "@/lib/employee-auth";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SECRET_KEY }; }
-function H(key: string, extra: Record<string, string> = {}) { return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra }; }
 
 async function recordLogin(url: string, key: string, uid: string, accountId: string | null, loginId: string, success: boolean, req: Request) {
   try {

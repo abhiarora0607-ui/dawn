@@ -1,3 +1,4 @@
+import { H } from "@/lib/http";
 // lib/mailer.ts
 // One place for every email Dawn sends. Uses Resend (already the provider for
 // magic-link sign-in), so V28 adds no new infrastructure.
@@ -13,9 +14,6 @@
 const FROM = process.env.RESEND_FROM || "Dawn <onboarding@resend.dev>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://dawn-jet.vercel.app";
 
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 // ---------------------------------------------------------------- template
 // Dawn's brand in an email-safe shell: tables, inline styles, no external CSS.

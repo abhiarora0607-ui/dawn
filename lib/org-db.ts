@@ -1,3 +1,4 @@
+import { H } from "@/lib/http";
 // lib/org-db.ts
 // Loads the org once per request and turns it into answers.
 //
@@ -13,9 +14,6 @@ import {
   type OrgEmployee, type Department, type OrgRole,
 } from "@/lib/org";
 
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 export type OrgContext = {
   employees: OrgEmployee[];

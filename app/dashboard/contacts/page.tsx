@@ -143,6 +143,7 @@ function ContactsInner() {
   const { toast } = useToast();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [capMeta, setCapMeta] = useState<{ capped: boolean; total: number }>({ capped: false, total: 0 });
   const [view, setView] = useState<"board" | "list">("board");
   const [showImport, setShowImport] = useState(false);
   const [quickAdd, setQuickAdd] = useState(false);
@@ -157,7 +158,7 @@ function ContactsInner() {
 
   function load() {
     setLoading(true);
-    fetch("/api/contacts").then((r) => r.json()).then((d) => { setContacts(d.contacts || []); setLoading(false); }).catch(() => setLoading(false));
+    fetch("/api/contacts").then((r) => r.json()).then((d) => { setContacts(d.contacts || []); setCapMeta({ capped: !!d.capped, total: d.total || 0 }); setLoading(false); }).catch(() => setLoading(false));
     fetch("/api/employees").then((r) => r.json()).then((d) => setEmpList((d.employees || []).map((e: any) => ({ id: e.id, name: e.name })))).catch(() => {});
   }
   useEffect(() => { load(); }, []);
@@ -197,6 +198,7 @@ function ContactsInner() {
           <div>
             <h1 className="font-display font-semibold text-2xl text-navy">Contacts</h1>
             <p className="text-muted text-sm mt-1">Your leads and customers, from first message to sale.</p>
+            {capMeta.capped && <p className="t-small text-amber-deep mt-1">Showing the latest 1,000 of {capMeta.total.toLocaleString("en-IN")} — search narrows within these; full paging arrives in V62.</p>}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button onClick={() => setShowImport(true)} className="flex items-center gap-1.5 text-sm font-medium border border-navy-line text-navy px-3 py-2 rounded-xl hover:bg-surface"><Upload className="w-4 h-4" /> <span className="hidden sm:inline">Import</span></button>

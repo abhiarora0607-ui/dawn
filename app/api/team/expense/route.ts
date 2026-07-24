@@ -16,15 +16,13 @@ import { guardEmployee, empHeaders } from "@/lib/employee-auth";
 import { resolveApprover } from "@/lib/approvals";
 import { getUid } from "@/lib/auth";
 import { audit } from "@/lib/audit";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 
 const CATEGORIES = ["Travel", "Food", "Supplies", "Client", "Other"];
 
 /** Same GET/POST helper shape the sibling routes use. */
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 export async function GET() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

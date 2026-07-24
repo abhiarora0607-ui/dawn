@@ -9,10 +9,8 @@
 // existed.
 
 import { OWNED_TABLES, shouldDelete, scopeFilter, CONFIRMATION_ORDER } from "@/lib/data-lifecycle";
+import { H } from "@/lib/http";
 
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 export type WipeMode = "demo" | "all";
 

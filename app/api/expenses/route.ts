@@ -3,12 +3,10 @@ import { NextResponse } from "next/server";
 import { writeBlocked, requireArea } from "@/lib/entitlements";
 import { softDelete } from "@/lib/soft-delete";
 import { getUid } from "@/lib/auth";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SECRET_KEY }; }
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 export async function GET() {
   const uid = await getUid();
@@ -17,9 +15,11 @@ export async function GET() {
   const _area = await requireArea(url, key, uid, "crm");
   if (_area) return NextResponse.json(_area, { status: 403 });
   try {
-    // full-scan: books view + totals; paginate in V61
-    const res = await fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&deleted_at=is.null&order=date.desc`, { headers: H(key), cache: "no-store" });
-    return NextResponse.json({ expenses: await res.json() });
+    // V61: capped at the latest 1000 with an honest total (see contacts).
+    const res = await fetch(`${url}/rest/v1/expenses?uid=eq.${uid}&deleted_at=is.null&order=date.desc&limit=1000`, { headers: H(key, { Prefer: "count=exact" }), cache: "no-store" });
+    const rows = await res.json();
+    const total = Number((res.headers.get("content-range") || "").split("/")[1]) || (Array.isArray(rows) ? rows.length : 0);
+    return NextResponse.json({ expenses: rows, total, capped: Array.isArray(rows) && total > rows.length });
   } catch { return NextResponse.json({ expenses: [] }); }
 }
 

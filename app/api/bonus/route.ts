@@ -14,11 +14,9 @@ import { requireArea } from "@/lib/entitlements";
 import { getEmployee } from "@/lib/employee-auth";
 import { loadOrg } from "@/lib/org-db";
 import { audit } from "@/lib/audit";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 async function resolve() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SECRET_KEY;

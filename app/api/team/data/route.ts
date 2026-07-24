@@ -5,10 +5,10 @@
 
 import { NextResponse } from "next/server";
 import { getEmployee, hasPermission } from "@/lib/employee-auth";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SECRET_KEY }; }
-function H(key: string) { const k = key; return { apikey: k, Authorization: `Bearer ${k}` }; }
 
 export async function GET(req: Request) {
   const ctx = await getEmployee();

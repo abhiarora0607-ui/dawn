@@ -8,12 +8,10 @@ import { NextResponse } from "next/server";
 import { requireArea } from "@/lib/entitlements";
 import { getUid } from "@/lib/auth";
 import { ensureOwnerEmployee } from "@/lib/owner-employee";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL!, key: process.env.SUPABASE_SECRET_KEY! }; }
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 // Insert and FAIL LOUDLY. A seed that half-works silently is worse than one
 // that says exactly which table rejected which column.

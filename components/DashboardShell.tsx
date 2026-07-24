@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DawnLogo } from "@/components/DawnLogo";
 import { TrialBanner } from "@/components/TrialBanner";
-import { NAV, allowedFor, matchEntry, employeeNav, type Actor } from "@/lib/nav";
+import { NAV, allowedFor, matchEntry, employeeNav, employeeMobileNav, type Actor } from "@/lib/nav";
 import { useActor } from "@/lib/use-actor";
 import {
   LayoutDashboard, TrendingUp, Users, PenLine, MessageSquare, Settings, ArrowRight, Mic, Plus, Menu, X, Bookmark, CalendarDays, CalendarClock, Palmtree, Network, Tag, Contact, Wallet, Lightbulb, ShoppingBag, UserCog, BarChart3, CheckSquare, Database, Flame, RotateCcw, CreditCard, Lock, LifeBuoy, Inbox, IndianRupee, Receipt, Sparkles, Users2, Search,
@@ -57,10 +57,14 @@ function NavLinks({ pathname, onNavigate, suggCount, ent, actor }: { pathname: s
 
   if (actor.kind === "employee") {
     const items = employeeNav(actor);
+    const work = items.filter((e) => e.group !== "crm");
+    const crm = items.filter((e) => e.group === "crm");
     return (
       <>
         <SectionLabel>Your workspace</SectionLabel>
-        {items.map((e) => <NavItem key={e.href} item={{ ...e, label: e.empLabel || e.label }} pathname={pathname} onNavigate={onNavigate} />)}
+        {work.map((e) => <NavItem key={e.href} item={{ ...e, label: e.empLabel || e.label }} pathname={pathname} onNavigate={onNavigate} />)}
+        {crm.length > 0 && <SectionLabel>My CRM</SectionLabel>}
+        {crm.map((e) => <NavItem key={e.href} item={{ ...e, label: e.empLabel || e.label }} pathname={pathname} onNavigate={onNavigate} />)}
         <div className="pt-3 mt-2 border-t border-navy-line/60">
           {NAV.filter((e) => e.section === "bottom" && allowedFor(actor, e)).map((e) => <NavItem key={e.href} item={e} pathname={pathname} onNavigate={onNavigate} />)}
           <button onClick={async () => { await fetch("/api/employee-login", { method: "DELETE" }); location.href = "/team-login"; }}
@@ -108,7 +112,7 @@ export function DashboardShell({ children }: { children: React.ReactNode; title?
   // Mobile bottom nav is actor-scoped too: an employee's thumb reaches THEIR
   // top destinations, not the owner's.
   const mobileItems = actor?.kind === "employee"
-    ? employeeNav(actor).slice(0, 5).map((e) => ({ href: e.href, label: e.empLabel || e.label, icon: e.icon }))
+    ? employeeMobileNav(actor).map((e) => ({ href: e.href, label: e.empLabel || e.label, icon: e.icon }))
     : [
         { href: "/dashboard", label: "Home", icon: LayoutDashboard },
         { href: "/dashboard/business", label: "Business", icon: LayoutDashboard },

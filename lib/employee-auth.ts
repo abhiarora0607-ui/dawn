@@ -10,7 +10,7 @@ import { PERMISSION_IDS, migratePermissions, satisfies } from "@/lib/permissions
 
 const SB_URL = () => process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SB_KEY = () => process.env.SUPABASE_SECRET_KEY;
-function H(extra: Record<string, string> = {}) {
+function empH(extra: Record<string, string> = {}) {
   const key = SB_KEY()!;
   return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
 }
@@ -61,11 +61,11 @@ export async function getEmployee(): Promise<EmployeeContext | null> {
   const url = SB_URL(), key = SB_KEY();
   if (!url || !key) return null;
   try {
-    const rows = await (await fetch(`${url}/rest/v1/employee_sessions?token=eq.${token}&select=*&limit=1`, { headers: H(), cache: "no-store" })).json();
+    const rows = await (await fetch(`${url}/rest/v1/employee_sessions?token=eq.${token}&select=*&limit=1`, { headers: empH(), cache: "no-store" })).json();
     const s = rows?.[0];
     if (!s || new Date(s.expires_at).getTime() < Date.now()) return null;
     // Load account for current permissions + active flag
-    const accRows = await (await fetch(`${url}/rest/v1/employee_accounts?id=eq.${s.account_id}&select=*&limit=1`, { headers: H(), cache: "no-store" })).json();
+    const accRows = await (await fetch(`${url}/rest/v1/employee_accounts?id=eq.${s.account_id}&select=*&limit=1`, { headers: empH(), cache: "no-store" })).json();
     const acc = accRows?.[0];
     if (!acc || !acc.active) return null;
 
@@ -80,7 +80,7 @@ export async function getEmployee(): Promise<EmployeeContext | null> {
     // Employee name (for greeting)
     let name: string | undefined;
     try {
-      const eRows = await (await fetch(`${url}/rest/v1/employees?id=eq.${s.employee_id}&select=name&limit=1`, { headers: H(), cache: "no-store" })).json();
+      const eRows = await (await fetch(`${url}/rest/v1/employees?id=eq.${s.employee_id}&select=name&limit=1`, { headers: empH(), cache: "no-store" })).json();
       name = eRows?.[0]?.name;
     } catch {}
     return { uid: s.uid, employeeId: s.employee_id, accountId: s.account_id, permissions: acc.permissions || [], name };

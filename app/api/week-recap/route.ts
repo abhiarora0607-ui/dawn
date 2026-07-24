@@ -5,9 +5,9 @@
 import { NextResponse } from "next/server";
 import { getUid } from "@/lib/auth";
 import { requireArea } from "@/lib/entitlements";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-function H(key: string) { return { apikey: key, Authorization: `Bearer ${key}` }; }
 
 export async function GET() {
   const uid = await getUid();

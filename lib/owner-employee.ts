@@ -1,11 +1,9 @@
+import { H } from "@/lib/http";
 // lib/owner-employee.ts
 // Every business has exactly one non-deletable "owner" employee record. It
 // makes assignment universal: solo sellers assign to themselves, teams assign
 // to real staff, and nothing is ever left unassigned.
 
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 /** Returns the owner-employee id for this business, creating it if missing. */
 export async function ensureOwnerEmployee(url: string, key: string, uid: string, name?: string): Promise<string | null> {

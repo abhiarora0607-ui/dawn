@@ -7,10 +7,8 @@ import {
   type LeaveType, type Balance,
 } from "@/lib/leave";
 import { istDate } from "@/lib/attendance";
+import { H } from "@/lib/http";
 
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 const SEED: Record<string, Partial<LeaveType>> = {
   casual: { accrual: "monthly", amount: 1, enabled: true, carries_forward: false, encashable: false, sort_order: 1 },

@@ -12,11 +12,9 @@ import { getEmployee } from "@/lib/employee-auth";
 import { loadOrg } from "@/lib/org-db";
 import { wouldCycle, roleOf, childrenOf, ROLE_LABEL } from "@/lib/org";
 import { audit } from "@/lib/audit";
+import { H } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-function H(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
-}
 
 /**
  * Both the owner and a signed-in employee can read the org, so resolve
