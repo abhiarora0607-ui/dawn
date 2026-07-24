@@ -10,6 +10,8 @@ import { getUid } from "@/lib/auth";
 import { getEntitlements } from "@/lib/entitlements";
 import { audit } from "@/lib/audit";
 import { sendMail, shell, APP } from "@/lib/mailer";
+import { recordSubEvent } from "@/lib/billing-events";
+import { classifyChange } from "@/lib/billing-lifecycle";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL!, key: process.env.SUPABASE_SECRET_KEY! }; }
@@ -23,12 +25,13 @@ export async function GET() {
   const { url, key } = sb();
   if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   try {
-    const [ent, plans, payments] = await Promise.all([
+    const [ent, plans, payments, events] = await Promise.all([
       getEntitlements(url, key, uid),
       fetch(`${url}/rest/v1/plans?is_active=eq.true&order=sort_order.asc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/payments?uid=eq.${uid}&order=created_at.desc&limit=24`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/subscription_events?uid=eq.${uid}&order=at.desc&limit=20`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []),
     ]);
-    return NextResponse.json({ ent, plans: Array.isArray(plans) ? plans : [], payments: Array.isArray(payments) ? payments : [] });
+    return NextResponse.json({ ent, plans: Array.isArray(plans) ? plans : [], payments: Array.isArray(payments) ? payments : [], events: Array.isArray(events) ? events : [] });
   } catch { return NextResponse.json({ error: "Couldn't load billing." }, { status: 500 }); }
 }
 
@@ -38,6 +41,17 @@ export async function POST(req: Request) {
   if (!uid || !url || !key) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   try {
     const b = await req.json();
+
+    // ---- undo a scheduled plan change (V58) ---------------------------
+    if (b.action === "undo_schedule") {
+      await fetch(`${url}/rest/v1/subscriptions?uid=eq.${uid}`, {
+        method: "PATCH", headers: H(key, { Prefer: "return=minimal" }),
+        body: JSON.stringify({ scheduled_plan_id: null, scheduled_cycle: null, scheduled_at: null, effective_at: null, updated_at: new Date().toISOString() }),
+      });
+      await recordSubEvent(url, key, { uid, actor: "owner", action: "schedule_undone" });
+      await audit({ uid, action: "billing.undo_schedule", entity: "subscriptions", entityId: uid });
+      return NextResponse.json({ ok: true, note: "Change undone — your plan stays as it is." });
+    }
 
     // ---- cancel at period end / resume --------------------------------
     if (b.action === "cancel" || b.action === "resume") {
@@ -51,6 +65,10 @@ export async function POST(req: Request) {
         // churn research from day one
         fetch(`${url}/rest/v1/events`, { method: "POST", headers: H(key, { Prefer: "return=minimal" }), body: JSON.stringify({ uid, kind: "cancel", meta: { reason: patch.cancel_reason } }) }).catch(() => {});
       }
+      await recordSubEvent(url, key, {
+        uid, actor: "owner", action: b.action === "cancel" ? "cancelled" : "resumed",
+        toStatus: patch.status, reason: patch.cancel_reason || null,
+      });
       await audit({ uid, action: `billing.${b.action}`, entity: "subscriptions", entityId: uid, meta: { reason: b.reason } });
       return NextResponse.json({ ok: true });
     }
@@ -62,6 +80,32 @@ export async function POST(req: Request) {
     if (!plan) return NextResponse.json({ error: "Plan not found." }, { status: 400 });
 
     const listPrice = Number(cycle === "yearly" ? plan.price_yearly : plan.price_monthly) || 0;
+
+    // ---- V58: classify. Paying more applies now; anything else schedules
+    // for period end — access never shrinks mid-cycle, and there's an undo.
+    // No charge happens on the scheduled path, so coupons wait for checkout.
+    const entNow = await getEntitlements(url, key, uid);
+    if (classifyChange(entNow.effective, entNow.priceLocked, listPrice) === "scheduled") {
+      const effAt = entNow.periodEnd || new Date(Date.now() + MONTH).toISOString();
+      await fetch(`${url}/rest/v1/subscriptions?uid=eq.${uid}`, {
+        method: "PATCH", headers: H(key, { Prefer: "return=minimal" }),
+        body: JSON.stringify({
+          scheduled_plan_id: plan.id, scheduled_cycle: cycle,
+          scheduled_at: new Date().toISOString(), effective_at: effAt,
+          cancel_at_period_end: false, updated_at: new Date().toISOString(),
+        }),
+      });
+      await recordSubEvent(url, key, {
+        uid, actor: "owner", action: "change_scheduled",
+        fromPlanId: entNow.planId, toPlanId: plan.id, fromStatus: entNow.status, cycle,
+        meta: { effective_at: effAt, coupon_deferred: !!b.coupon },
+      });
+      await audit({ uid, action: "billing.schedule", entity: "subscriptions", entityId: uid, meta: { to: plan.name, cycle, effAt } });
+      return NextResponse.json({
+        ok: true, scheduled: true, planName: plan.name, effectiveAt: effAt,
+        note: `No charge today — ${plan.name} takes over on ${new Date(effAt).toLocaleDateString("en-IN")}. Your current plan runs until then.${b.coupon ? " Apply your coupon when it renews." : ""}`,
+      });
+    }
 
     // ---- coupon (optional) ----
     let discount = 0, couponCode: string | null = null;
@@ -117,7 +161,14 @@ export async function POST(req: Request) {
         uid, plan_id: plan.id, status: "active", billing_cycle: cycle,
         period_start: now.toISOString(), period_end: periodEnd.toISOString(),
         price_locked: amount, cancel_at_period_end: false, updated_at: now.toISOString(),
+        scheduled_plan_id: null, scheduled_cycle: null, scheduled_at: null, effective_at: null,
       }),
+    });
+    await recordSubEvent(url, key, {
+      uid, actor: "owner", action: "plan_changed",
+      fromPlanId: entNow.planId, toPlanId: plan.id,
+      fromStatus: entNow.status, toStatus: "active", cycle,
+      meta: { amount, reference, invoiceNo, couponCode },
     });
 
     // Coupon bookkeeping

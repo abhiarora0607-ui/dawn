@@ -12,6 +12,8 @@
 
 import { NextResponse } from "next/server";
 import { sendMail, shell, alreadySent, markSent, APP } from "@/lib/mailer";
+import { recordSubEvent } from "@/lib/billing-events";
+import { scheduleDue } from "@/lib/billing-lifecycle";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -30,7 +32,49 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Not allowed." }, { status: 401 });
   }
   if (!url || !key) return NextResponse.json({ error: "Not configured." }, { status: 500 });
-  if (!process.env.RESEND_API_KEY) return NextResponse.json({ ok: true, skipped: "no email provider configured" });
+  // ---- V58: apply due plan schedules FIRST. Money logic never waits on an
+  // email provider — this phase runs before the Resend guard below.
+  // Idempotent by construction: applying a schedule clears its columns, and
+  // cancel-at-period-end blocks application (leavers aren't moved).
+  const applied: string[] = [];
+  try {
+    const due = await fetch(`${url}/rest/v1/subscriptions?scheduled_plan_id=not.is.null&effective_at=lte.${new Date().toISOString()}&select=*`,
+      { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
+    const dueList = Array.isArray(due) ? due : [];
+    if (dueList.length) {
+      const ids = [...new Set(dueList.map((x: any) => x.scheduled_plan_id))];
+      const planRows = await fetch(`${url}/rest/v1/plans?id=in.(${ids.join(",")})&select=id,name,price_monthly,price_yearly`,
+        { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => []);
+      const planById: Record<string, any> = {};
+      for (const pl of Array.isArray(planRows) ? planRows : []) planById[pl.id] = pl;
+      for (const sub of dueList) {
+        if (!scheduleDue(sub, Date.now())) continue;
+        const pl = planById[sub.scheduled_plan_id];
+        if (!pl) continue;
+        const cyc = sub.scheduled_cycle || sub.billing_cycle || "monthly";
+        const start = new Date(sub.effective_at || Date.now());
+        const end = new Date(start.getTime() + (cyc === "yearly" ? 365 : 30) * 86400000);
+        await fetch(`${url}/rest/v1/subscriptions?uid=eq.${sub.uid}`, {
+          method: "PATCH", headers: { ...H(key), "Content-Type": "application/json", Prefer: "return=minimal" },
+          body: JSON.stringify({
+            plan_id: sub.scheduled_plan_id, billing_cycle: cyc, status: "active",
+            period_start: start.toISOString(), period_end: end.toISOString(),
+            price_locked: Number(cyc === "yearly" ? pl.price_yearly : pl.price_monthly) || 0,
+            scheduled_plan_id: null, scheduled_cycle: null, scheduled_at: null, effective_at: null,
+            updated_at: new Date().toISOString(),
+          }),
+        });
+        await recordSubEvent(url, key, {
+          uid: sub.uid, actor: "cron", action: "schedule_applied",
+          fromPlanId: sub.plan_id, toPlanId: sub.scheduled_plan_id,
+          fromStatus: sub.status, toStatus: "active", cycle: cyc,
+        });
+        applied.push(sub.uid);
+      }
+    }
+  } catch { /* schedules retry on the next run */ }
+
+  if (!process.env.RESEND_API_KEY) return NextResponse.json({ ok: true, applied: applied.length, skipped: "no email provider configured" });
 
   const now = Date.now();
   const sent: Record<string, number> = { welcome: 0, nudge: 0, trial_end: 0, renewal: 0, expired: 0, digest: 0 };

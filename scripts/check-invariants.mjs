@@ -1014,6 +1014,36 @@ console.log("\n[31] Entitlements: reads never write, inserts never overwrite");
   if (bad === 0) pass("error reads fail open and write nothing; the one insert can only no-op");
 }
 
+// ---- 32. EVERY SUBSCRIPTION WRITE EMITS AN EVENT (V58) ----------------------
+// The V56 bug stayed invisible for weeks because subscription state could
+// change with no trace. Never again: any file that writes the subscriptions
+// table (PATCH or POST, found by scanning a 3-line window around each
+// subscriptions fetch) must call recordSubEvent — owner actions, operator
+// overrides, cron applications, and the system's own trial creation alike.
+console.log("\n[32] Every subscription write emits a history event");
+{
+  let bad = 0;
+  const files = [];
+  const dirs = ["app", "lib"];
+  const collect = (d) => { for (const f of readdirSync(d)) { const p = d + "/" + f; if (f === "node_modules" || f.startsWith(".")) continue; if (statSync(p).isDirectory()) collect(p); else if (p.endsWith(".ts")) files.push(p); } };
+  dirs.forEach(collect);
+  for (const f of files) {
+    const src = read(f);
+    if (!src.includes("rest/v1/subscriptions")) continue;
+    const lines = src.split("\n");
+    let writes = false;
+    lines.forEach((l, i) => {
+      if (!l.includes("rest/v1/subscriptions")) return;
+      const win = lines.slice(Math.max(0, i - 2), i + 3).join("\n");
+      if (/method: "(PATCH|POST)"/.test(win)) writes = true;
+    });
+    if (writes && !src.includes("recordSubEvent(")) {
+      fail(`${f} writes subscriptions but records no event — state would change from nowhere again`); bad++;
+    }
+  }
+  if (bad === 0) pass("all four writers (billing, operator, cron, trial-create) pair writes with events");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

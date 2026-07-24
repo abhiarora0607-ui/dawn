@@ -16,6 +16,7 @@
 //   status column — no cron dependency for expiry.
 
 import { audit } from "@/lib/audit";
+import { recordSubEvent } from "@/lib/billing-events";
 
 function H(key: string, extra: Record<string, string> = {}) {
   return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
@@ -41,6 +42,11 @@ export type Entitlements = {
   testMode: boolean;
   trialStartedAt: string | null;
   renewsInDays: number | null;   // days until period_end while active
+  /** V58: a scheduled plan change, visible so the UI can show it and undo it. */
+  scheduledPlanId: string | null;
+  scheduledPlanName: string | null;
+  scheduledCycle: string | null;
+  scheduledEffectiveAt: string | null;
 };
 
 const OPEN: Entitlements = {
@@ -49,6 +55,7 @@ const OPEN: Entitlements = {
   maxSeats: null, trialEndsAt: null, daysLeft: null, cycle: "monthly", periodEnd: null,
   priceLocked: null, cancelAtPeriodEnd: false, testMode: true,
   trialStartedAt: null, renewsInDays: null,
+  scheduledPlanId: null, scheduledPlanName: null, scheduledCycle: null, scheduledEffectiveAt: null,
 };
 
 // ---------------------------------------------------------------- PURE CORE
@@ -141,12 +148,19 @@ export async function getEntitlements(url: string, key: string, uid: string): Pr
         entity: "subscriptions", entityId: uid,
         meta: { plan_id: TRIAL_PLAN_ID, trial_ends_at: sub.trial_ends_at },
       }).catch(() => {});
+      recordSubEvent(url, key, {
+        uid, actor: "system", action: "trial_started",
+        toPlanId: TRIAL_PLAN_ID, toStatus: "trialing", reason: "first sighting",
+      }).catch(() => {});
     }
 
-    const planRows = sub.plan_id
-      ? await fetch(`${url}/rest/v1/plans?id=eq.${sub.plan_id}&select=*&limit=1`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => [])
+    const planIds = [sub.plan_id, sub.scheduled_plan_id].filter(Boolean);
+    const planRows = planIds.length
+      ? await fetch(`${url}/rest/v1/plans?id=in.(${planIds.join(",")})&select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()).catch(() => [])
       : [];
-    const plan = (Array.isArray(planRows) && planRows[0]) || null;
+    const plansArr = Array.isArray(planRows) ? planRows : [];
+    const plan = plansArr.find((x: any) => x.id === sub.plan_id) || null;
+    const schedPlan = plansArr.find((x: any) => x.id === sub.scheduled_plan_id) || null;
 
     const now = Date.now();
     const { effective, daysLeft } = computeEffective(sub, graceDays, trialDays, now);
@@ -167,6 +181,10 @@ export async function getEntitlements(url: string, key: string, uid: string): Pr
       cancelAtPeriodEnd: !!sub.cancel_at_period_end,
       testMode,
       trialStartedAt: sub.created_at || sub.period_start || null,
+      scheduledPlanId: sub.scheduled_plan_id || null,
+      scheduledPlanName: schedPlan?.name || null,
+      scheduledCycle: sub.scheduled_cycle || null,
+      scheduledEffectiveAt: sub.effective_at || null,
       renewsInDays: effective === "active" && sub.period_end ? Math.max(0, Math.ceil((new Date(sub.period_end).getTime() - now) / DAY)) : null,
     };
   } catch {

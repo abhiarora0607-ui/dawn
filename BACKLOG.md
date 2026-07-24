@@ -8,7 +8,7 @@ V58 lifecycle (scheduled plan changes + subscription_events) · V59 billing dash
 - Duplicate contact merge · bulk actions on contacts (V64)
 - Recurring/subscription orders (V64)
 - HR leave-calendar month view (V64, in-shell)
-- GST invoices on Dawn's own subscription payments (V65)
+- Invoice document/ticket design (V65) — sequential FY numbering ALREADY exists (verified V58); only the printable doc remains
 - Referral give/get program (V65)
 - Automated export-to-storage backups (V65)
 - In-app help/docs (V65)

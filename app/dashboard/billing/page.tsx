@@ -89,6 +89,23 @@ function Inner() {
         </div>
       </div>
 
+      {e.scheduledPlanName && (
+        <div className="dawn-card p-4 border-amber/30 flex items-center justify-between gap-3">
+          <p className="t-small text-navy">
+            Moving to <strong>{e.scheduledPlanName}</strong>{e.scheduledCycle ? ` · ${e.scheduledCycle}` : ""} on{" "}
+            {e.scheduledEffectiveAt ? new Date(e.scheduledEffectiveAt).toLocaleDateString("en-IN") : "renewal"} — your current plan stays until then. No charge today.
+          </p>
+          <button
+            onClick={async () => {
+              await fetch("/api/billing", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "undo_schedule" }) });
+              location.reload();
+            }}
+            className="btn btn-quiet btn-sm shrink-0">
+            Undo
+          </button>
+        </div>
+      )}
+
       {e.effective === "active" && e.renewsInDays != null && e.renewsInDays <= 7 && !e.cancelAtPeriodEnd && (
         <div className="dawn-card border-amber/40 p-4 flex items-center justify-between gap-3 flex-wrap">
           <p className="text-sm text-navy"><span className="font-semibold">Renewal due in {e.renewsInDays} day{e.renewsInDays === 1 ? "" : "s"}.</span> <span className="text-muted">Renew now to start your next period.</span></p>

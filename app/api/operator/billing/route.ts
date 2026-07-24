@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { isOperator } from "@/lib/operator-auth";
 import { audit } from "@/lib/audit";
+import { recordSubEvent } from "@/lib/billing-events";
 
 export const dynamic = "force-dynamic";
 function sb() { return { url: process.env.NEXT_PUBLIC_SUPABASE_URL!, key: process.env.SUPABASE_SECRET_KEY! }; }
@@ -169,6 +170,11 @@ export async function POST(req: Request) {
     await fetch(`${url}/rest/v1/subscriptions`, {
       method: "POST", headers: H(key, { Prefer: "resolution=merge-duplicates,return=minimal" }),
       body: JSON.stringify({ uid: b.uid, ...patch }),
+    });
+    await recordSubEvent(url, key, {
+      uid: b.uid, actor: "operator", action: `operator_${b.action}`,
+      toPlanId: patch.plan_id || null, toStatus: patch.status || null,
+      meta: { days: b.days ?? null },
     });
     await audit({ uid: b.uid, action: `operator.billing.${b.action}`, entity: "subscriptions", entityId: b.uid, meta: { by: "operator", days: b.days, planId: b.planId } });
     return NextResponse.json({ ok: true });
