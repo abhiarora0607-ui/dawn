@@ -8,6 +8,7 @@ import { requireArea } from "@/lib/entitlements";
 import { getProviderAsync, getProvider } from "@/lib/data-provider";
 import { getBrandVoice, brandVoicePrompt } from "@/lib/brand-voice";
 import { getPersona, personaPrompt } from "@/lib/persona";
+import { calendarContext } from "@/lib/ai-calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,10 @@ async function aiIdeas(account: any, voicePrompt: string): Promise<any[] | null>
   const key = process.env.GEMINI_API_KEY;
   if (!key) return null;
 
+  // V63: the model now knows what week it is — festivals it should already be
+  // posting for, payday timing, weekend lift — so "publish this week" lands on
+  // real selling moments instead of generic evergreen.
+  const calendar = calendarContext();
   const prompt = `You are Dawn — a viral content strategist who has engineered thousands of high-performing Instagram posts. You understand hooks, pattern interrupts, saves-vs-likes psychology, and format-market fit. Generate 5 post ideas TAILORED to this specific account that they could shoot and publish this week.
 
 ACCOUNT: ${JSON.stringify({
@@ -24,7 +29,7 @@ ACCOUNT: ${JSON.stringify({
     niche: account.niche,
     audiencePrefers: account.audiencePrefers,
     topPost: account.topPost,
-  })}${voicePrompt}
+  })}${voicePrompt}${calendar ? "\n\n" + calendar : ""}
 
 Respond with JSON only — no markdown:
 [{"format":"Reel|Carousel|Story|Image","hook":"the exact first line/on-screen text that stops the scroll","idea":"the specific concept — what they actually shoot/show, 1 sentence","cta":"a specific call to action that drives saves, shares, or comments"}]
@@ -35,7 +40,8 @@ STRATEGIST RULES:
 - Lean hard into what their audience already rewards (${account.audiencePrefers}) — build on their proven winners, don't reinvent.
 - Ideas must be specific and shootable for THIS niche, never generic ("post a motivational quote" is banned).
 - CTAs should be engineered for the algorithm: prompt saves ("save this for later"), shares ("tag someone who…"), or comments ("what's your…?").
-- Write hooks a real top creator in their niche would actually use.`;
+- Write hooks a real top creator in their niche would actually use.
+- If a festival or occasion is coming up (see calendar context), work at least one timely idea around it — but only if it fits the niche; never force it.`;
 
   for (const model of MODELS) {
     try {

@@ -1167,6 +1167,33 @@ console.log("\n[36] Big lists page; employee reads go through the scope resolver
   if (bad === 0) pass("owner lists page by keyset, employee reads carry their scope, empty scopes stay empty");
 }
 
+// ---- 37. THE AI SURFACE STAYS GROUNDED AND LEAN (V63) -----------------------
+// Two regressions this version fixed must not creep back: the "what should I
+// post this week" prompt losing its sense of WHEN (calendar context), and the
+// daily-nudge read fetching whole rows it doesn't use (select=*, a payload
+// that grows with every column ever added). Both are cheap to keep right and
+// expensive to rediscover.
+console.log("\n[37] AI content knows the calendar; the nudge read stays lean");
+{
+  let bad = 0;
+  const content = read("app/api/content/route.ts");
+  if (!/calendarContext\(/.test(content)) {
+    fail("app/api/content dropped calendarContext — 'post this week' lost its sense of when"); bad++;
+  }
+  // The daily-nudge read must name its columns, never select=* (which drags
+  // every future column into the model's context for no reason).
+  const sug = read("app/api/suggestions/route.ts");
+  if (/contacts\?uid=eq\.\$\{uid\}&select=\*/.test(sug)) {
+    fail("suggestions fetches contacts with select=* again — name the columns the rules read"); bad++;
+  }
+  // The calendar module must not pad prompts with empty labelled blocks.
+  const cal = read("lib/ai-calendar.ts");
+  if (!/lines\.length > 1 \? "CALENDAR CONTEXT/.test(cal)) {
+    fail("calendarContext no longer guards the empty case — a quiet day would inject a hollow block"); bad++;
+  }
+  if (bad === 0) pass("content carries calendar context, the nudge read names its columns, quiet days stay silent");
+}
+
 // ---- RESULT -----------------------------------------------------------------
 console.log("\n" + "=".repeat(48));
 if (failures === 0) {

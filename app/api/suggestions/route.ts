@@ -24,11 +24,12 @@ export async function GET() {
 
   try {
     const [contacts, sales, activities, attachments, states] = await Promise.all([
-      // full-scan: AI reads the whole book; trim in V63
-      fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/sales?uid=eq.${uid}&select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      // Columns trimmed (V63) to exactly what the rules below read.
+      // full-scan: the whole book feeds the daily nudges — every contact is a candidate
+      fetch(`${url}/rest/v1/contacts?uid=eq.${uid}&select=id,name,phone,stage,follow_up_date,created_at&deleted_at=is.null`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/sales?uid=eq.${uid}&select=id,contact_id,status,date,balance`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/activities?uid=eq.${uid}&select=contact_id,created_at&order=created_at.desc`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
-      fetch(`${url}/rest/v1/attachments?uid=eq.${uid}&select=*`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
+      fetch(`${url}/rest/v1/attachments?uid=eq.${uid}&select=contact_id,kind`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
       fetch(`${url}/rest/v1/suggestion_state?uid=eq.${uid}&select=id,status`, { headers: H(key), cache: "no-store" }).then((r) => r.json()),
     ]);
 
